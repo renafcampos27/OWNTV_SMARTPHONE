@@ -22,7 +22,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -53,8 +52,6 @@ import tv.own.owntv.mobile.ui.theme.SquircleShape
 import tv.own.owntv.player.LiveProgramme
 import tv.own.owntv.player.PlaybackEngine
 import tv.own.owntv.player.OwnTVPlayer
-import tv.own.owntv.player.SleepTimer
-import org.koin.compose.koinInject
 import java.text.NumberFormat
 
 /** The pickers the tool bar opens. Each one is a sheet; each one also has a gesture. */
@@ -476,12 +473,8 @@ private fun ToolBar(
     recordingThis: Boolean = false,
     liveOnExo: Boolean = false,
     onToggleLiveEngine: (() -> Unit)? = null,
-    sleepTimer: SleepTimer = koinInject(),
 ) {
     val speed by engine.speed.collectAsStateWithLifecycle()
-    // Only whether one runs: the countdown ticks every second, and the bar must not redraw with it.
-    val sleepLeft = sleepTimer.remainingMs.collectAsStateWithLifecycle()
-    val sleepRunning by remember { derivedStateOf { sleepLeft.value != null } }
     val engineName by engine.engineChip.collectAsStateWithLifecycle()
     val qualities by engine.videoQualities.collectAsStateWithLifecycle()
     val qualityPick by engine.videoQualityPick.collectAsStateWithLifecycle()
@@ -521,21 +514,7 @@ private fun ToolBar(
                     onClick = { onOpenSheet(PlayerSheet.SPEED) },
                 )
             }
-            PlayerControl.SUBTITLES -> CtrlButton(
-                icon = MobileIcons.ClosedCaption,
-                label = stringResource(R.string.player_tool_subtitles),
-                onClick = { onOpenSheet(PlayerSheet.SUBTITLES) },
-            )
-            // Always, like the subtitles button beside it and like the television's — never gated on
-            // the track count. This sheet is also where A/V sync lives, and a single-soundtrack film
-            // is precisely the one whose voices need dragging back into line with the mouths; hidden
-            // on one track, the fix was unreachable exactly when it was wanted. An empty list says so
-            // itself, the way the subtitle sheet already does.
-            PlayerControl.AUDIO -> CtrlButton(
-                icon = MobileIcons.Audiotrack,
-                label = stringResource(R.string.player_tool_audio),
-                onClick = { onOpenSheet(PlayerSheet.AUDIO) },
-            )
+            PlayerControl.SUBTITLES, PlayerControl.AUDIO -> Unit
             // Adding what is on to Favourites without leaving it. From here there is no list row
             // to hold down, so the player has to carry the toggle itself.
             PlayerControl.FAVOURITE -> Unit
@@ -607,15 +586,7 @@ private fun ToolBar(
             // not a button.
             PlayerControl.MINI_PLAYER ->
                 CtrlButton(MobileIcons.PictureInPictureAlt, stringResource(R.string.settings_mini_player), onMini)
-            // Dropping the picture is the phone's biggest battery and data saving, so it is a
-            // button on the bar rather than something only the notification offers.
-            // H3 - the television's headphones glyph, not a music note.
-            PlayerControl.AUDIO_ONLY -> CtrlButton(
-                icon = MobileIcons.Headphones,
-                label = stringResource(R.string.player_tool_audio_only),
-                onClick = onAudioOnly,
-                active = audioOnly,
-            )
+            PlayerControl.AUDIO_ONLY -> Unit
             PlayerControl.MULTIVIEW -> if (onMultiview != null) {
                 CtrlButton(MobileIcons.GridView, stringResource(R.string.multiview_button), onMultiview)
             }
@@ -631,14 +602,7 @@ private fun ToolBar(
                     active = recordingThis,
                 )
             }
-            // N17 / M14 — the full-screen way to the sleep timer; the sound-only screen and the
-            // floating window already had one. Coloured while a countdown is running.
-            PlayerControl.SLEEP_TIMER -> CtrlButton(
-                icon = MobileIcons.Bedtime,
-                label = stringResource(R.string.player_sleep_timer),
-                onClick = { onOpenSheet(PlayerSheet.SLEEP_TIMER) },
-                active = sleepRunning,
-            )
+            PlayerControl.SLEEP_TIMER -> Unit
             PlayerControl.INFO -> CtrlButton(MobileIcons.Info, stringResource(R.string.player_tool_info), {
                 onOpenSheet(PlayerSheet.INFO)
             })
@@ -652,9 +616,14 @@ private fun ToolBar(
         }
     }
 
+    val hiddenControls = setOf(
+        PlayerControl.FAVOURITE, PlayerControl.PREVIOUS_CHANNEL,
+        PlayerControl.AUDIO, PlayerControl.AUDIO_ONLY, PlayerControl.SLEEP_TIMER, PlayerControl.SUBTITLES,
+    )
     val media = PlayerControl.clusterFor(tv = false, cluster = ControlCluster.MEDIA)
-        .filterNot { it == PlayerControl.FAVOURITE || it == PlayerControl.PREVIOUS_CHANNEL }
+        .filterNot { it in hiddenControls }
     val tools = PlayerControl.clusterFor(tv = false, cluster = ControlCluster.TOOLS)
+        .filterNot { it in hiddenControls }
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     if (landscape) {

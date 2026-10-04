@@ -79,3 +79,9 @@ Por pedido explícito do utilizador, a variante release mobile usa `signingConfi
 Gerar no Android Studio escolhendo `standardRelease` em Build Variants e Build → Generate App Bundles or APKs → Generate APKs. Não é necessário o assistente Generate Signed APK com criação de uma nova chave.
 
 A chave local está em `C:\Users\renat\.android\debug.keystore`. A configuração padrão tem alias `androiddebugkey` e palavras-passe `android`. As chaves de debug geradas em computadores diferentes não são necessariamente iguais: guardar o ficheiro fora do Git para continuar a atualizar instalações existentes. Esta assinatura serve o uso pessoal por instalação direta; não é uma chave de publicação para Google Play.
+
+## Simplificação dos botões do reprodutor
+
+Por pedido do utilizador, removidos do HUD os botões de seleção de faixa de áudio, Apenas áudio, Temporizador e Legendas. Os controlos são excluídos das duas disposições (retrato/paisagem), evitando espaços vazios. Removidas também as entradas Apenas áudio/Temporizador do menu do mini-reprodutor e o atalho de temporizador do fundo sem vídeo. O HUD deixa de observar o temporizador. A reprodução de áudio e a renderização de legendas existentes não são alteradas por esta remoção visual.
+
+Validação desta simplificação: :app:compileStandardDebugKotlin aprovado (BUILD SUCCESSFUL). Sem geração de APK e sem ensaio visual em dispositivo.

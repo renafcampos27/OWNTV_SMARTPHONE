@@ -408,22 +408,6 @@ fun FloatingWindowMenu(
             },
         )
         MobileListRow(
-            title = stringResource(R.string.player_tool_audio_only),
-            leading = { Icon(MobileIcons.MusicNote, contentDescription = null) },
-            onClick = {
-                onAudioOnly()
-                onDismiss()
-            },
-        )
-        MobileListRow(
-            title = stringResource(R.string.player_sleep_timer),
-            leading = { Icon(MobileIcons.Bedtime, contentDescription = null) },
-            onClick = {
-                onDismiss()
-                onSleepTimer()
-            },
-        )
-        MobileListRow(
             title = stringResource(R.string.player_pip_expand),
             leading = { Icon(MobileIcons.OpenInFull, contentDescription = null) },
             onClick = {

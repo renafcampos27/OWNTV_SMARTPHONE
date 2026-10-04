@@ -89,8 +89,6 @@ fun AudioOnlyBackdrop(
     programmeEndMs: Long? = null,
     sleepTimer: SleepTimer = koinInject(),
 ) {
-    val remaining by sleepTimer.remainingMs.collectAsStateWithLifecycle()
-    var timerSheet by remember { mutableStateOf(false) }
 
     Box(
         modifier.fillMaxSize().background(Color.Black),
@@ -150,25 +148,10 @@ fun AudioOnlyBackdrop(
                 active = playing,
                 modifier = Modifier.padding(top = MobileDimens.GapMedium),
             )
-            // The one thing the player's own bar does not already offer, and the reason most people
-            // drop the picture in the first place. The bar itself covers this spot, so it waits for
-            // the controls to go away — which they do on their own after a few seconds.
-            if (!compact) TextButton(onClick = { timerSheet = true }) {
-                Icon(MobileIcons.Bedtime, contentDescription = null, tint = Color.White)
-                Text(
-                    text = remaining?.let {
-                        stringResource(R.string.player_sleep_timer_remaining, minutesLabel(it))
-                    } ?: stringResource(R.string.player_sleep_timer),
-                    color = Color.White,
-                    modifier = Modifier.padding(start = MobileDimens.GapSmall),
-                )
-            }
+
         }
     }
 
-    if (timerSheet) {
-        SleepTimerSheet(programmeEndMs = programmeEndMs, onDismiss = { timerSheet = false })
-    }
 }
 
 /** The sleep timer's own picker — reached from this screen and from the floating window's menu. */
