@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_decoder_queueing">ExoPlayer processing</string>
+    <string name="settings_decoder_queueing_description">Automatic follows Android and Media3. Asynchronous can reduce playback interruptions; choose synchronous compatibility if it causes problems. Applies on the next channel or programme opening.</string>
+    <string name="settings_decoder_queueing_async">Asynchronous</string>
+    <string name="settings_decoder_queueing_sync">Synchronous compatibility</string>
+</resources>

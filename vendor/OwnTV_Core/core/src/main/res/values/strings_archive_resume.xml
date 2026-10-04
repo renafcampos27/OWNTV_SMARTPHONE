@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recording_archive_pause">Pause download</string>
+    <string name="recording_archive_resume">Resume download</string>
+    <string name="recording_archive_paused">Paused downloads</string>
+    <string name="recording_archive_retained">Segments retained. Resume checks continuity before continuing.</string>
+    <string name="recording_archive_resume_unavailable">Unable to pause or resume. Check the source, programme availability, storage and available connections.</string>
+    <string name="recording_archive_changed">Archive continuity could not be confirmed. Retained segments were preserved; request a separate recovery if needed.</string>
+</resources>

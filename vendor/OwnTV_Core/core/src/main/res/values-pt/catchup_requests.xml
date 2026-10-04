@@ -1,0 +1,5 @@
+<resources>
+    <string name="catchup_list_load_failed">Não foi possível carregar os programas. Tenta novamente.</string>
+    <string name="catchup_open_failed">Não foi possível abrir o instante escolhido no arquivo. Pode estar indisponível ou fora da janela atual. Podes tentar novamente ou escolher voltar ao direto.</string>
+    <string name="catchup_return_live">Voltar ao direto</string>
+</resources>

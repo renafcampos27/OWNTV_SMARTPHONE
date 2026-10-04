@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_catchup_request_shift">Archive playback time correction</string>
+    <string name="settings_catchup_request_shift_description">Adjusts only the time requested from the archive server. Guide times stay unchanged. Use +1 hour when the correct programme plays only after moving its time forward.</string>
+    <string name="settings_catchup_request_shift_value">Archive correction: %1$s</string>
+</resources>

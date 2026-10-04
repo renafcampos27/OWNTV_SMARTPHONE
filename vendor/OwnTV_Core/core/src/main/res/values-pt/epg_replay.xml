@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="epg_watch_live">Ver canal em direto</string>
+    <string name="epg_try_replay">Tentar ver este programa</string>
+    <string name="epg_replay_unconfirmed">Este programa é anterior ao arquivo indicado pelo canal. Podes pedi-lo, mas a disponibilidade depende do fornecedor.</string>
+</resources>

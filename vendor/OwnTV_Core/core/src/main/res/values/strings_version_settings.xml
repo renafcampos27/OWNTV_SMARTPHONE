@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_version_updates">Version and updates</string>
+    <string name="settings_version_updates_description">Installed version, check for updates and choose whether to install</string>
+    <string name="settings_installed_version">Installed version: %1$s</string>
+    <string name="settings_update_startup_status">Check at startup: %1$s</string>
+    <string name="settings_available_version">New version: %1$s</string>
+    <string name="settings_version_is_current">The installed version is up to date.</string>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guide_previous_day">Dia anterior</string>
+    <string name="guide_previous_hour">Hora anterior</string>
+    <string name="guide_next_hour">Hora seguinte</string>
+    <string name="guide_next_day">Dia seguinte</string>
+    <string name="guide_browse_time">%1$s · %2$s</string>
+</resources>

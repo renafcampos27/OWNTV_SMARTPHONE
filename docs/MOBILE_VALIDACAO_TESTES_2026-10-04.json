@@ -1,0 +1,20 @@
+{
+  "app": {
+    "tests": 48,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "core": {
+    "tests": 1049,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "player": {
+    "tests": 417,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}

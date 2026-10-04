@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:ns0="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="content_menu_group_organise">Organise</string>
+    <string name="content_epg_sort_favorites_first">Favourites first</string>
+    <string name="content_key_programmes">Programmes</string>
+    <string name="settings_app_icon">App icon</string>
+    <string name="settings_app_icon_summary">Colour of the OwnTV icon and logo</string>
+    <string name="settings_brand_accent">Accent-coloured logo</string>
+    <string name="app_icon_petrol">Petrol</string>
+    <string name="app_icon_sunflower">Sunflower</string>
+    <string name="app_icon_cobalt">Cobalt</string>
+    <string name="app_icon_tomato">Tomato</string>
+    <string name="app_icon_board">Station Board</string>
+    <string name="app_icon_eggshell">Eggshell</string>
+    <string name="app_icon_olive">Olive</string>
+    <string name="app_icon_olive_cream">Olive on Cream</string>
+    <string name="app_icon_pixel">Pixel</string>
+    <string name="app_icon_restart_title">Restart OwnTV?</string>
+    <string name="app_icon_restart_message">You chose a new icon and logo. They take effect after OwnTV restarts.</string>
+    <string name="app_icon_restart_now">Restart now</string>
+    <string name="settings_audio_passthrough_description">On: Dolby and DTS go undecoded to the TV, soundbar or receiver when it says it can play them (ExoPlayer). Off: the app decodes them, still as surround where Surround sound allows. mpv always decodes. Not used while Night mode or Volume levelling is on.</string>
+    <string name="settings_audio_passthrough_description_mobile">On: Dolby and DTS go undecoded to a connected TV or receiver when it says it can play them (ExoPlayer). Off: the app decodes them, still as surround where Surround sound allows. mpv always decodes. Not used while Night mode or Volume levelling is on.</string>
+    <string name="settings_volume_leveling">Volume levelling</string>
+    <string name="settings_volume_leveling_description">Brings every channel and film slowly to the same loudness, so switching does not jump in volume.</string>
+    <string name="settings_max_video_quality_description">The highest picture played when a channel or film offers several. Saves bandwidth and eases the decoder.</string>
+    <string name="settings_tunneled_playback">Tunnelled playback (experimental)</string>
+    <string name="settings_reminders">Programme reminders</string>
+    <string name="settings_reminders_description">What happens when a programme you set a reminder for is about to start.</string>
+    <string name="settings_reminder_lead_description">How long before the programme starts the reminder comes.</string>
+    <string name="more_fav_empty_title">No favourites yet</string>
+    <string name="more_fav_empty_body">Hold OK on a channel, film or show and choose Add to Favourites.</string>
+    <string name="more_backup_never_body">
+        <ns0:g id="playlists">%1$s</ns0:g>, <ns0:g id="favorites">%2$s</ns0:g>, <ns0:g id="history">%3$s</ns0:g> and every customisation live only on this TV.</string>
+    <plurals name="more_count_favorites">
+        <item quantity="one">
+            <ns0:g id="count">%1$d</ns0:g> favourite</item>
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> favourites</item>
+    </plurals>
+    <string name="settings_line_sub_style">Size, colour, position, background</string>
+    <string name="settings_line_rec_pre_roll">Before the programme begins</string>
+    <string name="settings_line_rec_post_roll">For programmemes that overrun</string>
+    <string name="settings_help_focus">The ring drawn around whatever has focus. Pick its colour and thickness so it stays easy to follow from the sofa.</string>
+    <string name="settings_help_epg_sources">Add an XMLTV guide feed by its link, refresh it, or remove it. Feeds fill the TV Guide and the programme lines in Live TV.</string>
+    <string name="settings_help_guide_days">How many days of programmemes the guide stores ahead. Fewer days make guide refreshes faster and the database smaller.</string>
+    <string name="settings_help_catchup">Catch-up plays programmemes from your provider’s archive. Most providers run it on your TV’s own clock; choose a fixed UTC offset if catch-up starts at the wrong time. This is also where you choose which player catch-up uses.</string>
+    <string name="settings_help_profiles">Each viewer keeps their own favourites, watch history, resume points and Home rows. Kids mode shows only the categories you allow; a PIN stops anyone else from opening the profile.</string>
+    <string name="settings_profile_add_line">A viewer with their own favourites, history and settings</string>
+    <string name="settings_help_startup">What OwnTV shows when it starts: Home, the channel you watched last, your favourites, or a channel you pick.</string>
+    <string name="settings_help_check_updates">Looks on GitHub for a newer OwnTV now and offers to install it. Your playlists, favourites and settings stay as they are.</string>
+    <string name="settings_clock_colors">Colours</string>
+    <string name="settings_clock_time_color">Time colour</string>
+    <string name="settings_clock_date_color">Date colour</string>
+    <string name="settings_clock_weather_color">Weather colour</string>
+    <string name="settings_clock_color_help">OK opens the colour picker (presets, palette or a hex code), the same one as Accent colour. The preview follows as you move.</string>
+    <string name="settings_key_pick_color">Pick colour</string>
+    <string name="settings_help_bg_background">Stage draws OwnTV’s own soft colours. Picture shows a picture of yours behind every screen. Plain is a flat dark fill.</string>
+    <string name="settings_line_bg_accent_light">Your accent colour glows in the corner</string>
+    <string name="settings_line_glass_reset">Stage colours, glass on, <ns0:g id="percent" example="56%">%1$s</ns0:g>
+    </string>
+    <string name="settings_line_brand_accent">The logo\'s play triangle in your accent colour</string>
+    <string name="settings_help_brand_accent">The OwnTV logo in the menu, About and setup shows its play triangle in your accent colour. The icon on the home screen keeps its own colours.</string>
+    <string name="setup_profile_sub">A profile keeps its own favourites, history and Home. Add more later in Settings › Profile.</string>
+</resources>

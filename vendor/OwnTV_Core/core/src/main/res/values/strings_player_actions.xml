@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="player_context_title">Playback actions</string>
+    <string name="player_context_guide">Programme guide</string>
+    <string name="player_context_channels">Channel list</string>
+    <string name="epg_replay_advertised">Replay advertised by the provider; availability is confirmed only when playback starts.</string>
+    <string name="epg_replay_started">Playback started recently; this does not confirm the whole programme is available.</string>
+    <string name="epg_replay_attempt_failed">The last attempt failed. This alone does not mean the provider has removed the archive; you can try again.</string>
+</resources>

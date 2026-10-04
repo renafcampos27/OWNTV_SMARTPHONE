@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_catchup_request_shift">Correção horária dos diferidos</string>
+    <string name="settings_catchup_request_shift_description">Ajusta apenas a hora pedida ao servidor de diferidos. Não altera as horas do guia. Use +1 hora quando o programa correto só abre ao adiantar a hora.</string>
+    <string name="settings_catchup_request_shift_value">Correção dos diferidos: %1$s</string>
+</resources>

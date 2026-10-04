@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mini_guide_navigation">↑↓ Channels · ←→ Programmes · OK Watch / retry · Back Close</string>
+    <string name="mini_guide_failed">Could not load the guide. Press OK to retry.</string>
+    <string name="guide_share_choose">Share guide with a variant</string>
+    <string name="guide_share_title">Alternate guide for %1$s</string>
+    <string name="guide_share_none">Do not use an alternate guide</string>
+    <string name="guide_shared_origin">Shared EPG</string>
+    <string name="update_recordings_busy">A recording is active or starts shortly. Try updating after it finishes.</string>
+    <string name="update_not_now">Not now</string>
+    <string name="mini_guide_future">This programme has not started yet.</string>
+    <string name="mini_guide_no_archive">This channel does not advertise catch-up.</string>
+    <string name="mini_guide_attempt">Archive availability is unconfirmed. Press OK to try.</string>
+</resources>

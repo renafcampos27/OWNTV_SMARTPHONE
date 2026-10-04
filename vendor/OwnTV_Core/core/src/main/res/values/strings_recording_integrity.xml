@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recording_capture_window">Capture window including padding: %1$s</string>
+    <string name="recording_capture_failure">Capture failed: %1$s</string>
+    <string name="recording_finalize_failure">Finalization failed: %1$s</string>
+    <string name="recording_retained_capture">Captured data retained; the final file is not ready to play.</string>
+    <string name="recording_integrity_unverified">Duration unmeasured; whole-programme integrity is unverified.</string>
+    <string name="recording_recovery_state">Recovery attempt %1$d: %2$s · original preserved</string>
+    <string name="recording_recovery_cancelled">Cancelled</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recording_group_partial">Parciais</string>
+    <string name="recording_group_saved">Guardadas</string>
+    <string name="recording_file_saved">Ficheiro guardado</string>
+    <string name="recording_captured_duration">%1$s captados</string>
+    <string name="recording_duration_unmeasured">Duração captada não medida</string>
+    <string name="recording_expected_duration">Duração do programa: %1$s</string>
+    <string name="recording_missing_estimate">Faltam aproximadamente %1$s · %2$d interrupções</string>
+    <string name="recording_recover_archive">Recuperar do arquivo</string>
+    <string name="recording_archive_copy">Cópia de recuperação em ficheiro separado</string>
+    <string name="recording_retry_unavailable">Não é possível tentar agora: o programa ou o respetivo arquivo não estão disponíveis.</string>
+    <string name="recording_failed_unsupported_format">Este formato de transmissão ainda não pode ser gravado.</string>
+</resources>

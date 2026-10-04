@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_versions_group">Group versions of the same channel</string>
+    <string name="channel_versions_group_description">Show one row per channel in each list. Up/down switches between logical channels.</string>
+    <string name="channel_versions_priority">Priority of versions of the same channel</string>
+    <string name="channel_versions_priority_description">Full HD → HEVC → HD → normal → Low. Hold OK on a channel to set a manual order. Hidden versions are excluded.</string>
+    <string name="channel_versions_title">Channel versions</string>
+    <string name="channel_versions_active">Priority enabled. Manual order overrides the automatic order for this group.</string>
+    <string name="channel_versions_inactive">Priority disabled. Order edits are saved; enable priority in Settings to apply them.</string>
+    <string name="channel_versions_reset">Automatic order</string>
+    <string name="channel_versions_loading">Loading versions…</string>
+    <string name="channel_versions_empty">No eligible versions available.</string>
+    <string name="channel_versions_position">%1$d. %2$s</string>
+    <string name="channel_versions_hidden">Hidden · excluded from priority and automatic alternatives</string>
+    <string name="channel_versions_up">Move up</string>
+    <string name="channel_versions_down">Move down</string>
+</resources>

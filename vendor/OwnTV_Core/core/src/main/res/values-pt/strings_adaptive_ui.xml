@@ -1,0 +1,12 @@
+<resources>
+    <string name="adaptive_play">Reproduzir</string>
+    <string name="adaptive_pause">Pausar</string>
+    <string name="adaptive_rewind">Recuar</string>
+    <string name="adaptive_forward">Avançar</string>
+    <string name="adaptive_previous">Item anterior</string>
+    <string name="adaptive_next">Item seguinte</string>
+    <string name="adaptive_channel_previous">Canal anterior</string>
+    <string name="adaptive_channel_next">Canal seguinte</string>
+    <string name="adaptive_lock_touch">Bloquear toque</string>
+    <string name="adaptive_unlock_touch">Desbloquear toque</string>
+</resources>

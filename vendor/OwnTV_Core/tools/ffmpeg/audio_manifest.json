@@ -1,0 +1,52 @@
+{
+  "native_artifact": "https://repo.maven.apache.org/maven2/org/jellyfin/media3/media3-ffmpeg-decoder/1.9.0+1/media3-ffmpeg-decoder-1.9.0+1.aar",
+  "native_artifact_sha256": "dfc726c8bc9d9db02e15b160f886a03bdd6dd51e88ba2de89aa74caf5e8cd181",
+  "java_media3_version": "1.11.1",
+  "files": {
+    "player-core/src/main/jniLibs/arm64-v8a/libffmpegJNI.so": {
+      "sha256": "358545f4c9aa9e2eb5fdf7694d089d2e1e61364096bdc52ff99cd1bc303a4632",
+      "size": 1462200,
+      "source": "https://repo.maven.apache.org/maven2/org/jellyfin/media3/media3-ffmpeg-decoder/1.9.0+1/media3-ffmpeg-decoder-1.9.0+1.aar!/jni/arm64-v8a/libffmpegJNI.so"
+    },
+    "player-core/src/main/jniLibs/armeabi-v7a/libffmpegJNI.so": {
+      "sha256": "96cad106422545e36ac26433d5152550ac943be2527786861ab2cc7845bb9d60",
+      "size": 1360588,
+      "source": "https://repo.maven.apache.org/maven2/org/jellyfin/media3/media3-ffmpeg-decoder/1.9.0+1/media3-ffmpeg-decoder-1.9.0+1.aar!/jni/armeabi-v7a/libffmpegJNI.so"
+    },
+    "player-core/src/main/jniLibs/x86/libffmpegJNI.so": {
+      "sha256": "5b5d3a7a7178590191ba972d8f98cf255cd8a0f88a62284ad2002805a6d7b480",
+      "size": 1468228,
+      "source": "https://repo.maven.apache.org/maven2/org/jellyfin/media3/media3-ffmpeg-decoder/1.9.0+1/media3-ffmpeg-decoder-1.9.0+1.aar!/jni/x86/libffmpegJNI.so"
+    },
+    "player-core/src/main/jniLibs/x86_64/libffmpegJNI.so": {
+      "sha256": "526bb5a3c88085c9044710d1b82411c4a86b44bc2b9a4c6fcc08fa1656d05d87",
+      "size": 1554928,
+      "source": "https://repo.maven.apache.org/maven2/org/jellyfin/media3/media3-ffmpeg-decoder/1.9.0+1/media3-ffmpeg-decoder-1.9.0+1.aar!/jni/x86_64/libffmpegJNI.so"
+    },
+    "player-core/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioDecoder.java": {
+      "sha256": "64b5ff45fd9f60b6775d542bda141698e5d32cacdd04ddd96141e86f2c0a51f8",
+      "size": 11765,
+      "source": "https://raw.githubusercontent.com/androidx/media/1.11.1/libraries/decoder_ffmpeg/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioDecoder.java"
+    },
+    "player-core/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioRenderer.java": {
+      "sha256": "230bcaef26ddd233f7f2ac0cdd7a5896d98e7d8dd8d4c9b2ea1942c483b05c48",
+      "size": 7955,
+      "source": "https://raw.githubusercontent.com/androidx/media/1.11.1/libraries/decoder_ffmpeg/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioRenderer.java"
+    },
+    "player-core/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegDecoderException.java": {
+      "sha256": "9e73968d0802b2d7f8add911ec4dc5a6e621777e997eca74332e173c5463ad7a",
+      "size": 1082,
+      "source": "https://raw.githubusercontent.com/androidx/media/1.11.1/libraries/decoder_ffmpeg/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegDecoderException.java"
+    },
+    "player-core/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegLibrary.java": {
+      "sha256": "a0843232be53210aefe97d8bc0a0268ac781cc7ce72e2d47bf42cd07f8048880",
+      "size": 5094,
+      "source": "https://raw.githubusercontent.com/androidx/media/1.11.1/libraries/decoder_ffmpeg/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegLibrary.java"
+    },
+    "player-core/src/main/java/androidx/media3/decoder/ffmpeg/package-info.java": {
+      "sha256": "1d75d02151fcec7a1c0036ee4a216e885ae91e1f85e8c9ddfbd72b4def6709be",
+      "size": 720,
+      "source": "https://raw.githubusercontent.com/androidx/media/1.11.1/libraries/decoder_ffmpeg/src/main/java/androidx/media3/decoder/ffmpeg/package-info.java"
+    }
+  }
+}

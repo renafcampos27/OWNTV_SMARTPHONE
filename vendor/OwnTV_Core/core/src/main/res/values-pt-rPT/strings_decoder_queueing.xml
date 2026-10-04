@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_decoder_queueing">Processamento do ExoPlayer</string>
+    <string name="settings_decoder_queueing_description">Automático segue o Android e o Media3. Assíncrono pode reduzir interrupções; escolhe compatibilidade síncrona se causar problemas. Aplica-se na próxima abertura de um canal ou programa.</string>
+    <string name="settings_decoder_queueing_async">Assíncrono</string>
+    <string name="settings_decoder_queueing_sync">Compatibilidade síncrona</string>
+</resources>

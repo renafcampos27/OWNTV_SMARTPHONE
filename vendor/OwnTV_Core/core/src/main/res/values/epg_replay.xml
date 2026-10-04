@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="epg_watch_live">Watch channel live</string>
+    <string name="epg_try_replay">Try replaying this programme</string>
+    <string name="epg_replay_unconfirmed">This programme is older than the archive window reported by the channel. You can request it, but availability depends on the provider.</string>
+</resources>

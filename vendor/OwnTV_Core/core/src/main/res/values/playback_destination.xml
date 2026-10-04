@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_live_player_target">Channel playback</string>
+    <string name="settings_live_player_target_description">Choose the OwnTV player or an installed external player. Your choice is saved for live channels.</string>
+</resources>

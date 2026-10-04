@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="player_buffer_requested_start">Requested start: %1$s s</string>
+    <string name="player_buffer_effective_start">Configured threshold: %1$s s</string>
+    <string name="player_buffer_actual">Buffered: %1$s s</string>
+    <string name="player_buffer_maximum">Maximum: %1$s s</string>
+    <string name="player_buffer_live_offset">Live offset: %1$s s</string>
+    <string name="player_buffer_memory">Memory: %1$s / %2$s MiB</string>
+    <string name="player_buffer_byte_cap">Memory target reached before requested reserve</string>
+    <string name="player_buffer_startup_limit">Pre-buffer disabled for this attempt after startup limit</string>
+</resources>

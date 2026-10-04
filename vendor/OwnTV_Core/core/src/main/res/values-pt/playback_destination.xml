@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_live_player_target">Reprodução dos canais</string>
+    <string name="settings_live_player_target_description">Escolhe o reprodutor da OwnTV ou um reprodutor externo instalado. A escolha fica guardada para os canais em direto.</string>
+</resources>

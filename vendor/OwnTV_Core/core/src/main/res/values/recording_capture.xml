@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recording_group_partial">Partial</string>
+    <string name="recording_group_saved">Saved</string>
+    <string name="recording_file_saved">File saved</string>
+    <string name="recording_captured_duration">%1$s captured</string>
+    <string name="recording_duration_unmeasured">Capture duration not measured</string>
+    <string name="recording_expected_duration">Programme duration: %1$s</string>
+    <string name="recording_missing_estimate">Approximately %1$s missing · %2$d gaps</string>
+    <string name="recording_recover_archive">Recover archive</string>
+    <string name="recording_archive_copy">Separate recovery copy</string>
+    <string name="recording_retry_unavailable">Cannot retry now: the programme or its archive is unavailable.</string>
+    <string name="recording_failed_unsupported_format">This stream format cannot currently be recorded.</string>
+</resources>

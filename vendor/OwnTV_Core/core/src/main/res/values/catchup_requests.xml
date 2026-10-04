@@ -1,0 +1,5 @@
+<resources>
+    <string name="catchup_list_load_failed">Could not load the programme guide. Try again.</string>
+    <string name="catchup_open_failed">Could not open the selected archive time. It may be unavailable or outside the current archive window. Try again or choose to return to live.</string>
+    <string name="catchup_return_live">Return to live</string>
+</resources>

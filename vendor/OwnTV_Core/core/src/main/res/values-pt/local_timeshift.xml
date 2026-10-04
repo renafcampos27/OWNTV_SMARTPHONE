@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="local_timeshift_start">Ver com recuo local (até 256 MB / 30 min)</string>
+    <string name="local_timeshift_failed">Recuo local indisponível ou captura terminada. Suporta HLS não cifrado com áudio e vídeo nos mesmos segmentos MPEG-TS. Seleciona o canal normalmente para voltar ao direto.</string>
+</resources>

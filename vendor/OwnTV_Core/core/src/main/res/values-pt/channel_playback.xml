@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_channel_playback">Configurações por canal</string>
+    <string name="settings_channel_playback_description">Escolha a lista e o canal. Ajuste apenas o necessário; os restantes valores seguem as definições existentes. Inclui as exceções ao modo Apenas HLS.</string>
+    <string name="settings_channel_playback_count">%1$d canais personalizados</string>
+    <string name="settings_channel_inherit">Usar definição geral/lista</string>
+    <string name="settings_channel_customized">Personalizado</string>
+    <string name="settings_channel_format">Formato de ligação</string>
+    <string name="settings_channel_hls">Apenas HLS</string>
+    <string name="settings_channel_ts">TS direto</string>
+    <string name="settings_channel_auto_format">Permitir outros formatos neste canal</string>
+    <string name="settings_channel_hls_hint">Apenas HLS mantém ExoPlayer por defeito. Escolher mpv explicitamente mantém HLS sem passar para TS direto.</string>
+    <string name="settings_channel_reserve">Reserva de buffer</string>
+    <string name="settings_channel_reserve_hint">Conteúdo disponível para absorver oscilações. O pré-buffer pode aumentar este mínimo. Não é um limite de memória.</string>
+    <string name="settings_channel_extra">Margem adicional de buffer</string>
+    <string name="settings_channel_extra_hint">Acrescentada à reserva para definir o limite de leitura antecipada. A disponibilidade do stream pode limitar o buffer real.</string>
+    <string name="settings_channel_preroll">Pré-buffer inicial</string>
+    <string name="settings_channel_preroll_hint">Espera apenas antes do arranque. A retoma após uma interrupção continua imediata quando há conteúdo reproduzível.</string>
+    <string name="settings_channel_latency">Latência do direto</string>
+    <string name="settings_channel_latency_hint">Distância pretendida ao direto em HLS/DASH no ExoPlayer. Não tem efeito no TS direto nem garante o atraso real.</string>
+    <string name="settings_channel_software_audio">Áudio por software — ExoPlayer</string>
+    <string name="settings_channel_audio_auto">Automático: Android com alternativa FFmpeg</string>
+    <string name="settings_channel_audio_software">Preferir FFmpeg</string>
+    <string name="settings_channel_audio_sync">Sincronização de áudio</string>
+    <string name="settings_channel_audio_hint">Ajusta o sincronismo com a imagem; não corrige encravamentos. Tem prioridade sobre o atraso memorizado no leitor.</string>
+    <string name="settings_channel_reset">Repor definições gerais/lista</string>
+    <string name="settings_channel_apply_hint">Guarde e volte a abrir o canal. As alterações não interrompem o canal que está a reproduzir.</string>
+    <string name="settings_channel_seconds">%1$d s</string>
+    <string name="settings_channel_ms">%1$d ms</string>
+    <string name="settings_channel_hls_boundaries">HLS: detetar limites dos fotogramas — ExoPlayer</string>
+    <string name="settings_channel_hls_boundaries_hint">Apenas H.264 em segmentos MPEG-TS sem delimitadores. Exige mais processamento. Deixe desligado salvo necessidade.</string>
+    <string name="settings_channel_hls_keyframes">HLS: aceitar fotogramas-chave alternativos — ExoPlayer</string>
+    <string name="settings_channel_hls_keyframes_hint">Apenas H.264 em segmentos MPEG-TS sem IDR. Pode causar imagem corrompida temporariamente ao abrir ou recuar.</string>
+    <string name="settings_channel_hls_segments">HLS: descobrir faixas pelos segmentos — ExoPlayer</string>
+    <string name="settings_channel_hls_segments_hint">Para certos problemas de descoberta de faixas. Abre mais lentamente; não corrige em geral encravamentos ou declarações CODECS incorretas.</string>
+    <string name="settings_channel_hls_standard">Desligado (padrão)</string>
+    <string name="settings_channel_hls_enabled">Ativado neste canal</string>
+</resources>

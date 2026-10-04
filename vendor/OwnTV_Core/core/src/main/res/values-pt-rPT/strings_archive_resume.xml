@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recording_archive_pause">Pausar download</string>
+    <string name="recording_archive_resume">Retomar download</string>
+    <string name="recording_archive_paused">Downloads em pausa</string>
+    <string name="recording_archive_retained">Segmentos guardados. A retoma verifica a continuidade antes de continuar.</string>
+    <string name="recording_archive_resume_unavailable">Não foi possível pausar ou retomar. Verifica a fonte, a disponibilidade do programa, o armazenamento e as ligações disponíveis.</string>
+    <string name="recording_archive_changed">Não foi possível confirmar a continuidade do arquivo. Os segmentos foram preservados; podes pedir uma recuperação separada.</string>
+</resources>

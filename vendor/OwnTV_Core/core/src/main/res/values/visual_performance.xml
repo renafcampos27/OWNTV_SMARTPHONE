@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="visual_profile_title">Visual profile</string>
+    <string name="visual_profile_auto">Automatic</string>
+    <string name="visual_profile_light">Light</string>
+    <string name="visual_profile_full">Full</string>
+    <string name="visual_profile_description">Automatic reduces interface animation and glass effects on devices with up to 3 GiB of RAM. Full preserves your appearance choices. Video quality and player settings stay unchanged.</string>
+    <string name="ui_measurement_title">Measure interface performance</string>
+    <string name="ui_measurement_description">Optional measurement while the app is visible. Stores only a recent summary in memory; measures interface frames and input queue delay, not video frame loss.</string>
+    <string name="ui_measurement_waiting">Waiting for a 10-second sample.</string>
+    <string name="ui_measurement_summary">Last 10 s: %1$d UI frames, %2$d above deadline; frame P95: %3$d ms. Commands: %4$d; queue P95: %5$d ms.</string>
+</resources>

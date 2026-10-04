@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="visual_profile_title">Perfil visual</string>
+    <string name="visual_profile_auto">Automático</string>
+    <string name="visual_profile_light">Leve</string>
+    <string name="visual_profile_full">Completo</string>
+    <string name="visual_profile_description">Automático reduz animações e efeitos de vidro em dispositivos com até 3 GiB de RAM. Completo mantém as tuas escolhas de aparência. A qualidade do vídeo e as definições do leitor mantêm-se.</string>
+    <string name="ui_measurement_title">Medir desempenho da interface</string>
+    <string name="ui_measurement_description">Medição opcional enquanto a app está visível. Guarda apenas um resumo recente em memória; mede fotogramas da interface e atraso da fila de comandos, não perdas de vídeo.</string>
+    <string name="ui_measurement_waiting">A aguardar uma amostra de 10 segundos.</string>
+    <string name="ui_measurement_summary">Últimos 10 s: %1$d fotogramas UI, %2$d acima do prazo; P95: %3$d ms. Comandos: %4$d; fila P95: %5$d ms.</string>
+</resources>

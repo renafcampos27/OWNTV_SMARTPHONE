@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="local_timeshift_start">Watch with local rewind (up to 256 MB / 30 min)</string>
+    <string name="local_timeshift_failed">Local rewind unavailable or capture ended. Supports unencrypted HLS with combined MPEG-TS audio/video. Select the channel normally to return to live.</string>
+</resources>

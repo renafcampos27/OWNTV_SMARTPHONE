@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="player_context_title">Ações de reprodução</string>
+    <string name="player_context_guide">Guia de programas</string>
+    <string name="player_context_channels">Lista de canais</string>
+    <string name="epg_replay_advertised">Diferido anunciado pelo fornecedor; a disponibilidade só se confirma ao iniciar a reprodução.</string>
+    <string name="epg_replay_started">A reprodução iniciou-se recentemente; isto não confirma a disponibilidade do programa completo.</string>
+    <string name="epg_replay_attempt_failed">A última tentativa falhou. Isto não significa, por si só, que o fornecedor tenha removido o diferido; podes tentar novamente.</string>
+</resources>

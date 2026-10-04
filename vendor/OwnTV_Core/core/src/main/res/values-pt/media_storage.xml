@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_failed_quota">Limite de armazenamento atingido; o conteúdo capturado foi mantido.</string>
+    <string name="media_failed_destination">Destino indisponível. Volta a ligar o USB ou escolhe outra pasta.</string>
+    <string name="media_failed_file_limit">Este destino não suporta um ficheiro maior. O conteúdo capturado foi mantido.</string>
+    <string name="media_destination">Destino de gravações e programas guardados</string>
+    <string name="media_destination_description">Usado nas novas capturas. Os ficheiros existentes permanecem nas suas pastas.</string>
+    <string name="media_internal">Armazenamento interno da app</string>
+    <string name="media_use_internal">Usar armazenamento interno</string>
+    <string name="media_internal_quota">Limite no armazenamento interno</string>
+    <string name="media_external_quota">Limite no armazenamento USB</string>
+    <string name="media_quota_description">Partilhado por gravações e programas guardados de todos os perfis. Os ficheiros nunca são apagados automaticamente.</string>
+    <string name="media_space_unknown">Destino indisponível ou capacidade desconhecida. Escolhe uma pasta local num volume ligado.</string>
+    <string name="media_usage">OwnTV: %1$s / %2$s GiB · Livre: %3$s GiB · Reserva: %4$s GiB</string>
+    <string name="media_gib">GiB</string>
+    <string name="media_save_programme">Guardar programa</string>
+    <string name="media_save_unavailable">Não foi possível guardar o programa. Verifica o arquivo e as ligações disponíveis; pode já existir uma captura em curso nesta lista.</string>
+    <string name="media_save_started">Pedido registado. Acompanha o progresso em Gravações.</string>
+</resources>

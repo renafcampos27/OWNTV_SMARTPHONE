@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_versions_add">Adicionar canal às versões</string>
+    <string name="channel_versions_add_hint">Pesquisa um canal da mesma lista para associar a este grupo.</string>
+    <string name="channel_versions_unlink">Desassociar</string>
+</resources>

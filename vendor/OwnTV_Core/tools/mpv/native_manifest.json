@@ -1,0 +1,1182 @@
+{
+  "artifact": "https://ahxn00.github.io/OwnTV_Core/maven/tv/own/owntv/libmpv/2026.10.0/libmpv-2026.10.0.aar",
+  "sha256": "6d899355963ed1ceaa8d82f1ee03f3226ce5682e0745d0800eadf9b37d4df449",
+  "license": "GPL-3.0-or-later (binaries); MIT (wrapper)",
+  "source_tag": "https://github.com/ahXN00/OwnTV_libmpv/tree/v2026.10.0",
+  "minimum_sdk_manifest": 26,
+  "native_review": [
+    {
+      "path": "jni\\arm64-v8a\\libavcodec.so",
+      "sha256": "36027baf29b7b262bfda2f826b047895e0a008953a055c1ca0e197307400dada",
+      "machine": 183,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 11823152,
+          "align": 16384
+        },
+        {
+          "offset": 12097056,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libswresample.so",
+        "libavutil.so",
+        "libm.so",
+        "libz.so",
+        "libandroid.so",
+        "libmediandk.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 383,
+      "ffmpeg_export_count": 159
+    },
+    {
+      "path": "jni\\arm64-v8a\\libavdevice.so",
+      "sha256": "f0d61a45375576fa4e539d3b73d97b3b9acbf196a68cb068065a5f45413bae98",
+      "machine": 183,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 6752,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavformat.so",
+        "libavutil.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 17,
+      "ffmpeg_export_count": 5
+    },
+    {
+      "path": "jni\\arm64-v8a\\libavfilter.so",
+      "sha256": "96f50a06dacd7a8ca4e536a4491aad933cebd1c8da93ad74e477feb5c1a87413",
+      "machine": 183,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 320144,
+          "align": 16384
+        },
+        {
+          "offset": 365968,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libswscale.so",
+        "libswresample.so",
+        "libavutil.so",
+        "libm.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 196,
+      "ffmpeg_export_count": 29
+    },
+    {
+      "path": "jni\\arm64-v8a\\libavformat.so",
+      "sha256": "2c2685ee02914fc4f65299eda5db2680fcc8305dfb4d8eec7bb53cceba254d63",
+      "machine": 183,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 2970944,
+          "align": 16384
+        },
+        {
+          "offset": 3155624,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavcodec.so",
+        "libavutil.so",
+        "libm.so",
+        "libz.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 501,
+      "ffmpeg_export_count": 87
+    },
+    {
+      "path": "jni\\arm64-v8a\\libavutil.so",
+      "sha256": "d7e758462b55a39783958f4e3f523070384c9a6e4408772f891702be093acd13",
+      "machine": 183,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 658928,
+          "align": 16384
+        },
+        {
+          "offset": 732336,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libm.so",
+        "libandroid.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 98,
+      "ffmpeg_export_count": 608
+    },
+    {
+      "path": "jni\\arm64-v8a\\libc++_shared.so",
+      "sha256": "b5d97c38a728afe28d341cda3369f512d35eaf9c680c1b0563cd6a63e395230f",
+      "machine": 183,
+      "android_api_notes": [
+        21
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 1379184,
+          "align": 16384
+        },
+        {
+          "offset": 1420376,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libc.so",
+        "libm.so",
+        "libdl.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 164,
+      "ffmpeg_export_count": 0
+    },
+    {
+      "path": "jni\\arm64-v8a\\libmpv.so",
+      "sha256": "b3d54d0fa2942b4bc88c68c9cca1222d17c56a7b986ddef46a477e6446167134",
+      "machine": 183,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 6399328,
+          "align": 16384
+        },
+        {
+          "offset": 6812352,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libm.so",
+        "libz.so",
+        "libdl.so",
+        "libavcodec.so",
+        "libavfilter.so",
+        "libavformat.so",
+        "libavutil.so",
+        "libc++_shared.so",
+        "libswresample.so",
+        "libswscale.so",
+        "libandroid.so",
+        "libavdevice.so",
+        "libOpenSLES.so",
+        "libEGL.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 551,
+      "ffmpeg_export_count": 0
+    },
+    {
+      "path": "jni\\arm64-v8a\\libplayer.so",
+      "sha256": "72389830ac3db3b14dbd28463eaed0e017309833dd63b08c9eda4abaeee449bf",
+      "machine": 183,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 16320,
+          "align": 16384
+        },
+        {
+          "offset": 17224,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libmpv.so",
+        "libavcodec.so",
+        "liblog.so",
+        "libm.so",
+        "libc++_shared.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [
+        "Java_dev_jdtech_mpv_MPVLib_nativeAttachSurface",
+        "Java_dev_jdtech_mpv_MPVLib_nativeCommand",
+        "Java_dev_jdtech_mpv_MPVLib_nativeCreate",
+        "Java_dev_jdtech_mpv_MPVLib_nativeDestroy",
+        "Java_dev_jdtech_mpv_MPVLib_nativeDetachSurface",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyBoolean",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyDouble",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyInt",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyString",
+        "Java_dev_jdtech_mpv_MPVLib_nativeInit",
+        "Java_dev_jdtech_mpv_MPVLib_nativeObserveProperty",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetOptionString",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyBoolean",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyDouble",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyInt",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyString"
+      ],
+      "undefined_count": 28,
+      "ffmpeg_export_count": 0
+    },
+    {
+      "path": "jni\\arm64-v8a\\libswresample.so",
+      "sha256": "92e9c3317a305d80a7646bb2936e4cec3b4e20d20c22782fd884e75dd6b86b70",
+      "machine": 183,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 87632,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavutil.so",
+        "libm.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 40,
+      "ffmpeg_export_count": 20
+    },
+    {
+      "path": "jni\\arm64-v8a\\libswscale.so",
+      "sha256": "89f75eab984b352fadf2fb168a4c8ba8174b9bd4bc3c7947d453ca9c1c8da60f",
+      "machine": 183,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 1196912,
+          "align": 16384
+        },
+        {
+          "offset": 1230648,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavutil.so",
+        "libm.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 96,
+      "ffmpeg_export_count": 37
+    },
+    {
+      "path": "jni\\armeabi-v7a\\libavcodec.so",
+      "sha256": "c0ad11dd9a3da73ad07264a08709a29bb596f36e3ea2b54abedf04651879cc78",
+      "machine": 40,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 11388752,
+          "align": 16384
+        },
+        {
+          "offset": 11553588,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libswresample.so",
+        "libavutil.so",
+        "libm.so",
+        "libz.so",
+        "libandroid.so",
+        "libmediandk.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 392,
+      "ffmpeg_export_count": 159
+    },
+    {
+      "path": "jni\\armeabi-v7a\\libavdevice.so",
+      "sha256": "c5d3d094a35003894644ca566730db984079fb287103210574b769b097e50c6f",
+      "machine": 40,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 5392,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavformat.so",
+        "libavutil.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 17,
+      "ffmpeg_export_count": 5
+    },
+    {
+      "path": "jni\\armeabi-v7a\\libavfilter.so",
+      "sha256": "0637087f44a40071064b738df4f8c090869bc30d0a89795ce781bfbb8175c940",
+      "machine": 40,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 268160,
+          "align": 16384
+        },
+        {
+          "offset": 300208,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libswscale.so",
+        "libswresample.so",
+        "libavutil.so",
+        "libm.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 201,
+      "ffmpeg_export_count": 29
+    },
+    {
+      "path": "jni\\armeabi-v7a\\libavformat.so",
+      "sha256": "2088f4b764fd510523a859b60e73f02bdbfeecc3048cc50b748a4901a3480b1c",
+      "machine": 40,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 2785792,
+          "align": 16384
+        },
+        {
+          "offset": 2896760,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavcodec.so",
+        "libavutil.so",
+        "libm.so",
+        "libz.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 501,
+      "ffmpeg_export_count": 87
+    },
+    {
+      "path": "jni\\armeabi-v7a\\libavutil.so",
+      "sha256": "99ffe0c47654773724409c3d7328448692f5b082e4860a65fab5045d5f0e089b",
+      "machine": 40,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 588112,
+          "align": 16384
+        },
+        {
+          "offset": 648272,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libm.so",
+        "libandroid.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 108,
+      "ffmpeg_export_count": 608
+    },
+    {
+      "path": "jni\\armeabi-v7a\\libc++_shared.so",
+      "sha256": "38331a1efcb446eb1a0db440a8db8f41fa4fb698d15c061ab8c491426531c2c0",
+      "machine": 40,
+      "android_api_notes": [
+        21
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 4096
+        },
+        {
+          "offset": 971600,
+          "align": 4096
+        },
+        {
+          "offset": 992452,
+          "align": 4096
+        }
+      ],
+      "needed": [
+        "libc.so",
+        "libm.so",
+        "libdl.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 166,
+      "ffmpeg_export_count": 0
+    },
+    {
+      "path": "jni\\armeabi-v7a\\libmpv.so",
+      "sha256": "dd025ed4448aa16d642201b69f84eff8873d1dc4ff858992112dad87edb36782",
+      "machine": 40,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 5875712,
+          "align": 16384
+        },
+        {
+          "offset": 6150656,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libm.so",
+        "libz.so",
+        "libdl.so",
+        "libavcodec.so",
+        "libavfilter.so",
+        "libavformat.so",
+        "libavutil.so",
+        "libc++_shared.so",
+        "libswresample.so",
+        "libswscale.so",
+        "libandroid.so",
+        "libavdevice.so",
+        "libOpenSLES.so",
+        "libEGL.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 564,
+      "ffmpeg_export_count": 0
+    },
+    {
+      "path": "jni\\armeabi-v7a\\libplayer.so",
+      "sha256": "c0715c35e727eb61bf21a7b31c7dc4f9ef9ad5d52d6778114d84e9091657855b",
+      "machine": 40,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 4096
+        },
+        {
+          "offset": 11440,
+          "align": 4096
+        },
+        {
+          "offset": 11896,
+          "align": 4096
+        }
+      ],
+      "needed": [
+        "libmpv.so",
+        "libavcodec.so",
+        "liblog.so",
+        "libm.so",
+        "libc++_shared.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [
+        "Java_dev_jdtech_mpv_MPVLib_nativeAttachSurface",
+        "Java_dev_jdtech_mpv_MPVLib_nativeCommand",
+        "Java_dev_jdtech_mpv_MPVLib_nativeCreate",
+        "Java_dev_jdtech_mpv_MPVLib_nativeDestroy",
+        "Java_dev_jdtech_mpv_MPVLib_nativeDetachSurface",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyBoolean",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyDouble",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyInt",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyString",
+        "Java_dev_jdtech_mpv_MPVLib_nativeInit",
+        "Java_dev_jdtech_mpv_MPVLib_nativeObserveProperty",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetOptionString",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyBoolean",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyDouble",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyInt",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyString"
+      ],
+      "undefined_count": 29,
+      "ffmpeg_export_count": 0
+    },
+    {
+      "path": "jni\\armeabi-v7a\\libswresample.so",
+      "sha256": "febc978dc3cc622e7d1b93c067a92a6f02ce7f2f3310c36f335f8472810c5f64",
+      "machine": 40,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 83680,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavutil.so",
+        "libm.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 46,
+      "ffmpeg_export_count": 20
+    },
+    {
+      "path": "jni\\armeabi-v7a\\libswscale.so",
+      "sha256": "37e458e50e206316791ba39d28653a4e305d9d1a4c0e418d9926c4f798e8e93c",
+      "machine": 40,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 809584,
+          "align": 16384
+        },
+        {
+          "offset": 830092,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavutil.so",
+        "libm.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 110,
+      "ffmpeg_export_count": 37
+    },
+    {
+      "path": "jni\\x86_64\\libavcodec.so",
+      "sha256": "3d4f8cf32077a187fd8bbc1afd1a70781dd167b54db88a4618f34d396fa98cb7",
+      "machine": 62,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 15939648,
+          "align": 16384
+        },
+        {
+          "offset": 16200880,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libswresample.so",
+        "libavutil.so",
+        "libm.so",
+        "libz.so",
+        "libandroid.so",
+        "libmediandk.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 381,
+      "ffmpeg_export_count": 159
+    },
+    {
+      "path": "jni\\x86_64\\libavdevice.so",
+      "sha256": "03921229d6338dae2b93411e6bb57d96485d9b116c89ffeee2a31c0ae8c13610",
+      "machine": 62,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 6768,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavformat.so",
+        "libavutil.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 17,
+      "ffmpeg_export_count": 5
+    },
+    {
+      "path": "jni\\x86_64\\libavfilter.so",
+      "sha256": "48ab64899863af1b3badeed5f953b6eece28226df922021abb7608dd6961abae",
+      "machine": 62,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 405920,
+          "align": 16384
+        },
+        {
+          "offset": 451552,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libswscale.so",
+        "libswresample.so",
+        "libavutil.so",
+        "libm.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 196,
+      "ffmpeg_export_count": 29
+    },
+    {
+      "path": "jni\\x86_64\\libavformat.so",
+      "sha256": "17840936bf68d62f19389f071f1a377dd50a266c698edbee5fcec10a0d8dae9d",
+      "machine": 62,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 3042544,
+          "align": 16384
+        },
+        {
+          "offset": 3225920,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavcodec.so",
+        "libavutil.so",
+        "libm.so",
+        "libz.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 498,
+      "ffmpeg_export_count": 87
+    },
+    {
+      "path": "jni\\x86_64\\libavutil.so",
+      "sha256": "414e246f81ad103250434f10c940901d9b1d775f3525ce2c5d5b3ce7d31d9ef4",
+      "machine": 62,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 803984,
+          "align": 16384
+        },
+        {
+          "offset": 882392,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libm.so",
+        "libandroid.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 96,
+      "ffmpeg_export_count": 608
+    },
+    {
+      "path": "jni\\x86_64\\libc++_shared.so",
+      "sha256": "39faf2d59346e65a18980f207794fab2f1faff8a8de3f087b8319a181fa16fbd",
+      "machine": 62,
+      "android_api_notes": [
+        21
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 1346448,
+          "align": 16384
+        },
+        {
+          "offset": 1387504,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libc.so",
+        "libm.so",
+        "libdl.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 161,
+      "ffmpeg_export_count": 0
+    },
+    {
+      "path": "jni\\x86_64\\libmpv.so",
+      "sha256": "0c70d51ad020ce3a742fd31a36fbcd947da2d6ceba4659903d81bf42be1bfaf8",
+      "machine": 62,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 6542496,
+          "align": 16384
+        },
+        {
+          "offset": 6953568,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libm.so",
+        "libz.so",
+        "libdl.so",
+        "libavcodec.so",
+        "libavfilter.so",
+        "libavformat.so",
+        "libavutil.so",
+        "libc++_shared.so",
+        "libswresample.so",
+        "libswscale.so",
+        "libandroid.so",
+        "libavdevice.so",
+        "libOpenSLES.so",
+        "libEGL.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 551,
+      "ffmpeg_export_count": 0
+    },
+    {
+      "path": "jni\\x86_64\\libplayer.so",
+      "sha256": "16b1a0919443cc2249779bda3305c5268b8a4d625200652d4d24666565485d09",
+      "machine": 62,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 15264,
+          "align": 16384
+        },
+        {
+          "offset": 16168,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libmpv.so",
+        "libavcodec.so",
+        "liblog.so",
+        "libm.so",
+        "libc++_shared.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [
+        "Java_dev_jdtech_mpv_MPVLib_nativeAttachSurface",
+        "Java_dev_jdtech_mpv_MPVLib_nativeCommand",
+        "Java_dev_jdtech_mpv_MPVLib_nativeCreate",
+        "Java_dev_jdtech_mpv_MPVLib_nativeDestroy",
+        "Java_dev_jdtech_mpv_MPVLib_nativeDetachSurface",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyBoolean",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyDouble",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyInt",
+        "Java_dev_jdtech_mpv_MPVLib_nativeGetPropertyString",
+        "Java_dev_jdtech_mpv_MPVLib_nativeInit",
+        "Java_dev_jdtech_mpv_MPVLib_nativeObserveProperty",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetOptionString",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyBoolean",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyDouble",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyInt",
+        "Java_dev_jdtech_mpv_MPVLib_nativeSetPropertyString"
+      ],
+      "undefined_count": 28,
+      "ffmpeg_export_count": 0
+    },
+    {
+      "path": "jni\\x86_64\\libswresample.so",
+      "sha256": "0e861f8ab47036cc0e338dadc3bb092d3ee23111ad2a8eee99124203a0e92063",
+      "machine": 62,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 128800,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavutil.so",
+        "libm.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 40,
+      "ffmpeg_export_count": 20
+    },
+    {
+      "path": "jni\\x86_64\\libswscale.so",
+      "sha256": "875850122fa14b6382fac7ea5f84b143871af873de9bb962635f424953f138e6",
+      "machine": 62,
+      "android_api_notes": [
+        26
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 1603152,
+          "align": 16384
+        },
+        {
+          "offset": 1674624,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libavutil.so",
+        "libm.so",
+        "libc.so"
+      ],
+      "jni_symbols": [],
+      "undefined_count": 95,
+      "ffmpeg_export_count": 37
+    },
+    {
+      "path": "player-core\\src\\main\\jniLibs\\arm64-v8a\\libffmpegJNI.so",
+      "sha256": "358545f4c9aa9e2eb5fdf7694d089d2e1e61364096bdc52ff99cd1bc303a4632",
+      "machine": 183,
+      "android_api_notes": [
+        23
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 1334240,
+          "align": 16384
+        },
+        {
+          "offset": 1459824,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libandroid.so",
+        "liblog.so",
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegDecode",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegGetChannelCount",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegGetSampleRate",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegInitialize",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegRelease",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegReset",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegGetInputBufferPaddingSize",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegGetVersion",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegHasDecoder"
+      ],
+      "undefined_count": 95,
+      "ffmpeg_export_count": 459
+    },
+    {
+      "path": "player-core\\src\\main\\jniLibs\\armeabi-v7a\\libffmpegJNI.so",
+      "sha256": "96cad106422545e36ac26433d5152550ac943be2527786861ab2cc7845bb9d60",
+      "machine": 40,
+      "android_api_notes": [
+        23
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 1264176,
+          "align": 16384
+        },
+        {
+          "offset": 1358908,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libandroid.so",
+        "liblog.so",
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegDecode",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegGetChannelCount",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegGetSampleRate",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegInitialize",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegRelease",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegReset",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegGetInputBufferPaddingSize",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegGetVersion",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegHasDecoder"
+      ],
+      "undefined_count": 108,
+      "ffmpeg_export_count": 459
+    },
+    {
+      "path": "player-core\\src\\main\\jniLibs\\x86\\libffmpegJNI.so",
+      "sha256": "5b5d3a7a7178590191ba972d8f98cf255cd8a0f88a62284ad2002805a6d7b480",
+      "machine": 3,
+      "android_api_notes": [
+        23
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 1375584,
+          "align": 16384
+        },
+        {
+          "offset": 1466664,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libandroid.so",
+        "liblog.so",
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegDecode",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegGetChannelCount",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegGetSampleRate",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegInitialize",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegRelease",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegReset",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegGetInputBufferPaddingSize",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegGetVersion",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegHasDecoder"
+      ],
+      "undefined_count": 98,
+      "ffmpeg_export_count": 459
+    },
+    {
+      "path": "player-core\\src\\main\\jniLibs\\x86_64\\libffmpegJNI.so",
+      "sha256": "526bb5a3c88085c9044710d1b82411c4a86b44bc2b9a4c6fcc08fa1656d05d87",
+      "machine": 62,
+      "android_api_notes": [
+        23
+      ],
+      "load_alignments": [
+        {
+          "offset": 0,
+          "align": 16384
+        },
+        {
+          "offset": 1426288,
+          "align": 16384
+        },
+        {
+          "offset": 1552624,
+          "align": 16384
+        }
+      ],
+      "needed": [
+        "libandroid.so",
+        "liblog.so",
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "jni_symbols": [
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegDecode",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegGetChannelCount",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegGetSampleRate",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegInitialize",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegRelease",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegAudioDecoder_ffmpegReset",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegGetInputBufferPaddingSize",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegGetVersion",
+        "Java_androidx_media3_decoder_ffmpeg_FfmpegLibrary_ffmpegHasDecoder"
+      ],
+      "undefined_count": 93,
+      "ffmpeg_export_count": 459
+    }
+  ]
+}

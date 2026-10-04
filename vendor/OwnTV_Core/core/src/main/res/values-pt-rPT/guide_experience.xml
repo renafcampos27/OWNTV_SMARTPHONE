@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mini_guide_navigation">↑↓ Canais · ←→ Programas · OK Ver / tentar novamente · Voltar Fechar</string>
+    <string name="mini_guide_failed">Não foi possível carregar o guia. Carrega em OK para tentar novamente.</string>
+    <string name="guide_share_choose">Partilhar guia com uma variante</string>
+    <string name="guide_share_title">Guia alternativo para %1$s</string>
+    <string name="guide_share_none">Não usar guia alternativo</string>
+    <string name="guide_shared_origin">EPG partilhado</string>
+    <string name="update_recordings_busy">Existe uma gravação ativa ou prestes a começar. Tenta atualizar depois de terminar.</string>
+    <string name="update_not_now">Agora não</string>
+    <string name="mini_guide_future">Este programa ainda não começou.</string>
+    <string name="mini_guide_no_archive">Este canal não anuncia programas diferidos.</string>
+    <string name="mini_guide_attempt">Disponibilidade do arquivo não confirmada. Carrega em OK para tentar.</string>
+</resources>

@@ -1,0 +1,665 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:ns0="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="common_size_gb">
+        <ns0:g id="size">%1$s</ns0:g> GB</string>
+    <string name="shell_rail_profile_line">
+        <ns0:g id="playlist">%1$s</ns0:g> · 切换</string>
+    <string name="shell_rail_detail_last">上次：<ns0:g id="title">%1$s</ns0:g>
+    </string>
+    <string name="shell_rail_detail_resume">继续：<ns0:g id="title">%1$s</ns0:g>
+    </string>
+    <string name="shell_rail_detail_next">接下来：<ns0:g id="title">%1$s</ns0:g>
+    </string>
+    <string name="shell_rail_detail_episode">
+        <ns0:g id="series">%1$s</ns0:g>
+        <ns0:g id="episode">%2$s</ns0:g>
+    </string>
+    <string name="shell_rail_detail_more">设置、收藏、备份</string>
+    <plurals name="shell_rail_detail_downloads">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 个正在下载 · <ns0:g id="progress">%2$s</ns0:g>
+        </item>
+    </plurals>
+    <string name="shell_now_playing_audio">音频</string>
+    <string name="common_weather_degrees_city">
+        <ns0:g id="temperature">%1$d</ns0:g>° <ns0:g id="city">%2$s</ns0:g>
+    </string>
+    <string name="common_dismiss">忽略</string>
+    <string name="content_remove_from_category">从此分类中移除</string>
+    <string name="content_storage_folder_fallback">下载文件夹当前不可用，因此在它恢复之前，下载内容会保存到 OwnTV 自己的文件夹。</string>
+    <string name="content_downloads_group_downloading">正在下载</string>
+    <string name="content_downloads_group_on_tv">已存于本电视</string>
+    <string name="content_downloads_ready">可以观看</string>
+    <string name="content_downloads_paused">已暂停</string>
+    <string name="content_downloads_starts_after">排队中 \u00b7 在<ns0:g id="title">%1$s</ns0:g>之后开始</string>
+    <string name="content_downloads_speed">
+        <ns0:g id="size">%1$s</ns0:g> MB/秒</string>
+    <string name="content_epg_include_logos">包含节目指南台标</string>
+    <string name="content_playlist_picker_subtitle">在所有界面生效并会被记住</string>
+    <string name="content_action_next_episode">下一集</string>
+    <string name="content_search_in">搜索<ns0:g id="name">%1$s</ns0:g>
+    </string>
+    <string name="content_live_guide_view">节目指南视图</string>
+    <string name="content_key_watch">观看</string>
+    <string name="content_key_schedule">节目单</string>
+    <string name="content_key_options">选项</string>
+    <string name="content_live_groups">分组</string>
+    <string name="content_menu_group_watch">观看</string>
+    <string name="content_menu_group_channel">频道</string>
+    <string name="content_menu_group_guide_data">指南数据</string>
+    <string name="content_menu_group_organise">整理</string>
+    <string name="content_epg_offset_global_short">全局</string>
+    <string name="content_live_groups_country">分组 · <ns0:g id="country">%1$s</ns0:g>
+    </string>
+    <plurals name="content_live_channel_count">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 个频道</item>
+    </plurals>
+    <string name="content_category_recently_watched">最近观看</string>
+    <string name="content_remind_me">提醒我</string>
+    <string name="content_remind_before">提前<ns0:g id="duration">%1$s</ns0:g>
+    </string>
+    <string name="content_key_hold_ok">长按 OK</string>
+    <string name="content_epg_starts_in">
+        <ns0:g id="duration">%1$s</ns0:g>后开始</string>
+    <string name="content_epg_today">今天</string>
+    <string name="content_epg_tomorrow">明天</string>
+    <string name="content_epg_yesterday">昨天</string>
+    <string name="content_epg_now_short">现在</string>
+    <string name="content_epg_sort_catchup_first">回看优先</string>
+    <string name="content_epg_sort_favorites_first">收藏优先</string>
+    <string name="content_epg_order_title">频道排序方式</string>
+    <string name="content_epg_order_hint">下次也按此方式打开</string>
+    <string name="content_epg_category_hint">与直播电视相同的列表</string>
+    <string name="content_menu_group_new">新功能</string>
+    <string name="content_menu_group_record">录制</string>
+    <string name="content_epg_after_time">
+        <ns0:g id="time">%1$s</ns0:g>之后</string>
+    <string name="content_reminder_set">已设提醒</string>
+    <string name="content_live_list_view">列表视图</string>
+    <plurals name="content_epg_channels_matched">
+        <item quantity="other">已匹配 <ns0:g id="count">%1$d</ns0:g> 个频道</item>
+    </plurals>
+    <plurals name="content_epg_review_count">
+        <item quantity="other">检查 <ns0:g id="count">%1$d</ns0:g> 个匹配</item>
+    </plurals>
+    <string name="content_key_browse">浏览</string>
+    <string name="content_key_channels">频道</string>
+    <string name="content_key_programmes">节目</string>
+    <string name="content_key_menu">菜单</string>
+    <string name="content_key_enter">进入</string>
+    <string name="content_key_select">选择</string>
+    <string name="content_watched_duration">已看 <ns0:g id="value">%1$s</ns0:g>
+    </string>
+    <string name="content_menu_group_show">显示</string>
+    <string name="content_epg_show_empty">无节目指南的频道</string>
+    <string name="content_vod_providers">提供商</string>
+    <string name="content_sort_movies_title">电影排序</string>
+    <string name="content_sort_series_title">剧集排序</string>
+    <string name="content_sort_applies_hint">适用于此版块的所有分类</string>
+    <string name="content_sort_provider_order">提供商顺序</string>
+    <string name="content_sort_provider_order_hint">播放列表的原有顺序</string>
+    <string name="content_sort_rating_hint">最高优先</string>
+    <string name="content_sort_date_added_hint">最新优先</string>
+    <string name="content_menu_group_library">媒体库</string>
+    <string name="content_menu_group_details">详情</string>
+    <string name="content_movie_details">电影详情</string>
+    <string name="content_series_details">剧集详情</string>
+    <plurals name="content_vod_title_count">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 部作品</item>
+    </plurals>
+    <plurals name="content_vod_series_count">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 部剧集</item>
+    </plurals>
+    <string name="content_resume_episode">继续播放 <ns0:g id="episode">%1$s</ns0:g>
+    </string>
+    <string name="content_play_episode">播放 <ns0:g id="episode">%1$s</ns0:g>
+    </string>
+    <string name="content_download_season">下载本季</string>
+    <string name="content_episode_order">剧集顺序</string>
+    <string name="content_episode_order_hint">为此剧集记住</string>
+    <string name="content_hide_watched_episodes">隐藏已看剧集</string>
+    <string name="content_episode_watched">已看</string>
+    <string name="content_play_from_start">从头播放</string>
+    <string name="content_episode_details">剧集详情</string>
+    <string name="content_season_specials">特别篇</string>
+    <string name="home_trending_rank">热门第 <ns0:g id="rank">%1$d</ns0:g> 名 · <ns0:g id="section">%2$s</ns0:g>
+    </string>
+    <string name="home_trending_in_playlist">在你的播放列表中</string>
+    <string name="home_trending_style_full_bleed">全幅</string>
+    <string name="home_duration_hours_minutes">
+        <ns0:g id="hours">%1$d</ns0:g> 小时 <ns0:g id="minutes">%2$02d</ns0:g> 分钟</string>
+    <string name="home_time_left">剩余 <ns0:g id="duration">%1$s</ns0:g>
+    </string>
+    <string name="recording_card_empty_title">还没有录制内容</string>
+    <string name="recording_card_body">在电视节目指南中选择任意节目，然后选择“录制”。即使你在看别的内容，录制内容也会出现在这里。</string>
+    <string name="recording_open_guide">打开电视节目指南</string>
+    <plurals name="recording_card_count">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 个录制内容</item>
+    </plurals>
+    <string name="player_timeshift_resume_title">从上次离开的地方继续？</string>
+    <string name="player_timeshift_resume_message">你离开期间，此频道一直在保存。</string>
+    <string name="player_previous_channel">上一个频道</string>
+    <string name="player_tool_quality">画质</string>
+    <string name="player_stream_interlacing">隔行扫描</string>
+    <string name="player_stream_progressive">无（逐行）</string>
+    <string name="player_stream_deinterlaced_by_player">隔行 · 由播放器去隔行</string>
+    <string name="player_stream_deinterlaced_by_device">隔行 · 由设备去隔行</string>
+    <string name="player_stream_not_deinterlaced">隔行 · 未去隔行</string>
+    <string name="player_sleep_timer_end_of_movie">电影结束时</string>
+    <string name="player_sleep_timer_end_of_episode">本集结束时</string>
+    <string name="player_sleep_timer_screen_off">同时关闭屏幕</string>
+    <string name="player_sleep_timer_screen_off_explanation">仅在定时结束时用于关闭屏幕，其他任何时候都不会使用。</string>
+    <string name="player_sleep_timer_screen_off_unavailable">此设备不允许应用关闭屏幕。</string>
+    <string name="multiview_decoder_exhausted_mobile">这台设备无法同时再解码一个频道。</string>
+    <string name="player_trailer_skip">跳过 10 秒</string>
+    <string name="player_trailer_blocked_title">此预告片无法在 OwnTV 中播放</string>
+    <string name="player_trailer_blocked_body">所有者只允许在 YouTube 上播放。</string>
+    <string name="player_trailer_open_youtube">在 YouTube 中打开</string>
+    <string name="settings_remote_button_last_channel">上次频道</string>
+    <string name="settings_animations_description_mobile">开启或关闭界面动画 — 关闭后在较旧的手机和平板上会感觉更流畅</string>
+    <string name="settings_hdr_description_mobile">视频和屏幕支持时使用 HDR 输出。仅适用于 mpv：ExoPlayer 引擎不支持此设置，始终按原样输出流的 HDR。</string>
+    <string name="settings_auto_frame_rate_description_mobile">在全屏播放直播电视和点播内容时，使屏幕刷新率与视频匹配（24/25/50/60 fps），并在退出时恢复。如果视频开始播放时屏幕闪烁或变黑，请关闭此功能。</string>
+    <string name="settings_afr_pause">切换显示时暂停</string>
+    <string name="settings_afr_pause_description">仅限电影。电视需要重新同步到新的显示模式时，电影会等待这段时间，以免开头在黑屏中错过。无缝切换不会暂停。</string>
+    <string name="settings_afr_resolution">匹配分辨率</string>
+    <string name="settings_afr_resolution_description">仅限电影。为电影切换显示模式时，电视也会切换到电影的分辨率（在 4K 电视上播放高清电影时为 1080p），但不会高于开始时的分辨率。关闭时保持分辨率不变，由电视放大画面，通常画质更好。</string>
+    <string name="settings_surround_description_mobile">为连接到此设备的真正 5.1/7.1 接收器将 Dolby/DTS 解码为环绕声（5.1/7.1）。使用内置扬声器、耳机或立体声音箱时请保持关闭 — 多声道可能导致音频滞后于视频。如果出现不同步，请在播放器的“音频”菜单 →“音视频同步”中进行微调。</string>
+    <string name="settings_audio_passthrough">Dolby/DTS 直通</string>
+    <string name="settings_audio_passthrough_description">开启：当电视、回音壁或功放表示可以播放时，Dolby 和 DTS 不经解码直接发送（ExoPlayer）。关闭：由应用解码，在环绕声允许时仍为环绕声。mpv 始终解码。夜间模式或音量均衡开启时不使用。</string>
+    <string name="settings_audio_passthrough_description_mobile">开启：当连接的电视或功放表示可以播放时，Dolby 和 DTS 不经解码直接发送（ExoPlayer）。关闭：由应用解码，在环绕声允许时仍为环绕声。mpv 始终解码。夜间模式或音量均衡开启时不使用。</string>
+    <string name="settings_night_mode">夜间模式</string>
+    <string name="settings_night_mode_description">调低响亮的场景、调高轻声的对白，适合低音量观看。</string>
+    <string name="settings_volume_leveling">音量均衡</string>
+    <string name="settings_volume_leveling_description">将每个频道和电影逐渐调到相同响度，切换时音量不会突变。</string>
+    <string name="settings_max_video_quality">最高视频画质</string>
+    <string name="settings_max_video_quality_description">当频道或电影提供多种画质时播放的最高画质。可节省流量并减轻解码器负担。</string>
+    <string name="settings_mobile_data_quality">移动数据下的最高画质</string>
+    <string name="settings_mobile_data_quality_description">在按流量计费的连接上，最多播放此画质。关闭：与 Wi-Fi 相同。</string>
+    <string name="settings_tunneled_playback">隧道播放（实验性）</string>
+    <string name="settings_tunneled_playback_description">ExoPlayer 直播电视：由电视自身硬件保持音画同步，减轻处理器负担。仅部分电视支持；若频道因此播放失败，会自动关闭。开启期间无法微调音频同步。</string>
+    <string name="settings_tunneled_playback_description_mobile">ExoPlayer 直播电视：由设备自身硬件保持音画同步，减轻处理器负担。仅部分设备支持；若频道因此播放失败，会自动关闭。开启期间无法微调音频同步。</string>
+    <string name="settings_tunneled_playback_failed">此设备上有频道因此播放失败，已自动关闭。</string>
+    <string name="settings_vp_cat_player">播放器</string>
+    <string name="settings_vp_cat_player_summary">使用哪个播放器、按播放列表、外部应用</string>
+    <string name="settings_vp_cat_picture">画面</string>
+    <string name="settings_vp_cat_picture_summary">解码器、HDR、画质、缩放</string>
+    <string name="settings_vp_cat_frame_rate">帧率</string>
+    <string name="settings_vp_cat_frame_rate_summary">让屏幕匹配视频</string>
+    <string name="settings_vp_cat_streaming">流媒体</string>
+    <string name="settings_vp_cat_streaming_summary">缓冲、超时、重新连接</string>
+    <string name="settings_vp_cat_live_summary">频道号码、暂停和回放</string>
+    <string name="settings_vp_cat_live_tuning">直播调节</string>
+    <string name="settings_vp_cat_live_tuning_summary">延迟、预缓冲、启动时间</string>
+    <string name="settings_vp_cat_controls">控制</string>
+    <string name="settings_vp_cat_controls_summary">快进和快退步长</string>
+    <string name="settings_vp_cat_multiview">多画面和迷你播放器</string>
+    <string name="settings_vp_cat_multiview_summary_mobile">同时观看多个直播频道</string>
+    <string name="settings_vp_cat_sound_summary">音量、环绕声、夜间模式、同步</string>
+    <string name="settings_vp_cat_languages">语言和字幕</string>
+    <string name="settings_vp_cat_languages_summary">音频和字幕语言、字幕样式</string>
+    <string name="settings_vp_cat_resume">继续播放和自动播放</string>
+    <string name="settings_vp_cat_resume_summary">从哪里开始、下一集</string>
+    <string name="settings_group_sound_subtitles">声音和字幕</string>
+    <string name="settings_group_watching_recording">观看与录制</string>
+    <string name="settings_search_keywords_audio">音量 大声 小声 口型同步 延迟 音轨 语言</string>
+    <string name="settings_language_original">原始语言</string>
+    <string name="settings_hardware_decoding_description_mobile">使用设备的硬件解码器。如果部分流媒体出现卡顿或画面伪影，请关闭此功能。</string>
+    <string name="settings_vod_buffer">电影缓冲</string>
+    <string name="settings_vod_buffer_description">电影、剧集和回看提前加载多少。自动会使用适合本设备的值。缓冲越长越能扛住不稳定的网络；但上限仍由设备内存决定，因此高码率电影可能缓冲得比所选少。</string>
+    <string name="settings_vod_network_timeout">网络超时</string>
+    <string name="settings_vod_network_timeout_description">电影、剧集和回看在认定连接中断前，等待无响应服务器的时长。自动保留各播放器自己的等待时间：mpv 为 60 秒，ExoPlayer 为 20 秒。</string>
+    <string name="settings_vod_reconnects">重连次数</string>
+    <string name="settings_vod_reconnects_description">电影或剧集断开连接后，在显示错误前从停止处重新打开的次数。稳定播放一分钟后次数会恢复。</string>
+    <string name="settings_vod_network_auto">自动</string>
+    <string name="settings_preferred_audio_language_description">直播流中有此音轨时播放它。“原始语言”会以电影和剧集的制作语言播放。</string>
+    <string name="settings_channel_numbers_description_mobile">在直播电视列表和播放器中，在名称旁显示服务提供商的频道编号。关闭后会隐藏所有编号；不会丢失任何数据，重新开启即可恢复显示。</string>
+    <string name="settings_live_left_right_rewinds">左右键倒回直播</string>
+    <string name="settings_live_left_right_rewinds_description">控制栏隐藏时，在可以倒回的频道上（支持回看，或由“暂停和倒回直播”保存），左右键会快退和快进，而不是打开频道列表和历史记录。</string>
+    <string name="settings_timeshift">暂停和倒回直播</string>
+    <string name="settings_timeshift_description">不支持回看的频道在全屏观看时会保存到本设备，因此可以暂停和倒回。会持续写入存储空间；始终保留至少 1 GB 可用空间。</string>
+    <string name="settings_timeshift_window">倒回时长</string>
+    <string name="settings_timeshift_window_description">不支持回看的频道最多可倒回多久。</string>
+    <string name="settings_timeshift_resume">继续已保存的频道</string>
+    <string name="settings_timeshift_resume_description">回到你离开期间一直在保存的频道时的操作。</string>
+    <string name="settings_measured_stats_description_mobile">在流媒体信息浮层中显示实时帧率、比特率和丢帧数（在浮层打开期间测量，适用于未声明这些值的流）。仅当低端设备出现卡顿时才关闭；它不会影响实际视频，只会影响诊断数值。</string>
+    <string name="settings_movies_player_description_mobile">mpv（推荐）支持的格式最广——DTS/TrueHD 音频、少见的文件。在某些设备上，ExoPlayer 能播放 mpv 打不开的流，但它无法解码 DTS/TrueHD 音频。组合选项会在第一个播放器失败时自动尝试另一个；单一播放器选项则从不尝试，如果另一个播放器在你的设备上本来就用不了，这样可以省下几秒钟黑屏。</string>
+    <string name="settings_live_player_description_mobile">ExoPlayer（推荐）打开频道快得多，也是唯一支持直播字幕的播放器。mpv 能播放 ExoPlayer 打不开的频道，包括一些音频格式少见的频道。组合选项会在第一个播放器失败时自动尝试另一个；单一播放器选项则从不尝试，如果另一个播放器在你的设备上本来就用不了，这样可以省下几秒钟黑屏。在播放器里手动切换过的频道，两种情况下都会保留你的选择。</string>
+    <string name="settings_reset_live_player_choices">重置直播电视播放器的已保存选择</string>
+    <string name="settings_reset_live_player_choices_description">在播放器中将某个频道在 ExoPlayer 与 mpv 之间切换后，该选择会为这个频道保存下来。重置后，所有频道将重新遵循“直播电视播放器”设置。电影和剧集已保存的选择会保留。</string>
+    <string name="settings_reset_live_player_choices_confirm">要重置直播电视播放器的已保存选择吗？</string>
+    <string name="settings_reset_live_player_choices_confirm_description">所有频道将重新遵循“直播电视播放器”设置。你随时可以在播放器中再次单独切换某个频道。</string>
+    <string name="settings_forget_stream_fixes">忘记已学到的播放修正</string>
+    <string name="settings_forget_stream_fixes_description">播放器会学习每个提供商的流需要什么——用 mpv 代替 ExoPlayer、换一种格式、回看时使用软件解码。如果提供商已修复了其流，请让播放器忘记这些内容。关于回看学到的内容也会在 14 天后自动忘记。</string>
+    <string name="settings_forget_stream_fixes_confirm">要忘记已学到的播放修正吗？</string>
+    <string name="settings_forget_stream_fixes_confirm_description">频道将重新以标准方式打开，播放器会重新学习提供商仍然需要的内容。受影响频道的首次播放可能会多花几秒钟。</string>
+    <string name="settings_low_zoom_warning_mobile">
+        <ns0:g id="zoom">%1$d</ns0:g>%% 的缩放比例会在屏幕上同时显示更多项目。在内存有限的设备上，这可能会导致应用运行不稳定或崩溃，尤其是在播放列表和电子节目指南（EPG）数据较大时。\n\n选择“取消”保留在 <ns0:g id="safe_zoom">%2$d</ns0:g>%%。</string>
+    <string name="settings_key_actions">操作</string>
+    <string name="settings_span_heading">范围 / 多选</string>
+    <string name="settings_span_help">在第一项上对移动、重命名或隐藏长按 OK，然后在最后一项上按同样的操作。两者之间的所有项会一起改变。</string>
+    <string name="settings_span_ch_help">CH+ / CH− 翻一页。长按 CH+ / CH− 跳到最后一项或第一项。</string>
+    <string name="settings_backup_device_settings">另一台设备的硬件设置</string>
+    <string name="settings_backup_device_settings_desc">播放器引擎、硬件解码、帧率、HDR 和环绕声。仅当两台设备硬件相同时才恢复。</string>
+    <string name="settings_catchup_timezone_per_playlist">按播放列表设置回看时区</string>
+    <string name="settings_catchup_timezone_per_playlist_description">为单个播放列表覆盖上方的时区，适用于存档按另一时钟运行的提供商。</string>
+    <string name="settings_vod_engine_per_playlist">按播放列表设置电影和剧集播放器</string>
+    <string name="settings_vod_engine_per_playlist_description">为单个播放列表覆盖上方的设置，适用于电影和剧集只有其中一个播放器能良好播放的提供商。</string>
+    <string name="settings_live_tune_timeout_per_playlist">按播放列表设置放弃等待时间</string>
+    <string name="settings_live_tune_timeout_per_playlist_description">为单个播放列表覆盖上方的设置，适用于频道启动缓慢或经常失效的提供商。</string>
+    <string name="settings_surround_auto_description_mobile">自动 — 尝试 Dolby/DTS 环绕声，如果扬声器、耳机或连接的接收器无法播放，则自动切换回立体声。推荐使用。</string>
+    <string name="settings_surround_stereo_description_mobile">仅立体声 — 始终在应用内解码并输出普通 2.0 声音。适用于内置扬声器、耳机或立体声条形音箱，或音频落后于画面时使用。</string>
+    <string name="settings_auto_frame_rate_warning_title_mobile">不建议在此设备上使用</string>
+    <string name="settings_auto_frame_rate_warning_description_mobile">此设备运行的是 Android <ns0:g id="android_version">%1$s</ns0:g>。低于 Android 12 时，设备无法告知 OwnTV 它能平滑切换哪些刷新率，因此更改刷新率可能会导致屏幕黑屏一两秒——有时在播放一个节目期间还不止一次。\n\n我们建议在此设备上保持自动帧率关闭。如果您的屏幕切换得很顺畅，可以打开试试：您随时都可以改回来。</string>
+    <string name="more_group_your_things">我的内容</string>
+    <string name="more_group_keep_safe">安全备份</string>
+    <string name="more_profile_switch">切换</string>
+    <string name="more_fav_movies_series">电影和剧集</string>
+    <string name="more_fav_empty_title">还没有收藏</string>
+    <string name="more_fav_empty_body">在频道、电影或剧集上长按 OK，然后选择“添加到收藏夹”。</string>
+    <string name="more_history_empty">还没有观看记录</string>
+    <string name="more_backup_never_title">从未备份</string>
+    <string name="more_backup_never_body">
+        <ns0:g id="playlists">%1$s</ns0:g>、<ns0:g id="favorites">%2$s</ns0:g>、<ns0:g id="history">%3$s</ns0:g>以及所有自定义设置都只保存在这台电视上。</string>
+    <string name="more_backup_now">立即备份</string>
+    <string name="more_backup_now_body">在这台电视上保存文件，或远程发送到另一台设备</string>
+    <string name="more_backup_file_tv">保存到这台电视</string>
+    <string name="more_restore_body">从这台电视上的文件，或从另一台设备远程恢复</string>
+    <string name="more_backup_included">包含的内容</string>
+    <string name="more_about_up_to_date">已是最新</string>
+    <string name="more_about_checked">检查于 <ns0:g id="value">%1$s</ns0:g>
+    </string>
+    <string name="more_settings_pin_hint">长按 OK 可将一行固定到快捷</string>
+    <string name="more_settings_search">搜索所有设置</string>
+    <string name="settings_card_profile">观众、儿童模式、PIN 锁</string>
+    <string name="settings_card_sources">播放列表、EPG、提醒、回看</string>
+    <string name="settings_card_appearance">主题、强调色、玻璃、文字</string>
+    <string name="settings_card_layout">导航、面板、主页、菜单</string>
+    <string name="settings_card_content">分类、TMDB、字幕</string>
+    <string name="settings_card_player">播放器、串流</string>
+    <string name="settings_card_picture">解码器、HDR、缩放、帧率</string>
+    <string name="settings_card_sound">音量、环绕声、语言</string>
+    <string name="settings_card_live">预览、回放、延迟、启动</string>
+    <string name="settings_card_watching">跳转、续播、多画面、录制</string>
+    <string name="settings_card_app">语言、更新、网络、诊断</string>
+    <string name="more_sync_description">通过 Wi-Fi 与你的另一台设备共享数据。任何内容都不会离开你的家庭网络。</string>
+    <string name="more_sync_mode_description">让你的其他设备找到这台设备。此页面打开期间保持开启。</string>
+    <string name="more_sync_unpair">取消配对</string>
+    <string name="more_about_license">GPLv3 · 免费开源</string>
+    <string name="more_about_description">你自己的 Android TV IPTV 播放器。它不提供任何频道或内容；你需要添加自己合法可用的来源。</string>
+    <string name="more_about_scan">用手机扫描。</string>
+    <plurals name="more_playlist_count">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 个播放列表</item>
+    </plurals>
+    <plurals name="more_count_favorites">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 个收藏</item>
+    </plurals>
+    <plurals name="more_count_history">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 条观看记录</item>
+    </plurals>
+    <plurals name="more_about_languages">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 种语言</item>
+    </plurals>
+    <string name="settings_app_icon">应用图标</string>
+    <string name="settings_app_icon_summary">OwnTV 图标和标志的颜色</string>
+    <string name="settings_brand_accent">强调色徽标</string>
+    <string name="app_icon_petrol">石油蓝</string>
+    <string name="app_icon_sunflower">向日葵</string>
+    <string name="app_icon_cobalt">钴蓝</string>
+    <string name="app_icon_tomato">番茄红</string>
+    <string name="app_icon_board">车站翻牌</string>
+    <string name="app_icon_eggshell">蛋壳白</string>
+    <string name="app_icon_olive">橄榄绿</string>
+    <string name="app_icon_olive_cream">奶油橄榄绿</string>
+    <string name="app_icon_pixel">Pixel</string>
+    <string name="app_icon_restart_title">重启 OwnTV？</string>
+    <string name="app_icon_restart_message">你选择了新的图标和标志，重启 OwnTV 后生效。</string>
+    <string name="app_icon_restart_now">立即重启</string>
+    <string name="settings_navigation">导航</string>
+    <string name="settings_navigation_description">左侧菜单的行为方式</string>
+    <string name="settings_nav_floating">悬浮</string>
+    <string name="settings_nav_floating_desc">显示在内容上方；浏览时自动隐藏，在边缘按 ◀ 唤出</string>
+    <string name="settings_nav_docked">停靠</string>
+    <string name="settings_nav_docked_desc">始终显示；内容为其让出空间</string>
+    <string name="settings_nav_hide_after">隐藏时间</string>
+    <string name="settings_nav_hide_after_desc">仅悬浮：焦点离开后导航栏等待多久再隐藏</string>
+    <string name="settings_nav_widen">获得焦点时展开</string>
+    <string name="settings_nav_widen_desc">固定且紧凑：导航栏获得焦点时在内容上方显示名称</string>
+    <string name="settings_nav_menu_items">菜单项</string>
+    <string name="settings_nav_menu_items_desc">动态：跟随播放列表内容 · 静态：自行选择</string>
+    <string name="settings_search_keywords_navigation">导航栏, 侧边栏, 菜单, 导航, 隐藏, 悬浮, 停靠, 大小, 紧凑, 宽, 长度, 全高</string>
+    <string name="settings_breadcrumb_eyebrow">
+        <ns0:g id="section">%1$s</ns0:g> · <ns0:g id="group">%2$s</ns0:g>
+    </string>
+    <string name="settings_nav_size_desc">紧凑：图标 · 标准：名称 · 宽：名称和数量 · 超宽：含详情</string>
+    <string name="settings_nav_size_compact">紧凑</string>
+    <string name="settings_nav_size_normal">标准</string>
+    <string name="settings_nav_size_wide">宽</string>
+    <string name="settings_nav_size_extra_wide">超宽</string>
+    <string name="settings_nav_length">长度</string>
+    <string name="settings_nav_length_desc">适应项目，或占满屏幕高度</string>
+    <string name="settings_nav_length_fit">适应项目</string>
+    <string name="settings_nav_length_full">全高</string>
+    <string name="settings_nav_hide_after_half">0.5 秒</string>
+    <plurals name="settings_nav_hide_after_seconds">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 秒</item>
+    </plurals>
+    <string name="settings_live_layout">直播电视布局</string>
+    <string name="settings_live_layout_description">分类以侧栏打开，或始终显示</string>
+    <string name="settings_live_layout_stage">舞台</string>
+    <string name="settings_live_layout_stage_description">按左键打开分类。频道列表和预览占满整个宽度。</string>
+    <string name="settings_live_layout_separate_description">分类、频道列表和预览并排显示。</string>
+    <string name="settings_search_keywords_live_layout">布局 直播 电视 频道 分类 侧栏 面板 舞台</string>
+    <string name="settings_panel_width_live_sheet">分类侧栏</string>
+    <string name="settings_panel_width_live_sheet_hint">按左键时分类在列表上方展开的宽度，不计入 100%%。</string>
+    <string name="settings_panel_width_summary_stage">分类侧栏 <ns0:g id="sheet">%1$d</ns0:g>%% · 列表 <ns0:g id="list">%2$d</ns0:g>%% · 预览 <ns0:g id="preview">%3$d</ns0:g>%%</string>
+    <string name="settings_live_opens_in">直播电视打开方式</string>
+    <string name="settings_live_opens_in_description">打开直播电视时显示频道列表或节目指南网格。直播电视里的节目指南视图按钮也会切换。</string>
+    <string name="settings_reminders">节目提醒</string>
+    <string name="settings_reminders_description">设了提醒的节目即将开始时如何处理。</string>
+    <string name="settings_reminder_ask">询问是否切换</string>
+    <string name="settings_reminder_switch">直接切换</string>
+    <string name="settings_reminder_notify">仅通知</string>
+    <string name="settings_reminder_lead">提醒时间</string>
+    <string name="settings_reminder_lead_description">在节目开始前多久提醒。</string>
+    <string name="settings_reminder_at_start">开始时</string>
+    <string name="settings_search_keywords_reminders">提醒 通知 节目 开始 切换</string>
+    <string name="settings_search_keywords_live_opens_in">直播 电视 打开 启动 列表 节目指南 网格 视图</string>
+    <string name="settings_panel_width_summary_cinematic">分类面板 <ns0:g id="sheet">%1$d</ns0:g>%% · 详情高度 <ns0:g id="height">%2$d</ns0:g>%%</string>
+    <string name="settings_panel_width_cinematic_sheet_hint">按左键时分类在作品上方展开的宽度。</string>
+    <string name="settings_key_change">更改</string>
+    <string name="settings_key_switch">开/关</string>
+    <string name="settings_key_open">打开</string>
+    <string name="settings_key_unpin">取消固定</string>
+    <string name="settings_panel_choices">选项</string>
+    <string name="settings_panel_recommended">推荐</string>
+    <string name="settings_part_guide_catchup">节目指南和回看</string>
+    <string name="settings_vp_cat_controls_resume">控制与继续播放</string>
+    <string name="settings_pinned_from">从“<ns0:g id="group">%1$s</ns0:g>”固定</string>
+    <string name="settings_forget">清除</string>
+    <string name="settings_check_now">立即检查</string>
+    <string name="settings_line_epg_offset">源的时间不准时平移整个节目指南</string>
+    <string name="settings_line_reminders">提醒到时会发生什么</string>
+    <string name="settings_line_reminder_lead">提醒提前多久到</string>
+    <string name="settings_line_guide_days">节目指南保存未来几天</string>
+    <string name="settings_line_catchup">回看存档使用的时区</string>
+    <string name="settings_line_catchup_sources">为单个播放列表改用其他时区</string>
+    <string name="settings_line_override_playlist">为单个播放列表单独设置</string>
+    <string name="settings_line_accent">为按钮、焦点和高亮统一着色</string>
+    <string name="settings_line_fonts">主界面和弹出窗口使用同一字体</string>
+    <string name="settings_line_popup_size">缩放对话框和菜单，文字大小不变</string>
+    <string name="settings_line_animations">关闭后在低端电视盒上更流畅</string>
+    <string name="settings_line_weather">右上角天气：位置和 °C / °F</string>
+    <string name="settings_line_live_opens_in">频道列表或节目表网格</string>
+    <string name="settings_line_vod_layout">分栏面板，或一个影院式视图</string>
+    <string name="settings_line_panel_width">分类、列表和预览的宽度</string>
+    <string name="settings_line_guide_width">频道列表和时间轴</string>
+    <string name="settings_line_browsing">记住上次的分类和条目</string>
+    <string name="settings_line_home">选择、排序和筛选各行</string>
+    <string name="settings_line_content_menus">调整每个菜单里的操作</string>
+    <string name="settings_line_remote_shortcuts">为遥控器空闲按键指定功能</string>
+    <string name="settings_line_customize">隐藏与显示、重命名和排序</string>
+    <string name="settings_line_metadata">电影和剧集的海报、剧情、演员和评分</string>
+    <string name="settings_line_open_subtitles">搜索和下载字幕</string>
+    <string name="settings_line_app_icon">启动器图标</string>
+    <string name="settings_line_brand_accent">徽标中的播放三角形使用你的强调色</string>
+    <string name="settings_line_check_updates">从 GitHub 获取最新版本</string>
+    <string name="settings_line_when_app_opens">打开应用时</string>
+    <string name="settings_line_proxy">所有流量都经过 HTTP 代理</string>
+    <string name="settings_line_dns">自定义 DNS 服务器</string>
+    <string name="settings_line_quick_live_preview">在直播电视中播放焦点频道</string>
+    <string name="settings_line_preview_sound">直播预览中的声音</string>
+    <string name="settings_line_quick_channel_numbers">在遥控器上输入数字换台</string>
+    <string name="settings_line_hdr">mpv 的高动态范围</string>
+    <string name="settings_line_quick_autoplay">自动开始下一集</string>
+    <string name="settings_line_live_engine">由哪个引擎打开频道，以及备用引擎</string>
+    <string name="settings_line_saved_live_choices">你手动切换过的频道</string>
+    <string name="settings_line_vod_engine">由哪个引擎打开电影和剧集</string>
+    <string name="settings_line_saved_choices">你手动切换过的电影和剧集</string>
+    <string name="settings_line_learned_fixes">播放器针对每个提供商学到的内容</string>
+    <string name="settings_line_external">VLC、MX Player… 按分区设置</string>
+    <string name="settings_line_vod_buffer">电影提前加载多少</string>
+    <string name="settings_line_vod_timeout">等待无响应的服务器</string>
+    <string name="settings_line_vod_reconnects">从中断处重新打开</string>
+    <string name="settings_line_hw">使用电视自带的解码器</string>
+    <string name="settings_line_max_quality">有多种画质时的最高画质</string>
+    <string name="settings_line_tunneled">实验性 · ExoPlayer 上的直播电视</string>
+    <string name="settings_line_zoom">开始播放时的画面比例和缩放</string>
+    <string name="settings_line_saved_zoom">你在播放器里改过的缩放</string>
+    <string name="settings_line_films_only">仅电影</string>
+    <string name="settings_line_volume">超过 100%% 时放大音量小的流</string>
+    <string name="settings_line_saved_volume">你在播放器里改过的音量</string>
+    <string name="settings_line_surround">按电视收到的样子输出 5.1 和 7.1</string>
+    <string name="settings_line_passthrough">不解码直接送往电视或回音壁</string>
+    <string name="settings_line_night_mode">压低大声场景，提升对白</string>
+    <string name="settings_line_leveling">所有频道音量一致</string>
+    <string name="settings_line_audio_sync">让音频提前或延后</string>
+    <string name="settings_line_saved_audio_sync">你在播放器里记住的延迟</string>
+    <string name="settings_line_audio_lang">流里有这条音轨时就播放它</string>
+    <string name="settings_line_sub_lang">开启此语言的字幕</string>
+    <string name="settings_line_sub_style">大小、颜色、位置、背景</string>
+    <string name="settings_title_fonts">字体和文字大小</string>
+    <string name="settings_title_saved_live_choices">已保存的直播电视播放器选择</string>
+    <string name="settings_title_saved_choices">已保存的播放器选择</string>
+    <string name="settings_title_learned_fixes">已学习的流修复</string>
+    <string name="settings_title_tunneled">隧道播放</string>
+    <string name="settings_title_saved_zoom">已保存的缩放</string>
+    <string name="settings_title_saved_volume">已保存的音量</string>
+    <string name="settings_title_saved_audio_sync">已保存的音频同步</string>
+    <string name="settings_line_channel_numbers">名称旁显示提供商的频道号</string>
+    <string name="settings_line_live_preview">播放焦点所在的频道</string>
+    <string name="settings_line_timeshift">无回看的频道在观看时保存</string>
+    <string name="settings_line_timeshift_window">最多能倒回多久</string>
+    <string name="settings_line_left_right">控件隐藏时</string>
+    <string name="settings_line_latency">播放离直播有多近</string>
+    <string name="settings_line_preroll">频道开始前缓冲的视频</string>
+    <string name="settings_line_tune_timeout">停止尝试并提示</string>
+    <string name="settings_line_seek_step">电影中快退和快进跳多远</string>
+    <string name="settings_line_rewind_step">直播频道中跳多远</string>
+    <string name="settings_line_resume">电影有已保存位置时</string>
+    <string name="settings_line_autoplay">并接着播下一季</string>
+    <string name="settings_line_tiles">每个画面都占一路流</string>
+    <string name="settings_line_mini">大小和位置</string>
+    <string name="settings_line_rec_reserve">绝不占满所有连接录制</string>
+    <string name="settings_line_rec_watching">不占用第二路流</string>
+    <string name="settings_line_rec_pre_roll">节目开始之前</string>
+    <string name="settings_line_rec_post_roll">用于超时的节目</string>
+    <string name="settings_line_measured_stats">实时帧率、码率和丢帧</string>
+    <string name="settings_line_logging">供错误报告用的完整日志</string>
+    <string name="settings_help_profiles">每位观众都有自己的收藏、观看记录、续播位置和主页行。儿童模式只显示你允许的分类；设置 PIN 后其他人无法打开该配置文件。</string>
+    <string name="settings_help_playlists">通过链接、Xtream 登录、Stalker 门户或文件添加播放列表，也可重新同步或删除。</string>
+    <string name="settings_help_epg_sources">通过链接添加 XMLTV 节目指南源，或刷新、删除它。这些源会填充节目指南和直播电视中的节目信息。</string>
+    <string name="settings_help_guide_days">节目指南预先保存多少天的节目。天数越少，指南刷新越快，数据库也越小。</string>
+    <string name="settings_help_catchup">回看会播放提供商存档中的节目。大多数提供商按电视自身的时钟运行；如果回看开始时间不对，请选择固定的 UTC 偏移。回看使用哪个播放器也在这里选择。</string>
+    <string name="settings_help_theme">OwnTV 是为深色主题设计的。“系统”在电视有相应设置时跟随电视；浅色适合明亮的房间。</string>
+    <string name="settings_help_accent">为按钮、焦点光晕、进度条和高亮统一着色。选择一个预设，或按 OK 打开调色板并输入任意十六进制代码。</string>
+    <string name="settings_help_focus">焦点项目周围的边框。选择它的颜色和粗细，让你坐在沙发上也能看清。</string>
+    <string name="settings_help_fonts">OwnTV 全局使用的字体，以及文字显示的大小。弹出窗口也使用同一字体。</string>
+    <string name="settings_help_popup_size">整体放大或缩小弹出窗口、菜单和对话框。弹窗显得拥挤或遮住太多屏幕时可以调整。</string>
+    <string name="settings_help_zoom">缩放屏幕上的所有内容。放大后远处更易阅读；缩小后能显示更多。低于 85%% 时，内存较小的电视盒可能内存不足。</string>
+    <string name="settings_help_animations">开启时，面板、菜单和焦点会平滑移动。关闭后所有变化都会立即完成。</string>
+    <string name="settings_help_weather">在时钟旁显示气温和你所在的城市。自动定位不准时（例如使用 VPN），可手动设置位置，并选择摄氏或华氏。</string>
+    <string name="settings_help_navigation">悬浮：菜单以小胶囊形式浮在内容上方，向左移动时滑出。固定：始终占用自己的空间。大小决定显示多少内容，从仅图标到数量和详情。</string>
+    <string name="settings_help_live_layout">Stage 把分类放在按 ◀ 滑出的面板中，让频道列表和预览获得空间。分栏则把分类一直显示在列表旁边。</string>
+    <string name="settings_help_vod_layout">影院式在海报网格后方显示焦点作品的图片。分栏则把分类、作品和详情并排显示。</string>
+    <string name="settings_help_home">选择主页显示哪些行、按什么顺序，以及“正在热门”行的样式。</string>
+    <string name="settings_help_customize">隐藏你从不看的分类和条目，给分类起自己的名字并按你的顺序排列。隐藏的内容可在这里恢复，不会丢失。</string>
+    <string name="settings_help_app_icon">电视主屏幕上的 OwnTV 图标。启动器可能需要片刻才会显示变化。</string>
+    <string name="settings_help_brand_accent">菜单、关于和设置向导中的 OwnTV 徽标会以你的强调色显示播放三角形。主屏幕上的图标保持原有颜色。</string>
+    <string name="settings_help_startup">OwnTV 启动时显示的内容：主页、上次观看的频道、你的收藏，或你指定的频道。</string>
+    <string name="settings_help_check_updates">立即在 GitHub 上查找较新的 OwnTV 并提示安装。你的播放列表、收藏和设置都会保留。</string>
+    <string name="settings_help_update_startup">每次启动 OwnTV 时查找新版本，有新版本时会告诉你。未经询问不会安装任何内容。</string>
+    <string name="settings_help_dns">使用你选择的 DNS 服务器（而不是网络自带的）解析提供商的地址——当你的网络屏蔽或重定向这些地址时很有用。</string>
+    <string name="settings_help_live_engine">ExoPlayer 打开频道快得多，也是唯一支持直播字幕的播放器。mpv 能播放 ExoPlayer 无法播放的频道，包括一些特殊音频。组合选项会在第一个播放器失败时尝试另一个。</string>
+    <string name="settings_help_hw">使用电视的硬件解码器：4K 流畅、发热更少。只有在部分流卡顿或出现马赛克时才关闭，届时由软件解码器处理。</string>
+    <string name="settings_help_volume">每个频道、电影和剧集开始播放时的音量。超过 100%% 时会放大音量小的流。你在播放器中调整的音量会为该作品保留，直到重置。</string>
+    <string name="settings_help_channel_numbers">在直播电视列表、频道列表浮层和播放器中，于名称旁显示提供商的频道号；全屏时可在遥控器上输入数字直接跳到该频道。</string>
+    <string name="settings_help_seek_step">在电影或剧集中，每按一次快退和快进跳多远。按住按键会持续跳转。</string>
+    <string name="settings_help_zoom_mode">开始播放时画面如何填满屏幕。适应显示完整画面；其他选项会填满、拉伸或强制比例。在播放器中改过的缩放会为该作品保留。</string>
+    <string name="settings_help_sub_lang">流中有此语言的字幕时会自动开启；否则字幕保持关闭，直到你在播放器中选择字幕轨。</string>
+    <string name="settings_help_live_preview">焦点频道会在直播电视列表旁的预览中播放，打开前就能看到正在播什么。需要有预览空间的布局。</string>
+    <string name="settings_help_preview_audio">预览时同时播放声音和画面。关闭后浏览时保持安静。</string>
+    <string name="settings_help_timeshift_window">在没有回看的频道上，“暂停和倒回直播电视”最多能倒回多久。越长，此设备存储中保留的频道内容越多。</string>
+    <string name="settings_help_resume">“询问是否继续”会在电影或剧集有已保存位置时提供“继续”或“从头开始”。“总是继续”从上次停止处播放；“从不继续”从头开始。</string>
+    <string name="settings_help_mini">浏览时在角落继续播放频道的小播放器。可选择大小和所在角落。</string>
+    <string name="settings_key_palette">调色板</string>
+    <string name="settings_live_preview_note">移动时变化就会显示在这里，无需离开该行。</string>
+    <string name="settings_synced_at">
+        <ns0:g id="when">%1$s</ns0:g>同步</string>
+    <string name="settings_profile_in_use">正在使用</string>
+    <string name="settings_profile_kids">儿童模式</string>
+    <string name="settings_profile_pin_lock">PIN 锁</string>
+    <string name="settings_profile_no_lock">未加锁</string>
+    <string name="settings_profile_add">添加配置文件</string>
+    <string name="settings_profile_add_line">拥有独立收藏、记录和设置的观众</string>
+    <plurals name="settings_help_language">
+        <item quantity="other">OwnTV 所有菜单和消息使用的语言。支持 <ns0:g id="count">%1$d</ns0:g> 种语言；在你选择之前跟随电视自身的语言。</item>
+    </plurals>
+    <plurals name="settings_profile_count">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 个配置文件</item>
+    </plurals>
+    <string name="settings_seg_separate">分栏</string>
+    <string name="settings_seg_guide">指南</string>
+    <string name="settings_accent_yours">你的</string>
+    <string name="settings_accent_picker_hint">在色域或色相条上按 OK，然后用方向键移动；按 OK 或返回结束。</string>
+    <string name="settings_signed_out">未登录</string>
+    <plurals name="settings_epg_feed_count">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 个来源</item>
+    </plurals>
+    <string name="settings_title_date_time_weather">日期、时间和天气</string>
+    <string name="settings_line_show_weather">在顶栏显示当前天气</string>
+    <string name="settings_line_custom_location">留空 = 自动检测</string>
+    <string name="settings_line_temperature_unit">摄氏或华氏</string>
+    <string name="settings_clock_colors">颜色</string>
+    <string name="settings_clock_time_color">时间颜色</string>
+    <string name="settings_line_clock_time">时钟</string>
+    <string name="settings_clock_date_color">日期颜色</string>
+    <string name="settings_line_clock_date">时钟下方的日期</string>
+    <string name="settings_clock_weather_color">天气颜色</string>
+    <string name="settings_line_clock_weather">温度和城市</string>
+    <string name="settings_clock_color_white">白色</string>
+    <string name="settings_clock_color_grey">灰色</string>
+    <string name="settings_clock_color_accent">强调色</string>
+    <string name="settings_clock_color_help">按 OK 打开颜色选择器（预设、调色板或十六进制代码），与强调色使用的相同。预览会随之变化。</string>
+    <string name="settings_key_pick_color">选择颜色</string>
+    <string name="settings_line_trending_layout">热门行的显示方式</string>
+    <string name="settings_home_shown">显示</string>
+    <string name="settings_home_hide_row">隐藏此行</string>
+    <string name="settings_home_show_row">显示此行</string>
+    <string name="settings_home_move_row">移动（▲ ▼，然后按 OK）</string>
+    <string name="settings_line_remote_shortcuts_on">关闭后保留按键分配</string>
+    <string name="settings_language_system_help">OwnTV 跟随电视语言（当前为 <ns0:g id="language">%1$s</ns0:g>）。在下方选择一种语言，仅在 OwnTV 中使用。</string>
+    <string name="settings_language_pick_help">在 OwnTV 中使用 <ns0:g id="language">%1$s</ns0:g>，不受电视语言影响。</string>
+    <string name="settings_key_use">使用</string>
+    <string name="settings_line_metadata_source">电影和剧集详情的来源</string>
+    <string name="settings_line_metadata_language">来自 TMDB 的简介、类型和标题</string>
+    <string name="settings_line_metadata_advanced">你自己的密钥或自托管 Worker</string>
+    <string name="settings_line_os_advanced">你自己的 API 密钥或 Worker</string>
+    <string name="settings_line_os_filter">仅所选语言</string>
+    <string name="settings_line_os_search_language">显示在搜索结果中</string>
+    <string name="settings_subtitle_delete_help">删除可释放空间；之后可在播放器中重新下载。</string>
+    <plurals name="settings_home_row_count">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 行</item>
+    </plurals>
+    <plurals name="settings_subtitles_downloaded_count">
+        <item quantity="other">已下载 <ns0:g id="count">%1$d</ns0:g> 个</item>
+    </plurals>
+    <plurals name="settings_subtitle_file_count">
+        <item quantity="other">
+            <ns0:g id="count">%1$d</ns0:g> 个文件</item>
+    </plurals>
+    <string name="settings_line_add_from_phone">在另一台设备的浏览器中填写表单</string>
+    <string name="settings_add_type_here">在此输入</string>
+    <string name="settings_line_add_type_here">用遥控器输入 Xtream、M3U 或 Stalker</string>
+    <string name="settings_help_add_from_phone">在同一 Wi-Fi 下任意设备（手机、电脑或另一台电视）的浏览器中打开地址或扫码，在那里填写播放列表并发送到这里。比用遥控器输入网址快得多。</string>
+    <string name="settings_help_add_type_here">用遥控器输入 Xtream 登录信息、M3U 地址或 Stalker 门户，然后在面板中开始导入。</string>
+    <string name="settings_remote_waiting">正在等待另一台设备</string>
+    <string name="settings_remote_nothing_yet">尚未收到任何内容</string>
+    <string name="settings_remote_new_pin">新 PIN</string>
+    <string name="settings_line_remote_new_pin">如果有其他人看到了这个</string>
+    <string name="settings_remote_scan">扫码或在浏览器中打开</string>
+    <string name="settings_remote_or_open">或打开</string>
+    <string name="settings_remote_details_note">详细信息会显示在这里；用遥控器开始导入。</string>
+    <string name="settings_key_stop_back">停止并返回</string>
+    <string name="settings_source_type">类型</string>
+    <string name="settings_line_source_type">Xtream、M3U 或 Stalker 门户</string>
+    <string name="settings_choose_local_file">选择本地文件…</string>
+    <string name="settings_line_local_file">此电视上的 .m3u 或 .m3u8</string>
+    <string name="settings_form_optional">可选</string>
+    <string name="settings_form_field_help">按 OK 打开键盘；▼ 移到下一个字段。</string>
+    <string name="settings_help_playlist_url">你的 .m3u 或 .m3u8 列表地址。</string>
+    <string name="settings_line_fill_from_playlist">使用播放列表提供的节目指南地址</string>
+    <string name="settings_line_epg_auto_refresh">保持节目指南为最新</string>
+    <string name="settings_line_epg_logos">替代播放列表的台标</string>
+    <string name="settings_help_epg_name">显示在节目指南列表和“手动选择 EPG”中。</string>
+    <string name="settings_glass_bg_title">玻璃与背景</string>
+    <string name="settings_line_glass_bg">背景、图片效果、玻璃</string>
+    <string name="settings_bg_background">背景</string>
+    <string name="settings_line_bg_background">每个屏幕后面的内容</string>
+    <string name="settings_help_bg_background">Stage 显示 OwnTV 自带的柔和颜色。图片在每个屏幕后面显示你自己的图片。纯色是平整的深色填充。</string>
+    <string name="settings_bg_stage">Stage</string>
+    <string name="settings_bg_picture">图片</string>
+    <string name="settings_bg_plain">纯色</string>
+    <string name="settings_line_bg_picture_none">从这台电视或通过 Remote 选择图片</string>
+    <string name="settings_bg_change">更改</string>
+    <string name="settings_bg_none">无</string>
+    <string name="settings_bg_look">图片效果</string>
+    <string name="settings_line_bg_look">清晰、柔和或暗色</string>
+    <string name="settings_bg_sharp">清晰</string>
+    <string name="settings_bg_soft">柔和</string>
+    <string name="settings_bg_dark">暗色</string>
+    <string name="settings_bg_sharp_desc">图片原样，仅略微调暗</string>
+    <string name="settings_bg_soft_desc">模糊并调暗；文字始终清晰可读</string>
+    <string name="settings_bg_dark_desc">几乎全黑，隐约可见图片</string>
+    <string name="settings_help_bg_look">你的图片在屏幕后面的样子。行和文字直接绘制在图片上，所以明亮的图片需要柔和或暗色。</string>
+    <string name="settings_bg_picture_only">仅图片</string>
+    <string name="settings_bg_darken">调暗</string>
+    <string name="settings_line_bg_darken">图片调暗的程度</string>
+    <string name="settings_bg_blur">模糊</string>
+    <string name="settings_line_bg_blur">图片的柔和程度</string>
+    <string name="settings_bg_accent_light">强调色光晕</string>
+    <string name="settings_line_bg_accent_light">你的强调色在角落发光</string>
+    <string name="settings_glass_section">玻璃</string>
+    <string name="settings_line_glass_switch">导航栏、面板、菜单和弹窗为磨砂效果</string>
+    <string name="settings_help_glass_chrome">让悬浮部分呈磨砂效果：导航栏、分类面板、菜单、弹窗和顶部按钮。列表和海报保持平面。</string>
+    <string name="settings_glass_opacity">玻璃不透明度</string>
+    <string name="settings_line_glass_opacity">越低背景显示越多</string>
+    <string name="settings_line_glass_reset">Stage 颜色，玻璃开启，<ns0:g id="percent" example="56%">%1$s</ns0:g>
+    </string>
+    <string name="settings_bg_preview_note">使用此背景的直播电视。移动时即可看到变化。</string>
+    <string name="setup_referer_optional">Referer（可选）</string>
+    <string name="setup_referer_example">例如 https://example.com/</string>
+    <string name="setup_step_display">显示</string>
+    <string name="setup_step_playlist">播放列表</string>
+    <string name="setup_step_ready">完成</string>
+    <string name="setup_key_previous_step">上一步</string>
+    <string name="setup_welcome_title">欢迎使用 OwnTV</string>
+    <string name="setup_welcome_sub">你自己的 IPTV 播放器。先选择一种语言，之后可以在设置中更改。</string>
+    <string name="setup_display_sub">界面和文字在这台电视上的大小。下方这一行会随之变化。</string>
+    <string name="setup_line_zoom">屏幕上的所有内容</string>
+    <string name="setup_line_font">仅文字</string>
+    <string name="setup_line_app_icon">OwnTV 在电视主屏幕上的样子</string>
+    <string name="setup_restore_card_line">从文件恢复，或从另一台设备远程发送</string>
+    <string name="setup_device_appear">开启了同步模式的设备会显示在这里</string>
+    <string name="setup_device_address_hint">或输入另一台设备的地址</string>
+    <string name="setup_profile_sub">每个个人资料都有自己的收藏、历史记录和首页。之后可在 设置 › 个人资料 中添加更多。</string>
+    <string name="setup_avatar">头像</string>
+    <string name="setup_avatar_line">选择一个，或保留首字母</string>
+    <string name="setup_create_profile">创建个人资料</string>
+    <string name="setup_phone_card_line">在另一台设备的浏览器中填写表单 — 最快</string>
+    <string name="setup_importing_title">正在导入 <ns0:g id="name">%1$s</ns0:g>
+    </string>
+    <string name="setup_add_guide">添加电视节目指南</string>
+    <string name="setup_add_guide_line">全新安装还没有节目指南</string>
+</resources>

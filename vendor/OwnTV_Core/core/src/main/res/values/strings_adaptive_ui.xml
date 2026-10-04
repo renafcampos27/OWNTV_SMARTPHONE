@@ -1,0 +1,12 @@
+<resources>
+    <string name="adaptive_play">Play</string>
+    <string name="adaptive_pause">Pause</string>
+    <string name="adaptive_rewind">Rewind</string>
+    <string name="adaptive_forward">Forward</string>
+    <string name="adaptive_previous">Previous item</string>
+    <string name="adaptive_next">Next item</string>
+    <string name="adaptive_channel_previous">Previous channel</string>
+    <string name="adaptive_channel_next">Next channel</string>
+    <string name="adaptive_lock_touch">Lock touch</string>
+    <string name="adaptive_unlock_touch">Unlock touch</string>
+</resources>

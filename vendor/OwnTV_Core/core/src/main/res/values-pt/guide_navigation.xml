@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guide_replay_only_on">Apenas diferidos: ligado</string>
+    <string name="guide_replay_only_off">Apenas diferidos: desligado</string>
+    <string name="guide_replay_only_empty">Não há canais com diferido neste guia. Desliga «Apenas diferidos» para mostrar todos os canais.</string>
+    <string name="guide_replay_channel">Canal com diferido</string>
+    <string name="guide_previous_day">Dia anterior</string>
+    <string name="guide_previous_hour">Hora anterior</string>
+    <string name="guide_next_hour">Hora seguinte</string>
+    <string name="guide_next_day">Dia seguinte</string>
+    <string name="guide_browse_time">%1$s · %2$s</string>
+</resources>

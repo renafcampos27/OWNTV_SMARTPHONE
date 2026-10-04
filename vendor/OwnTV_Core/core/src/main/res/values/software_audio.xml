@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_software_audio">Prefer software audio decoding (ExoPlayer)</string>
+    <string name="settings_software_audio_description">Automatic by default: uses Android audio decoding and FFmpeg when the format is unsupported. Enable to prefer FFmpeg software audio decoding. Video decoding stays independent. Does not affect mpv or external players.</string>
+    <string name="player_stream_audio_decoder">Audio decoder</string>
+    <string name="player_audio_software_fallback">Hardware fallback: compatible software decoder unavailable or failed to initialize</string>
+    <string name="player_audio_unsupported">No compatible audio decoder</string>
+    <string name="player_audio_not_selected">Audio track not selected</string>
+</resources>

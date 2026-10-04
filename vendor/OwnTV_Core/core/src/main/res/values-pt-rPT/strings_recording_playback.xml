@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recording_watch_in_progress">Ver gravação em curso</string>
+    <string name="recording_watch_unavailable">A gravação ainda não está pronta para reprodução local ou o armazenamento está indisponível.</string>
+    <string name="recording_parts_require_internal">As gravações guardadas por partes precisam do leitor interno. Desativa o leitor externo para TV em direto nas definições.</string>
+</resources>

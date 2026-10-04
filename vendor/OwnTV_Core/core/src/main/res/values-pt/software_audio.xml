@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_software_audio">Preferir descodificação de áudio por software (ExoPlayer)</string>
+    <string name="settings_software_audio_description">Automático por predefinição: usa o áudio do Android e recorre ao FFmpeg quando o formato não é suportado. Ativa para preferir áudio por software através do FFmpeg. A descodificação do vídeo mantém-se independente. Não afeta mpv nem leitores externos.</string>
+    <string name="player_stream_audio_decoder">Descodificador de áudio</string>
+    <string name="player_audio_software_fallback">Alternativa por hardware: descodificador de software compatível indisponível ou falhou ao inicializar</string>
+    <string name="player_audio_unsupported">Sem descodificador de áudio compatível</string>
+    <string name="player_audio_not_selected">Faixa de áudio não selecionada</string>
+</resources>

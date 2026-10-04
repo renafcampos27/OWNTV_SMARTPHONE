@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_versions_add">Add channel to versions</string>
+    <string name="channel_versions_add_hint">Search for a channel from the same playlist to associate with this group.</string>
+    <string name="channel_versions_unlink">Unlink</string>
+</resources>

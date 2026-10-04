@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recording_watch_in_progress">Watch recording</string>
+    <string name="recording_watch_unavailable">The recording is not ready for local playback or its storage is unavailable.</string>
+    <string name="recording_parts_require_internal">Recordings saved in parts require the internal player. Disable the external player for live TV in settings.</string>
+</resources>

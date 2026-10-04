@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recording_capture_window">Janela de gravação, incluindo margens: %1$s</string>
+    <string name="recording_capture_failure">Falha na captura: %1$s</string>
+    <string name="recording_finalize_failure">Falha na finalização: %1$s</string>
+    <string name="recording_retained_capture">Dados capturados preservados; o ficheiro final ainda não está pronto a reproduzir.</string>
+    <string name="recording_integrity_unverified">Duração não medida; integridade do programa completo não verificada.</string>
+    <string name="recording_recovery_state">Recuperação %1$d: %2$s · original preservado</string>
+    <string name="recording_recovery_cancelled">Cancelada</string>
+</resources>

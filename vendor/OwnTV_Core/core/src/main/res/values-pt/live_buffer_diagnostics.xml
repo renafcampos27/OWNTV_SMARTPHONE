@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="player_buffer_requested_start">Início solicitado: %1$s s</string>
+    <string name="player_buffer_effective_start">Limiar configurado: %1$s s</string>
+    <string name="player_buffer_actual">Vídeo em memória: %1$s s</string>
+    <string name="player_buffer_maximum">Máximo: %1$s s</string>
+    <string name="player_buffer_live_offset">Distância ao direto: %1$s s</string>
+    <string name="player_buffer_memory">Memória: %1$s / %2$s MiB</string>
+    <string name="player_buffer_byte_cap">Objetivo de memória atingido antes da reserva solicitada</string>
+    <string name="player_buffer_startup_limit">Pré-buffer desativado nesta tentativa após o limite de arranque</string>
+</resources>

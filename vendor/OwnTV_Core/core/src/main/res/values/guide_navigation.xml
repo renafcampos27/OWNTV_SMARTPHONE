@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guide_replay_only_on">Replay only: on</string>
+    <string name="guide_replay_only_off">Replay only: off</string>
+    <string name="guide_replay_only_empty">No channels with replay match this guide. Turn off “Replay only” to show all channels.</string>
+    <string name="guide_replay_channel">Channel with replay</string>
+    <string name="guide_previous_day">Previous day</string>
+    <string name="guide_previous_hour">Previous hour</string>
+    <string name="guide_next_hour">Next hour</string>
+    <string name="guide_next_day">Next day</string>
+    <string name="guide_browse_time">%1$s · %2$s</string>
+</resources>

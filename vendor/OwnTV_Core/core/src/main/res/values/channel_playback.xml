@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_channel_playback">Per-channel playback settings</string>
+    <string name="settings_channel_playback_description">Choose a playlist and channel. Override only what is needed; other values inherit existing settings. Includes HLS-only exceptions.</string>
+    <string name="settings_channel_playback_count">%1$d customized channels</string>
+    <string name="settings_channel_inherit">Use global/playlist setting</string>
+    <string name="settings_channel_customized">Customized</string>
+    <string name="settings_channel_format">Connection format</string>
+    <string name="settings_channel_hls">HLS only</string>
+    <string name="settings_channel_ts">Direct TS</string>
+    <string name="settings_channel_auto_format">Allow other formats for this channel</string>
+    <string name="settings_channel_hls_hint">HLS-only keeps ExoPlayer by default. Selecting mpv explicitly keeps HLS without switching to direct TS.</string>
+    <string name="settings_channel_reserve">Buffer reserve</string>
+    <string name="settings_channel_reserve_hint">Media reserve to absorb fluctuations. Initial pre-buffer can raise this minimum. This is not a memory limit.</string>
+    <string name="settings_channel_extra">Additional buffer margin</string>
+    <string name="settings_channel_extra_hint">Added to the reserve to set the read-ahead limit. Stream availability may limit the actual buffer.</string>
+    <string name="settings_channel_preroll">Initial pre-buffer</string>
+    <string name="settings_channel_preroll_hint">Waits only before initial playback. Recovery still resumes as soon as playable media is available.</string>
+    <string name="settings_channel_latency">Live latency</string>
+    <string name="settings_channel_latency_hint">Target live offset for HLS/DASH in ExoPlayer. Has no effect on direct TS and does not guarantee the actual delay.</string>
+    <string name="settings_channel_software_audio">Software audio — ExoPlayer</string>
+    <string name="settings_channel_audio_auto">Automatic: Android with FFmpeg fallback</string>
+    <string name="settings_channel_audio_software">Prefer FFmpeg</string>
+    <string name="settings_channel_audio_sync">Audio synchronization</string>
+    <string name="settings_channel_audio_hint">Adjusts synchronization with video; does not fix buffering. Overrides audio delay remembered in the player.</string>
+    <string name="settings_channel_reset">Restore global/playlist settings</string>
+    <string name="settings_channel_apply_hint">Save and reopen the channel. Changes do not interrupt current playback.</string>
+    <string name="settings_channel_seconds">%1$d s</string>
+    <string name="settings_channel_ms">%1$d ms</string>
+    <string name="settings_channel_hls_boundaries">HLS: detect video frame boundaries — ExoPlayer</string>
+    <string name="settings_channel_hls_boundaries_hint">Only for H.264 in MPEG-TS segments without delimiters. Uses more processing. Leave disabled unless needed.</string>
+    <string name="settings_channel_hls_keyframes">HLS: accept alternative keyframes — ExoPlayer</string>
+    <string name="settings_channel_hls_keyframes_hint">Only for H.264 in MPEG-TS segments without IDR frames. May cause temporary picture corruption on opening or seeking.</string>
+    <string name="settings_channel_hls_segments">HLS: discover tracks from segments — ExoPlayer</string>
+    <string name="settings_channel_hls_segments_hint">For certain track discovery problems. Slower opening; does not generally fix buffering or incorrect CODECS declarations.</string>
+    <string name="settings_channel_hls_standard">Disabled (standard)</string>
+    <string name="settings_channel_hls_enabled">Enabled for this channel</string>
+</resources>

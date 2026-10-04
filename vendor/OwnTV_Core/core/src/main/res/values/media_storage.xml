@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_failed_quota">Storage limit reached; captured content was kept.</string>
+    <string name="media_failed_destination">Destination unavailable. Reconnect the USB drive or choose another folder.</string>
+    <string name="media_failed_file_limit">This destination cannot hold a larger file. Captured content was kept.</string>
+    <string name="media_destination">Destination for recordings and saved programmes</string>
+    <string name="media_destination_description">Used for new captures. Existing files stay in their current folders.</string>
+    <string name="media_internal">Internal app storage</string>
+    <string name="media_use_internal">Use internal storage</string>
+    <string name="media_internal_quota">Internal storage limit</string>
+    <string name="media_external_quota">USB storage limit</string>
+    <string name="media_quota_description">Shared by recordings and saved programmes across all profiles. Files are never automatically deleted.</string>
+    <string name="media_space_unknown">Destination unavailable or capacity unknown. Select a mounted local folder.</string>
+    <string name="media_usage">OwnTV: %1$s / %2$s GiB · Free: %3$s GiB · Reserved: %4$s GiB</string>
+    <string name="media_gib">GiB</string>
+    <string name="media_save_programme">Save programme</string>
+    <string name="media_save_unavailable">Could not save the programme. Check archive and connection availability; this playlist may already have an archive capture running.</string>
+    <string name="media_save_started">Request registered. Follow progress in Recordings.</string>
+</resources>
