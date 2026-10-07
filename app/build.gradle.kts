@@ -50,11 +50,26 @@ android {
         applicationId = "tv.own.owntv.mobile"
         minSdk = 26
         targetSdk = 36
-        // CI injects these from the git tag, exactly as in the TV app. The fallbacks are only used
-        // by local/debug builds and are pinned HIGH so a dev APK is always "newer" than a published
-        // release and installs straight over it.
-        versionCode = (System.getenv("VERSION_CODE") ?: "99999").toInt()
-        versionName = System.getenv("VERSION_NAME") ?: "99.99.99"
+        // Version name and code: env var (CI) > git tag (local) > fallback (1.0.1)
+        val gitTagVersion = try {
+            val process = ProcessBuilder("git", "describe", "--tags", "--abbrev=0").start()
+            val output = process.inputStream.bufferedReader().readText().trim().removePrefix("v")
+            process.waitFor()
+            if (process.exitValue() == 0 && output.isNotBlank()) output else null
+        } catch (_: Exception) {
+            null
+        }
+        val computedVersionName = System.getenv("VERSION_NAME") ?: gitTagVersion ?: "1.0.1"
+        val computedVersionCode = (System.getenv("VERSION_CODE") ?: run {
+            val rawParts = computedVersionName.split(".")
+            val p0 = rawParts.getOrNull(0)?.toIntOrNull() ?: 1
+            val p1 = rawParts.getOrNull(1)?.toIntOrNull() ?: 0
+            val p2 = rawParts.getOrNull(2)?.toIntOrNull() ?: 1
+            (p0 * 10000 + p1 * 100 + p2).toString()
+        }).toInt()
+
+        versionCode = computedVersionCode
+        versionName = computedVersionName
 
         // The three switches core reads through CoreBuildInfo. Same resolution order as the TV app:
         // env var (CI) > Gradle property > the out-of-repo properties file.
