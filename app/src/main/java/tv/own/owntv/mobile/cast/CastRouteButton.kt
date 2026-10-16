@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.cast
 
+import tv.own.owntv.core.R as CoreR
+
 import android.view.ContextThemeWrapper
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -35,7 +37,7 @@ import tv.own.owntv.mobile.R
  */
 @Composable
 fun CastRouteButton(light: Boolean, modifier: Modifier = Modifier) {
-    val label = stringResource(R.string.common_cast)
+    val label = stringResource(CoreR.string.common_cast)
     AndroidView(
         modifier = modifier
             .size(48.dp)

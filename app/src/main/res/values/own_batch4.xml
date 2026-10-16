@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_recording_chapters">Programas na gravação</string>
+    <string name="own_recording_chapters_note">Posições aproximadas a partir do EPG guardado. Saltar para um programa não abre uma nova ligação ao fornecedor.</string>
+    <string name="own_recording_forecast">Espaço estimado: %1$s–%2$s GiB.</string>
+    <string name="own_recording_forecast_measured">Estimativa baseada em gravações deste canal; o tamanho real pode variar.</string>
+    <string name="own_recording_forecast_generic">Sem medição deste canal: intervalo indicativo de 2–40 Mbit/s, que pode ser ultrapassado.</string>
+    <string name="own_recording_forecast_available">Disponível para esta gravação: cerca de %1$s GiB, descontando reserva, quota e estimativa dos agendamentos.</string>
+    <string name="own_recording_forecast_unknown">Não foi possível medir o espaço livre neste armazenamento.</string>
+    <string name="own_recording_forecast_warning">A gravação pode ultrapassar o espaço disponível. Revê o destino, a quota ou os agendamentos antes de gravar.</string>
+    <string name="own_archive_none">Este canal tem guia, mas não declara arquivo para recuar.</string>
+    <string name="own_archive_future">Este programa ainda não começou; ainda não pode ser aberto em diferido.</string>
+    <string name="own_archive_limit">Este programa está fora do limite de consulta dos diferidos da aplicação.</string>
+    <string name="own_archive_outside">Este programa está fora da janela declarada pelo fornecedor. Podes tentar abri-lo, mas a disponibilidade não está confirmada.</string>
+    <string name="own_archive_declared">Janela declarada (dias): %1$d. A presença no EPG não garante que este programa esteja disponível no arquivo.</string>
+    <string name="own_archive_unknown">O canal declara arquivo sem uma duração conhecida. A disponibilidade só é confirmada ao abrir o programa.</string>
+    <string name="own_recording_writable">Disponível após reserva e quota: %1$s GiB.</string>
+</resources>

@@ -1,6 +1,10 @@
 package tv.own.owntv.core.backup
 
 import android.util.Log
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -52,6 +56,8 @@ class BackupManager(
     private val avatarStore: tv.own.owntv.core.profile.ProfileAvatarStore,
     private val appSettings: BackupAppSettings = BackupAppSettings.None,
 ) {
+    private val exportMutex = Mutex()
+
     /** What a backup can contain; the user multi-selects these for export and restore. Profiles are
      *  NOT a section: every backup is inherently profile-based — the export flow's first step picks
      *  which profiles to include (PIN-verified for locked non-active ones), and the ticked profiles'
@@ -87,8 +93,10 @@ class BackupManager(
         backupPassword: String? = null,
         /** Profiles to include (PIN-authorized by the caller). Null = all (legacy callers/tests). */
         profileIds: Set<Long>? = null,
+        /** SAF callers record completion only after copying to the final document. */
+        recordCompletion: Boolean = true,
     ): Result<String> = withContext(Dispatchers.IO) {
-        runCatching {
+        exportMutex.withLock { runCatching {
             // Profile scoping: only the ticked profiles' rows and per-profile data enter the file.
             val allProfiles = profileDao.getAllOnce()
             val profiles = if (profileIds == null) allProfiles else allProfiles.filter { it.id in profileIds }
@@ -112,6 +120,13 @@ class BackupManager(
                 // come first out of the id map, so a two-profile household could land on the kids
                 // profile after a restore. Only recorded when that profile is actually in the file.
                 settings.activeProfileId.first().takeIf { it in pids }?.let { put("activeProfileId", it) }
+                // Non-source sections still need safe identities for their source-bound options.
+                // SHA-256 metadata carries no URL, account name, password or MAC in plaintext.
+                put("sourceIdentities", JSONArray().apply {
+                    sourceDao.getAllOnce().filter { it.id in linkedSourceIds }.forEach {
+                        put(JSONObject().put("id", it.id).put("identity", RestoreIdentity.sourceFingerprint(it)))
+                    }
+                })
                 if (Section.SOURCES in sections) {
                     // Only sources at least one ticked profile uses, and only ticked profiles' links.
                     put("sources", JSONArray().apply { sourceDao.getAllOnce().filter { it.id in linkedSourceIds }.forEach { put(sourceJson(it, seal)) } })
@@ -272,16 +287,20 @@ class BackupManager(
 
             if (!folder.exists()) folder.mkdirs()
             val target = File(folder, BACKUP_FILENAME)
-            val path = writeAtomically(
-                target,
-                BackupContainer.pack(
-                    BackupContainer.Payload(root.toString(2), wallpaper, subtitleFiles, avatarFiles),
-                    backupPassword,
-                ),
-            )
-            // Recorded here and nowhere else: after the atomic rename, so a throw anywhere above
-            // leaves the previous date standing rather than claiming a backup that does not exist.
-            settings.recordBackup(
+            val files = buildMap {
+                wallpaper?.let { put(BackupContainer.WALLPAPER_DIR + it.name, it) }
+                subtitleFiles.forEach { (name, file) -> put(BackupContainer.SUBTITLE_DIR + name, file) }
+                avatarFiles.forEach { (name, file) -> put(BackupContainer.AVATAR_DIR + name, file) }
+            }
+            val jobContext = currentCoroutineContext()
+            val path = writeAtomically(target) { output ->
+                BackupContainer.writeTo(output,
+                    BackupContainer.Payload(root.toString(2), null, fileAssets = files), backupPassword,
+                    checkCancelled = { jobContext.ensureActive() })
+                jobContext.ensureActive()
+            }
+            // Staged SAF exports are recorded by the host after the final document is closed.
+            if (recordCompletion) settings.recordBackup(
                 at = System.currentTimeMillis(),
                 bytes = target.length(),
                 encrypted = pass != null,
@@ -290,7 +309,7 @@ class BackupManager(
                 path = target.absolutePath,
             )
             path
-        }
+        }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it } }
     }
 
     /**
@@ -311,7 +330,7 @@ class BackupManager(
         root: JSONObject,
         pids: Set<Long>,
         linkedSourceIds: Set<Long>,
-    ): Map<String, ByteArray> {
+    ): Map<String, File> {
         val dao = db.subtitleDao()
         fun inScope(profileId: Long, contentKey: String): Boolean =
             profileId in pids && contentKey.split(':').getOrNull(1)?.toLongOrNull() in linkedSourceIds
@@ -334,7 +353,7 @@ class BackupManager(
         }
         if (wanted.isEmpty()) return emptyMap()
 
-        val files = LinkedHashMap<String, ByteArray>()
+        val files = LinkedHashMap<String, File>()
         val packed = HashMap<Long, String>() // cacheId → container entry name
         var budget = MAX_SUBTITLE_BYTES
         val cacheRows = runCatching { dao.allCacheOnce() }.getOrDefault(emptyList())
@@ -346,11 +365,10 @@ class BackupManager(
             if (!file.isFile) continue
             val length = file.length()
             if (length !in 1..budget) continue
-            val bytes = runCatching { file.readBytes() }.getOrNull() ?: continue
             // Entry name carries the row id so two titles' "movie.srt" never collide. Leaf name only —
             // BackupContainer rejects traversal, but never hand it a separator in the first place.
             val entry = "${row.id}_${File(row.fileName).name}"
-            files[entry] = bytes
+            files[entry] = file
             packed[row.id] = entry
             budget -= length
             exportedCache.put(
@@ -427,8 +445,8 @@ class BackupManager(
      * scaled every one of these to at most 512 px, so a whole household's pictures are a few hundred
      * kilobytes.
      */
-    private fun exportAvatars(root: JSONObject, profiles: List<ProfileEntity>): Map<String, ByteArray> {
-        val files = LinkedHashMap<String, ByteArray>()
+    private fun exportAvatars(root: JSONObject, profiles: List<ProfileEntity>): Map<String, File> {
+        val files = LinkedHashMap<String, File>()
         val byId = (root.optJSONArray("profiles") ?: return files).let { array ->
             (0 until array.length()).associate { array.getJSONObject(it).optLong("id") to array.getJSONObject(it) }
         }
@@ -436,9 +454,9 @@ class BackupManager(
             val path = profile.avatarPath?.takeIf { it.isNotBlank() } ?: return@forEach
             val file = File(path)
             if (!file.isFile) return@forEach
-            val bytes = runCatching { file.readBytes() }.getOrNull() ?: return@forEach
+            if (file.length() !in 1..BackupContainer.MAX_ASSET_BYTES) return@forEach
             val entry = "${profile.id}_${file.name}"
-            files[entry] = bytes
+            files[entry] = file
             byId[profile.id]?.put("avatarFile", entry)
         }
         return files
@@ -465,14 +483,14 @@ class BackupManager(
     }
 
     /** The current Glass effect background as a container asset, or null when unset/missing/oversized. */
-    private suspend fun currentWallpaper(): BackupContainer.Asset? {
+    private suspend fun currentWallpaper(): File? {
         val path = settings.bgImagePath.first().trim()
         if (path.isEmpty()) return null
         val file = File(path)
         // Size cap: the wallpaper is a user-picked file and a backup the user may send over the
         // companion link. A 100 MB TIFF must not silently become a 100 MB backup.
         if (!file.isFile || file.length() !in 1..MAX_WALLPAPER_BYTES) return null
-        return runCatching { BackupContainer.Asset(file.name, file.readBytes()) }.getOrNull()
+        return file
     }
 
     /**
@@ -506,9 +524,10 @@ class BackupManager(
      * to leave behind. A [WrongPasswordException] from a sealed container is rethrown as-is rather
      * than triggering the `.bak` fallback: the file is fine, the password isn't.
      */
-    private fun readBackup(file: File, password: String?): Pair<JSONObject, BackupContainer.Payload> {
+    private fun readBackup(file: File, password: String?, includeAssets: Boolean = true): Pair<JSONObject, BackupContainer.Payload> {
         fun read(f: File): Pair<JSONObject, BackupContainer.Payload> =
-            BackupContainer.open(f, password).let { JSONObject(it.json) to it }
+            BackupContainer.open(f, password, includeAssets,
+                File(backgroundsDir.parentFile, ".backup-staging").apply { check(isDirectory || mkdirs()) }).let { JSONObject(it.json) to it }
 
         val primary = runCatching { read(file) }
         primary.getOrNull()?.let { return it }
@@ -572,7 +591,7 @@ class BackupManager(
     suspend fun sectionsIn(file: File, password: String? = null): Result<Inspection> = withContext(Dispatchers.IO) {
         runCatching {
             val sealed = BackupContainer.probe(file) == BackupContainer.Kind.ENCRYPTED_CONTAINER
-            val (root, _) = readBackup(file, password)
+            val (root, _) = readBackup(file, password, includeAssets = false)
             val out = mutableSetOf<Section>()
             // v11+ files always carry "profiles" (backup is profile-based); only "sources" marks the
             // Sources section. Older files wrote both together, so this reads them identically.
@@ -637,7 +656,7 @@ class BackupManager(
         backupPassword: String? = null,
     ): Result<Preview> = withContext(Dispatchers.IO) {
         runCatching {
-            val (root, _) = readBackup(file, backupPassword)
+            val (root, _) = readBackup(file, backupPassword, includeAssets = false)
             // Secrets stay sealed: a preview never needs to read a password, so it never derives a key.
             val noSecrets: (Any?) -> String? = { v -> (v as? String)?.takeIf { it.isNotEmpty() } }
 
@@ -787,13 +806,15 @@ class BackupManager(
 
             // Derive + validate the key up front, before any destructive write.
             val key = if (crypto != null && pass != null) {
-                BackupCrypto.deriveKey(pass, crypto) ?: throw WrongPasswordException()
+                BackupCrypto.deriveKey(pass, crypto) ?: error("Corrupt backup crypto metadata")
             } else null
             if (key != null) {
-                val authenticated = runCatching {
+                try {
                     BackupImportValidation.validateSecrets(root, sections) { BackupCrypto.decrypt(key, it) }
-                }.isSuccess
-                if (!authenticated) throw WrongPasswordException()
+                } catch (_: javax.crypto.AEADBadTagException) {
+                    // Authentication cannot distinguish a wrong password from altered ciphertext.
+                    throw WrongPasswordException()
+                }
             }
             // unseal: decrypt an encrypted secret object; null key (skip) or legacy plaintext returns as-is.
             val unseal: (Any?) -> String? = { v ->
@@ -817,7 +838,7 @@ class BackupManager(
 
             // Id remapping (file id → device id). Filled during the profile/source merge below. When
             // the SOURCES section isn't being restored, matching still runs read-only so the other
-            // sections can attach to the right device rows; unmatched ids fall through unchanged.
+            // sections can attach to the right device rows; unmatched foreign identities are skipped.
             val profileIdMap = HashMap<Long, Long>()
             // Each restored profile paired with its entry in the file, so the pictures the container
             // carries can be written once the database work is done.
@@ -968,6 +989,12 @@ class BackupManager(
                     }
                 }
 
+                if (!root.has("sources")) {
+                    // Settings-only exports match existing sources without creating/updating any.
+                    root.optJSONArray("sourceIdentities")?.let {
+                        sourceIdMap.putAll(RestoreIdentity.sources(it, deviceSources))
+                    }
+                }
                 if (applySources) {
                     val links = root.optJSONArray("links") ?: JSONArray()
                     for (i in 0 until links.length()) {
@@ -996,16 +1023,16 @@ class BackupManager(
                 // Pre-v17 files carried these in the SOURCES block, so keep honouring that for them.
                 // v17+ files are handled in the SETTINGS block, where they now belong.
                 if (fileVersion < 17) {
-                    root.optJSONObject("startupModes")?.let { settings.importStartupModes(remapKeys(it, profileIdMap), profileIds) }
-                    root.optJSONObject("customizePins")?.let { settings.importCustomizePins(remapKeys(it, profileIdMap), profileIds) }
+                    root.optJSONObject("startupModes")?.let { settings.importStartupModes(RestoreIdentity.keys(it, profileIdMap), profileIds) }
+                    root.optJSONObject("customizePins")?.let { settings.importCustomizePins(RestoreIdentity.keys(it, profileIdMap), profileIds) }
                 }
                 existingProfileIds = profileIds
                 // Auto-refresh maps + default source, remapped to device ids; entries whose ids didn't
                 // survive the merge are dropped; the device's other choices are kept (merge).
                 val sourceIds = sourceDao.getAllOnce().map { it.id }.toSet()
-                root.optJSONObject("playlistAutoRefresh")?.let { settings.importPlaylistAutoRefresh(remapKeys(it, sourceIdMap), sourceIds) }
-                root.optJSONObject("epgAutoRefresh")?.let { settings.importEpgAutoRefresh(remapKeys(it, epgIdMap), epgSources.getAll().map { s -> s.id }.toSet()) }
-                root.optJSONObject("epgUseLogos")?.let { settings.importEpgUseLogos(remapKeys(it, epgIdMap), epgSources.getAll().map { s -> s.id }.toSet()) }
+                root.optJSONObject("playlistAutoRefresh")?.let { settings.importPlaylistAutoRefresh(RestoreIdentity.keys(it, sourceIdMap), sourceIds) }
+                root.optJSONObject("epgAutoRefresh")?.let { settings.importEpgAutoRefresh(RestoreIdentity.keys(it, epgIdMap), epgSources.getAll().map { s -> s.id }.toSet()) }
+                root.optJSONObject("epgUseLogos")?.let { settings.importEpgUseLogos(RestoreIdentity.keys(it, epgIdMap), epgSources.getAll().map { s -> s.id }.toSet()) }
                 if (root.has("defaultSourceId")) {
                     // Only a source that actually took part in this restore may become the default.
                     // Falling back to the file's raw id was an id-collision bug: an unmapped id still
@@ -1025,14 +1052,14 @@ class BackupManager(
                         if (!k.startsWith("cust_")) return@forEach
                         val body = k.removePrefix("cust_")
                         val filePid = body.substringBefore('_').toLongOrNull() ?: return@forEach
-                        val pid = profileIdMap[filePid] ?: filePid
+                        val pid = profileIdMap[filePid] ?: return@forEach
                         cust["cust_${pid}_${body.substringAfter('_')}"] = remapCustomizationValue(o.getString(k), sourceIdMap)
                     }
                     customize.mergeAll(cust)
                     count += cust.size
                 }
-                root.optJSONObject("homeConfigs")?.let { settings.importHomeConfigs(remapKeys(it, profileIdMap), existingProfileIds) }
-                root.optJSONObject("hideNewCategories")?.let { settings.importHideNewCategories(remapKeys(it, profileIdMap), existingProfileIds) }
+                root.optJSONObject("homeConfigs")?.let { settings.importHomeConfigs(RestoreIdentity.keys(it, profileIdMap), existingProfileIds) }
+                root.optJSONObject("hideNewCategories")?.let { settings.importHideNewCategories(RestoreIdentity.keys(it, profileIdMap), existingProfileIds) }
                 // Custom TMDB names: merge (backup wins per key), then drop any cached match/details stored
                 // under the imported keys so the corrected title is re-fetched instead of showing stale art.
                 // Keys embed the source id ("movie:<sourceId>:…") — remap before merging.
@@ -1073,7 +1100,7 @@ class BackupManager(
                         val e = arr.getJSONObject(i)
                         if (e.optString("kind") !in kinds) continue
                         val fileP = e.optLong("p", -1)
-                        val p = profileIdMap[fileP] ?: if (applySources) continue else fileP
+                        val p = profileIdMap[fileP] ?: continue
                         e.put("p", p)
                         val src = e.optLong("src", -1)
                         sourceIdMap[src]?.let { e.put("src", it) }
@@ -1131,10 +1158,10 @@ class BackupManager(
                 // Per-profile landing screen + Customize PIN lock (v17: moved here from SOURCES).
                 if (fileVersion >= 17) {
                     val pids = profileDao.getAllOnce().map { it.id }.toSet()
-                root.optJSONObject("startupModes")?.let { settings.importStartupModes(remapKeys(it, profileIdMap), pids) }
+                root.optJSONObject("startupModes")?.let { settings.importStartupModes(RestoreIdentity.keys(it, profileIdMap), pids) }
                 root.optJSONObject("startupChannels")?.let {
                     settings.importStartupChannels(
-                        remapKeys(it, profileIdMap),
+                        RestoreIdentity.keys(it, profileIdMap),
                         pids,
                         sourceIdMap,
                     )
@@ -1145,7 +1172,7 @@ class BackupManager(
                     // Encrypted-only since v17, so this restores the lock exactly when the passphrase
                     // is available and otherwise leaves the device's own Customize PIN untouched.
                     root.optJSONObject("customizePins")?.let { o ->
-                        settings.importCustomizePins(remapKeys(unsealValues(o, unseal), profileIdMap), pids)
+                        settings.importCustomizePins(RestoreIdentity.keys(unsealValues(o, unseal), profileIdMap), pids)
                     }
                 }
                 // Per-item compatibility-mode engine pins. Optional; merged (union) into the current
@@ -1157,7 +1184,7 @@ class BackupManager(
                 // not exist) or, worse, pinned the items of whatever unrelated source already held
                 // that id. Legacy stream-URL keys carry no id and pass through untouched.
                 root.optJSONObject("compatMode")?.takeIf { !keepDeviceSettings }?.let { c ->
-                    fun keys(name: String) = jsonStrings(c.optJSONArray(name)).map { remapEnginePinKey(it, sourceIdMap) }
+                    fun keys(name: String) = jsonStrings(c.optJSONArray(name)).mapNotNull { RestoreIdentity.playerKey(it, sourceIdMap) }
                     runCatching { forceMpvStore.importUrls(keys("liveMpvUrls"), keys("liveExoUrls")) }
                     runCatching { vodEngineStore.importUrls(keys("vodMpvUrls"), keys("vodExoUrls")) }
                 }
@@ -1170,12 +1197,12 @@ class BackupManager(
                     for (i in 0 until arr.length()) {
                         val e = arr.optJSONObject(i) ?: continue
                         val filePid = e.optLong("p", -1)
-                        val pid = profileIdMap[filePid] ?: filePid
+                        val pid = profileIdMap[filePid] ?: continue
                         if (pid !in deviceProfileIds) continue
                         // Same [enginePinKey] shape as compatMode above — remap the source id, or the
                         // restored zoom/volume lands on the wrong item (or on nothing at all).
                         val key = e.optString("k").takeIf { it.isNotBlank() }
-                            ?.let { remapEnginePinKey(it, sourceIdMap) } ?: continue
+                            ?.let { RestoreIdentity.playerKey(it, sourceIdMap) } ?: continue
                         val zoom = e.optString("z").takeIf { it.isNotBlank() }
                         val volume = if (e.has("v")) e.optInt("v").coerceIn(0, 150) else null
                         // Absent on a pre-v20 backup, which is what "no per-item delay" already means.
@@ -1188,7 +1215,7 @@ class BackupManager(
                             profileId = pid, contentKey = key, zoomMode = zoom, volumeBoost = volume,
                             audioDelayMs = delay,
                             sourceId = key.substringBefore(':').toLongOrNull()
-                                ?: e.optLong("src", -1).let { sourceIdMap[it] ?: it },
+                                ?: e.optLong("src", -1).let { if (it < 0) it else sourceIdMap[it] ?: -1L },
                             audioLang = audioLang, subtitleLang = subtitleLang,
                         )
                     }
@@ -1210,7 +1237,7 @@ class BackupManager(
                     for (i in 0 until arr.length()) {
                         val e = arr.getJSONObject(i)
                         val filePid = e.optLong("p", -1)
-                        val pid = profileIdMap[filePid] ?: filePid
+                        val pid = profileIdMap[filePid] ?: continue
                         if (pid !in deviceProfileIds) continue
                         unseal(e.opt("session"))?.let { plain ->
                             runCatching { openSubAuth.importJson(pid, JSONObject(plain)) }
@@ -1312,7 +1339,7 @@ class BackupManager(
         /** Profile + content key remapped to this device, or null when the row cannot be attached. */
         fun target(e: JSONObject): Pair<Long, String>? {
             val filePid = e.optLong("p", -1)
-            val pid = profileIdMap[filePid] ?: filePid
+            val pid = profileIdMap[filePid] ?: return null
             if (pid !in deviceProfileIds) return null
             val key = e.optString("k").takeIf { it.isNotBlank() } ?: return null
             return pid to remapTypedContentKey(key, sourceIdMap)
@@ -1577,26 +1604,35 @@ class BackupManager(
             writeAtomically(target, text.toByteArray(Charsets.UTF_8))
 
         /** Byte-level [writeAtomically] — the container is binary, so text can't be the only entry point. */
-        internal fun writeAtomically(target: File, bytes: ByteArray): String {
+        internal fun writeAtomically(target: File, bytes: ByteArray): String =
+            writeAtomically(target) { it.write(bytes) }
+
+        internal fun writeAtomically(target: File, write: (java.io.OutputStream) -> Unit): String {
             val tmp = File(target.parentFile, "${target.name}$TMP_SUFFIX")
             try {
                 java.io.FileOutputStream(tmp).use { fos ->
-                    fos.write(bytes)
+                    write(fos)
                     fos.flush()
                     fos.fd.sync()
                 }
                 if (target.exists()) {
                     val bak = File(target.parentFile, "${target.name}$BAK_SUFFIX")
-                    bak.delete()
-                    target.renameTo(bak) // best effort: a failed rotation must not block the new write
+                    // Copy first: failure must never remove the current good backup.
+                    java.nio.file.Files.copy(target.toPath(), bak.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
                 }
-                if (!tmp.renameTo(target)) error("backup_finalize_failed")
+                try {
+                    java.nio.file.Files.move(tmp.toPath(), target.toPath(),
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                } catch (_: java.nio.file.AtomicMoveNotSupportedException) {
+                    java.nio.file.Files.move(tmp.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
             } catch (e: Throwable) {
                 tmp.delete()
                 throw e
             }
             return target.absolutePath
         }
+
     }
 }
 

@@ -101,9 +101,13 @@ class DnsConfigHolder(
      * the live [current] snapshot and routes to the appropriate backend, falling back
      * to system DNS when custom DNS is disabled or errors occur.
      */
-    val dns: Dns = object : Dns {
+    val dns: Dns = object : Dns, DnsCacheIdentity {
+        override fun cacheIdentity(): Any = current
         override fun lookup(hostname: String): List<InetAddress> {
-            val cfg = current
+            return lookupForIdentity(hostname, current)
+        }
+        override fun lookupForIdentity(hostname: String, identity: Any): List<InetAddress> {
+            val cfg = identity as DnsConfig
             return when {
                 cfg.dohUsable -> resolveViaDoH(hostname, cfg.dohUrl)
                 cfg.plainUsable -> resolveViaUdp(hostname, cfg.host, cfg.port)

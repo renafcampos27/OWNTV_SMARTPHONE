@@ -33,20 +33,22 @@ internal object DashRemux {
      * failing the whole recording: a programme captured with its audio track broken is still worth
      * having as video, and refusing it would throw away everything.
      */
-    fun mux(inputs: List<File>, output: File): Boolean {
+    fun mux(inputs: List<File>, output: File, checkActive: () -> Unit = {}, hasSpace: () -> Boolean = { true }): Boolean {
         val usable = inputs.filter { it.isFile && it.length() > 0L }
         if (usable.isEmpty()) return false
 
         val sources = mutableListOf<Source>()
         var muxer: MediaMuxer? = null
         var started = false
+        var completed = false
         try {
             muxer = MediaMuxer(output.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
             var maxSampleBytes = DEFAULT_SAMPLE_BYTES
             for (file in usable) {
-                val extractor = runCatching {
-                    MediaExtractor().apply { setDataSource(file.absolutePath) }
-                }.getOrNull() ?: continue
+                checkActive()
+                val extractor = MediaExtractor()
+                try { extractor.setDataSource(file.absolutePath) }
+                catch (error: Exception) { extractor.release(); continue }
                 var used = false
                 for (index in 0 until extractor.trackCount) {
                     val format = runCatching { extractor.getTrackFormat(index) }.getOrNull() ?: continue
@@ -66,8 +68,18 @@ internal object DashRemux {
 
             muxer.start()
             started = true
-            copySamples(sources, muxer, maxSampleBytes.coerceAtMost(MAX_SAMPLE_BYTES))
-            return true
+            val activeMuxer = muxer
+            completed = RecordingMuxCompletion.complete(
+                copy = { copySamples(sources, activeMuxer, maxSampleBytes.coerceAtMost(MAX_SAMPLE_BYTES), checkActive, hasSpace) },
+                stop = { checkActive(); activeMuxer.stop(); started = false },
+                valid = { output.isFile && output.length() > 0L &&
+                    HlsSegmentTransfer.hasMp4Box(output, "moov") && HlsSegmentTransfer.hasMp4Box(output, "mdat") },
+            )
+            return completed
+        } catch (cancelled: java.util.concurrent.CancellationException) {
+            throw cancelled
+        } catch (refused: tv.own.owntv.core.storage.MediaStorageBudget.Refused) {
+            throw refused
         } catch (e: Exception) {
             android.util.Log.w(TAG, "mux failed into ${output.name}: ${e.message}")
             return false
@@ -78,6 +90,7 @@ internal object DashRemux {
                 if (started) runCatching { m.stop() }
                 runCatching { m.release() }
             }
+            if (!completed) output.delete()
         }
     }
 
@@ -89,19 +102,25 @@ internal object DashRemux {
      * the end — technically muxed, unplayable in practice. Taking whichever track is furthest behind
      * keeps the two in step, which is what a player expects to find.
      */
-    private fun copySamples(sources: List<Source>, muxer: MediaMuxer, sampleBytes: Int) {
+    private fun copySamples(sources: List<Source>, muxer: MediaMuxer, sampleBytes: Int,
+        checkActive: () -> Unit, hasSpace: () -> Boolean) {
         val buffer = ByteBuffer.allocate(sampleBytes)
         val info = MediaCodec.BufferInfo()
         while (true) {
+            checkActive()
+            if (!hasSpace()) throw tv.own.owntv.core.storage.MediaStorageBudget.Refused(
+                tv.own.owntv.core.storage.MediaStorageBudget.Reason.NO_SPACE)
             val next = sources
                 .filter { it.extractor.sampleTrackIndex >= 0 }
                 .minByOrNull { it.extractor.sampleTime }
                 ?: return
+            buffer.clear()
             val size = next.extractor.readSampleData(buffer, 0)
             if (size < 0) {
                 next.extractor.advance()
                 continue
             }
+            require(size > 0 && size <= sampleBytes) { "Invalid DASH sample" }
             info.set(
                 0,
                 size,

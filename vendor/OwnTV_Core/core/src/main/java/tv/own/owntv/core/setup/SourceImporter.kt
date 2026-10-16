@@ -89,6 +89,9 @@ class SourceImporter(
     private val _state = MutableStateFlow<ImportState>(ImportState.Idle)
     val state: StateFlow<ImportState> = _state.asStateFlow()
 
+    private val _restoring = MutableStateFlow(false)
+    val restoring: StateFlow<Boolean> = _restoring.asStateFlow()
+
     private val _progress = MutableStateFlow<ImportStage?>(null)
     val progress: StateFlow<ImportStage?> = _progress.asStateFlow()
 
@@ -413,9 +416,14 @@ class SourceImporter(
         password: String?,
         sections: Set<BackupManager.Section>,
         deviceSettings: Boolean,
-    ): Boolean =
-        backup.import(file, sections, backupPassword = password, deviceSettings = deviceSettings).fold(
+    ): Boolean {
+        _restoring.value = true
+        try {
+            return backup.import(file, sections, backupPassword = password, deviceSettings = deviceSettings).fold(
             onSuccess = { summary ->
+                if (BackupManager.Section.SOURCES in sections) {
+                    tv.own.owntv.core.sync.RestoredSourceRefresh(sourceDao, catalogSyncScheduler, importFinalizer).enqueueMissingCatalogs()
+                }
                 _state.value = ImportState.Success(
                     restoredItems = summary.items,
                     passwordsOmitted = password.isNullOrBlank(),
@@ -433,6 +441,10 @@ class SourceImporter(
                 false
             },
         )
+        } finally {
+            _restoring.value = false
+        }
+    }
 
     private suspend fun ensureFallbackProfile(): Long {
         if (createdProfileId > 0) return createdProfileId

@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import tv.own.owntv.core.live.EpgNowNext
 import tv.own.owntv.core.theme.AnimationLevel
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.screens.guide.rememberGuideTimeFormat
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.theme.LocalAnimations

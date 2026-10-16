@@ -6,7 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.core.theme.AccentColor
 import tv.own.owntv.core.theme.AccentRoleValues
 import tv.own.owntv.core.theme.OwnTVPalette

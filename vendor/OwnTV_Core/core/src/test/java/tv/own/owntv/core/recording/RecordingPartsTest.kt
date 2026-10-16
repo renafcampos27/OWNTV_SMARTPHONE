@@ -23,6 +23,65 @@ class RecordingPartsTest {
     private fun entry(sequence: Long, bytes: Long = 4, dc: Long = 0) =
         HlsCaptureSession.Entry(sequence, 6_000, "segment-$sequence.bin", "a".repeat(64), bytes, dc)
 
+    @Test fun portableZipContainsAllMediaAndRelativePlaylist() = runBlocking {
+        val session = session(); (1L..7).forEach { commit(session, it) }
+        val (index, bytes) = RecordingParts.finish(null, target(), 1, session) { }
+        val out = java.io.ByteArrayOutputStream()
+        RecordingParts.exportPackage(null, index, out)
+        val entries = mutableMapOf<String, ByteArray>()
+        java.util.zip.ZipInputStream(out.toByteArray().inputStream()).use { zip ->
+            while (true) {
+                val entry = zip.nextEntry ?: break
+                entries[entry.name] = zip.readBytes()
+                zip.closeEntry()
+            }
+        }
+        assertEquals(setOf("index.owntv.json", "index.m3u8", "part-000000.ts", "part-000001.ts"), entries.keys)
+        val playlist = entries.getValue("index.m3u8").toString(Charsets.UTF_8)
+        assertTrue(playlist.contains("part-000000.ts")); assertTrue(playlist.contains("part-000001.ts"))
+        assertTrue(playlist.contains("#EXT-X-ENDLIST"))
+        assertFalse(playlist.contains("https://"))
+        assertEquals(bytes, entries.filterKeys { it.endsWith(".ts") }.values.sumOf { it.size.toLong() })
+        assertTrue(index.exists()) // Export must never relocate/delete the source index alone.
+        session.discard()
+    }
+
+    @Test fun interruptedExportPreservesSourceAndCanBeRetried() = runBlocking {
+        val session = session(); (1L..7).forEach { commit(session, it) }
+        val (index, bytes) = RecordingParts.finish(null, target(), 1, session) { }
+        val refused = object : java.io.OutputStream() {
+            var written = 0
+            override fun write(value: Int) { if (++written > 150) throw java.io.IOException("Disconnected") }
+        }
+        assertTrue(runCatching { RecordingParts.exportPackage(null, index, refused) }.isFailure)
+        assertEquals(bytes, RecordingParts.confirmedBytes(null, index, 1))
+        val retry = java.io.ByteArrayOutputStream()
+        RecordingParts.exportPackage(null, index, retry)
+        assertTrue(retry.size() > 0)
+        session.discard()
+    }
+
+    @Test fun portableFragmentedMp4UsesExportedInitAndRetainsDiscontinuities() {
+        val index = RecordingPartsPlan.Index("a".repeat(64), "fmp4", 4,
+            listOf(RecordingPartsPlan.Part("part-000000.m4s", 4, 6_000, true)))
+        val playlist = index.playlist(portable = true)
+        assertTrue(playlist.contains("URI=\"init.mp4\""))
+        assertTrue(playlist.contains("part-000000.m4s"))
+        assertTrue(playlist.contains("#EXT-X-DISCONTINUITY"))
+        assertTrue(index.playlist().contains("URI=\"-1.mp4\""))
+        assertTrue(index.playlist().contains("\n0.m4s\n"))
+    }
+
+    @Test fun missingPartRefusesExportBeforeWritingPackage() = runBlocking {
+        val session = session(); commit(session, 1)
+        val (index, _) = RecordingParts.finish(null, target(), 1, session) { }
+        File(File(index.stored).parentFile, "part-000000.ts").delete()
+        val out = java.io.ByteArrayOutputStream()
+        assertTrue(runCatching { RecordingParts.exportPackage(null, index, out) }.isFailure)
+        assertEquals(0, out.size())
+        session.discard()
+    }
+
     @Test fun plannerBoundsSizeAndDurationWithoutCuttingSegments() {
         val entries = (0L..10).map { entry(it) }
         val groups = RecordingPartsPlan.groups(entries, maxBytes = 12)

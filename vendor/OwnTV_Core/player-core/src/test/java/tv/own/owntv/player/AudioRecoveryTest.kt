@@ -117,4 +117,26 @@ class AudioRecoveryTest {
         assertFalse(watchdog.passthrough)
         assertNull(watchdog.audioFormat)
     }
+
+    @Test fun mutedPreviewDoesNotSpendAudioRecoveryBudget() {
+        var now = 1L
+        val watchdog = AudioWatchdog(nowMs = { now })
+        watchdog.onAudioTrackInitialized(event, config(C.ENCODING_PCM_16BIT))
+        repeat(12) { now += 1000; assertNull(watchdog.poll(true, audioExpected = false)) }
+        assertNull(watchdog.poll(true))
+        repeat(6) { now += 1000; if (it < 5) assertNull(watchdog.poll(true)) else assertNotNull(watchdog.poll(true)) }
+    }
+
+    @Test fun actualOutputEncodingDeterminesWhetherStereoLatchCanHelp() {
+        val watchdog = AudioWatchdog()
+        watchdog.onAudioInputFormatChanged(event, format.buildUpon().setChannelCount(6).build(), null)
+        assertFalse(watchdog.isStereoPcmOutput)
+        watchdog.onAudioTrackInitialized(event, config(C.ENCODING_PCM_16BIT))
+        assertTrue(watchdog.isStereoPcmOutput)
+        watchdog.onAudioTrackInitialized(event, config(C.ENCODING_AC3))
+        assertFalse(watchdog.isStereoPcmOutput)
+        watchdog.onAudioTrackReleased(event, config(C.ENCODING_PCM_16BIT))
+        assertTrue(watchdog.passthrough)
+        assertFalse(watchdog.isStereoPcmOutput)
+    }
 }

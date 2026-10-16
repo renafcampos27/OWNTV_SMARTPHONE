@@ -18,8 +18,7 @@ import tv.own.owntv.core.download.DownloadStripKind
 import tv.own.owntv.core.download.DownloadStripState
 import tv.own.owntv.core.download.downloadStripFor
 import tv.own.owntv.core.model.DownloadStatus
-import tv.own.owntv.mobile.R
-
+import tv.own.owntv.core.R
 /**
  * What the download control on a film, a show or an episode should currently say and do.
  *

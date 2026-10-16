@@ -38,7 +38,6 @@ fun MobileTheme(content: @Composable () -> Unit) {
     val uiZoomPercent by settings.uiZoomPercent.collectAsStateWithLifecycle(UiZoom.DEFAULT)
     val fonts by settings.fontCustomization.collectAsStateWithLifecycle(FontCustomization())
     val glass by settings.glassConfig.collectAsStateWithLifecycle(GlassConfig())
-    val animations by settings.animationLevel.collectAsStateWithLifecycle(AnimationLevel.FULL)
 
     MobileTheme(
         themeMode = themeMode,
@@ -47,7 +46,7 @@ fun MobileTheme(content: @Composable () -> Unit) {
         uiZoomPercent = uiZoomPercent,
         fonts = fonts,
         glass = glass,
-        animations = animations,
+        animations = AnimationLevel.OFF,
         content = content,
     )
 }
@@ -61,7 +60,7 @@ fun MobileTheme(
     uiZoomPercent: Int = UiZoom.DEFAULT,
     fonts: FontCustomization = FontCustomization(),
     glass: GlassConfig = GlassConfig(),
-    animations: AnimationLevel = AnimationLevel.FULL,
+    animations: AnimationLevel = AnimationLevel.OFF,
     content: @Composable () -> Unit,
 ) {
     val isDark = when (themeMode) {
@@ -102,7 +101,7 @@ fun MobileTheme(
  *
  * Off means off in this app, not softened: [AnimationLevel.scale] collapses a duration to zero.
  */
-val LocalAnimations = staticCompositionLocalOf { AnimationLevel.FULL }
+val LocalAnimations = staticCompositionLocalOf { AnimationLevel.OFF }
 
 /**
  * The accent to use on top of the picture — see [accentOnVideo].

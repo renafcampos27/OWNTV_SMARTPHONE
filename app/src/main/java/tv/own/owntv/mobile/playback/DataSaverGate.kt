@@ -9,8 +9,7 @@ import kotlinx.coroutines.withContext
 import tv.own.owntv.core.i18n.AppLocale
 import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.settings.SettingsRepository
-import tv.own.owntv.mobile.R
-
+import tv.own.owntv.core.R
 /**
  * Data saver: refuse to open a stream over the mobile network.
  *

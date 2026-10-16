@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import tv.own.owntv.core.R as CoreR
+
 import androidx.compose.runtime.*
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,8 +37,8 @@ fun SettingsLiveCustomPage(vm: SettingsViewModel = koinViewModel()) {
             SettingRow(title = stringResource(R.string.own_decoder_queue), value = stringResource(queue.labelRes()), onClick = { decoderSheet = true })
             SettingRow(title = stringResource(R.string.own_reserve_mode), value = stringResource(reserveMode.reserveLabelRes()), onClick = { reserveModePicker = true })
             SettingRow(title = stringResource(R.string.own_reserve_source), onClick = { sourcePicker = true })
-            if (reserveMode == LiveLatency.CUSTOM) SettingsSlider(title = stringResource(R.string.own_reserve), value = reserve, range = 1..60, valueLabel = stringResource(R.string.settings_live_buffer_seconds, reserve), onValueChange = { vm.edit { setLiveReserveRange(it, it + extra) } })
-            SettingsSlider(title = stringResource(R.string.own_extra), value = extra, range = 0..10, valueLabel = stringResource(R.string.settings_live_buffer_seconds, extra), onValueChange = { vm.edit { setLiveReserveExtraSecs(it) } })
+            if (reserveMode == LiveLatency.CUSTOM) SettingsSlider(title = stringResource(R.string.own_reserve), value = reserve, range = 1..60, valueLabel = stringResource(CoreR.string.settings_live_buffer_seconds, reserve), onValueChange = { vm.edit { setLiveReserveRange(it, it + extra) } })
+            SettingsSlider(title = stringResource(R.string.own_extra), value = extra, range = 0..10, valueLabel = stringResource(CoreR.string.settings_live_buffer_seconds, extra), onValueChange = { vm.edit { setLiveReserveExtraSecs(it) } })
             SettingsSlider(title = stringResource(R.string.own_shift), subtitle = stringResource(R.string.own_shift_hint), value = shift, range = -720..840, steps = 103, valueLabel = stringResource(R.string.own_minutes_value, shift), onValueChange = { vm.edit { setCatchupRequestShiftMinutes(it / 15 * 15) } })
         }
         settingsGroup("simple-mode") {
@@ -46,7 +48,7 @@ fun SettingsLiveCustomPage(vm: SettingsViewModel = koinViewModel()) {
             SettingRow(title = stringResource(R.string.own_group), checked = groups.groupChannelVersions, onCheckedChange = vm::setGroupChannelVersions)
             SettingRow(title = stringResource(R.string.own_priority), subtitle = stringResource(R.string.own_priority_hint), checked = groups.prioritizeChannelVersions, onCheckedChange = vm::setPrioritizeChannelVersions)
             SettingRow(title = stringResource(R.string.own_recovery), checked = simple.channelRecovery, onCheckedChange = vm::setChannelRecovery)
-            SettingsSlider(title = stringResource(R.string.own_recovery_time), value = simple.recoveryTimeoutSeconds, range = 1..60, valueLabel = stringResource(R.string.settings_live_buffer_seconds, simple.recoveryTimeoutSeconds), onValueChange = vm::setRecoveryTimeout)
+            SettingsSlider(title = stringResource(R.string.own_recovery_time), value = simple.recoveryTimeoutSeconds, range = 1..60, valueLabel = stringResource(CoreR.string.settings_live_buffer_seconds, simple.recoveryTimeoutSeconds), onValueChange = vm::setRecoveryTimeout)
         }
     }
     val source = sources.firstOrNull { it.id == sourceId }
@@ -64,21 +66,21 @@ private fun SourceReserveSheet(source: tv.own.owntv.core.database.entity.SourceE
     var modePicker by remember { mutableStateOf(false) }
     tv.own.owntv.mobile.ui.components.MobileBottomSheet(title = source.name, onDismissRequest = onDismiss) {
         SettingRow(title = stringResource(R.string.own_reserve_mode), value = if (mode == null) stringResource(R.string.own_inherit) else stringResource(LiveLatency.fromName(mode).reserveLabelRes()), onClick = { modePicker = true })
-        if (mode == LiveLatency.CUSTOM.name) SettingsSlider(title = stringResource(R.string.own_reserve), value = seconds, range = 1..60, valueLabel = stringResource(R.string.settings_live_buffer_seconds, seconds), onValueChange = { seconds = it })
-        if (mode != null) SettingsSlider(title = stringResource(R.string.own_extra), value = extra, range = 0..10, valueLabel = stringResource(R.string.settings_live_buffer_seconds, extra), onValueChange = { extra = it })
+        if (mode == LiveLatency.CUSTOM.name) SettingsSlider(title = stringResource(R.string.own_reserve), value = seconds, range = 1..60, valueLabel = stringResource(CoreR.string.settings_live_buffer_seconds, seconds), onValueChange = { seconds = it })
+        if (mode != null) SettingsSlider(title = stringResource(R.string.own_extra), value = extra, range = 0..10, valueLabel = stringResource(CoreR.string.settings_live_buffer_seconds, extra), onValueChange = { extra = it })
         SettingRow(title = stringResource(R.string.own_save), onClick = { onSave(mode, seconds, extra) })
     }
     if (modePicker) SettingsChoiceSheet(title = stringResource(R.string.own_reserve_mode), choices = listOf(SettingsChoice<String?>(null, stringResource(R.string.own_inherit))) + LiveLatency.entries.map { SettingsChoice<String?>(it.name, stringResource(it.reserveLabelRes())) }, selected = mode, onSelect = { mode = it }, onDismiss = { modePicker = false })
 }
 
 private fun LiveLatency.reserveLabelRes() = when (this) {
-    LiveLatency.LOW -> R.string.settings_live_latency_low
-    LiveLatency.BALANCED -> R.string.settings_live_latency_balanced
-    LiveLatency.STABLE -> R.string.settings_live_latency_stable
-    LiveLatency.CUSTOM -> R.string.settings_live_latency_custom
+    LiveLatency.LOW -> CoreR.string.settings_live_latency_low
+    LiveLatency.BALANCED -> CoreR.string.settings_live_latency_balanced
+    LiveLatency.STABLE -> CoreR.string.settings_live_latency_stable
+    LiveLatency.CUSTOM -> CoreR.string.settings_live_latency_custom
 }
 private fun DecoderQueueing.labelRes() = when (this) {
     DecoderQueueing.AUTO -> R.string.own_auto
-    DecoderQueueing.ASYNCHRONOUS -> R.string.settings_decoder_queueing_async
-    DecoderQueueing.SYNCHRONOUS -> R.string.settings_decoder_queueing_sync
+    DecoderQueueing.ASYNCHRONOUS -> CoreR.string.settings_decoder_queueing_async
+    DecoderQueueing.SYNCHRONOUS -> CoreR.string.settings_decoder_queueing_sync
 }

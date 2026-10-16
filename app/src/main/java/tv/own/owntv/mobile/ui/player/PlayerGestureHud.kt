@@ -39,7 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import tv.own.owntv.core.theme.AnimationLevel
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.player.ZoomMode

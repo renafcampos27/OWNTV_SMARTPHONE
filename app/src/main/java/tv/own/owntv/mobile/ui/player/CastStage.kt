@@ -34,7 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.cast.CastPlaybackEngine
 import tv.own.owntv.mobile.cast.CastRouteButton
 import tv.own.owntv.mobile.ui.components.MobileIcons

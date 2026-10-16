@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.settings.SettingsRepository
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 

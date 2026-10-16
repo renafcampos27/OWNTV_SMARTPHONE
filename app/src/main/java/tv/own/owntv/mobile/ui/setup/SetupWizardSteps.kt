@@ -34,7 +34,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.theme.FontCustomization
 import tv.own.owntv.core.theme.UiFontScale
 import tv.own.owntv.core.theme.UiZoom
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle

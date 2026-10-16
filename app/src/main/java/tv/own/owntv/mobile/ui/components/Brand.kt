@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import tv.own.owntv.core.brand.AppIcon
 import tv.own.owntv.core.brand.AppIconSwitcher
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /**

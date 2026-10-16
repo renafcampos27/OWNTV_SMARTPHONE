@@ -1,7 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,20 +19,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.backup.BackupManager
 import tv.own.owntv.core.database.entity.ProfileEntity
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
@@ -41,7 +37,6 @@ import tv.own.owntv.mobile.ui.components.MobileTextField
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.profiles.ProfilePinSheet
-import tv.own.owntv.mobile.ui.setup.copyPickedFile
 import tv.own.owntv.mobile.ui.setup.rememberBackupFilePicker
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
@@ -67,31 +62,19 @@ fun SettingsBackupPage(
 ) {
     val profiles by vm.profiles.collectAsStateWithLifecycle()
     val activeId by vm.activeProfileId.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val lastBackup by vm.lastBackup.collectAsStateWithLifecycle()
+    val pendingExport by vm.pendingDocumentExport.collectAsStateWithLifecycle()
 
     var exportSheet by remember { mutableStateOf(false) }
-    // Held while the document picker is in front: the user has already said what to export, and the
-    // picker only decides where it goes.
-    var chosen by remember { mutableStateOf<ExportRequest?>(null) }
-
     val createDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument(BACKUP_MIME),
-    ) { uri ->
-        val request = chosen
-        chosen = null
-        if (uri != null && request != null) {
-            vm.export(uri, BACKUP_FILE_NAME, request.sections, request.profileIds, request.password)
-        }
-    }
-    val pickBackup = rememberBackupFilePicker { uri ->
-        scope.launch {
-            val file = copyPickedFile(context, uri, context.cacheDir)
-            if (file != null) vm.beginRestore(file) else vm.reportReadFailure()
-        }
-    }
+        tv.own.owntv.mobile.ui.components.ExportDocument(BACKUP_MIME),
+        onResult = vm::exportDestination,
+    )
+    val pickBackup = rememberBackupFilePicker(vm::beginRestore)
 
     SettingsPage(modifier) {
+        item { Note(stringResource(tv.own.owntv.mobile.R.string.own_backup_scope)) }
+        item { Note(lastBackup?.let { stringResource(tv.own.owntv.mobile.R.string.own_last_backup, java.text.DateFormat.getDateTimeInstance().format(java.util.Date(it.at))) } ?: stringResource(tv.own.owntv.mobile.R.string.own_backup_never)) }
         settingsSection(R.string.settings_backup_title) {
             // A long export has no popup over it: the page says so and the rows go quiet, which
             // leaves the screen readable instead of blocking it behind a spinner.
@@ -109,16 +92,21 @@ fun SettingsBackupPage(
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
             }
+            if (pendingExport != null && !vm.exportPasswordRequired) SettingRow(
+                title = stringResource(tv.own.owntv.mobile.R.string.own_export_cancel_pending),
+                enabled = !vm.busy,
+                onClick = vm::cancelExport,
+            )
             SettingRow(
                 title = stringResource(R.string.settings_backup_export_button),
                 subtitle = stringResource(R.string.settings_backup_choose_folder),
-                enabled = !vm.busy,
+                enabled = !vm.busy && pendingExport == null,
                 onClick = { exportSheet = true },
             )
             SettingRow(
                 title = stringResource(R.string.settings_backup_restore_button),
                 subtitle = stringResource(R.string.settings_backup_pick_file),
-                enabled = !vm.busy,
+                enabled = !vm.busy && pendingExport == null,
                 onClick = { pickBackup() },
             )
         }
@@ -130,12 +118,15 @@ fun SettingsBackupPage(
             activeProfileId = activeId,
             verifyPin = vm::verifyPin,
             onExport = { request ->
-                chosen = request
                 exportSheet = false
-                createDocument.launch(BACKUP_FILE_NAME)
+                if (vm.prepareExport(request.sections, request.profileIds, request.password)) createDocument.launch(BACKUP_FILE_NAME)
             },
             onDismiss = { exportSheet = false },
         )
+    }
+
+    if (vm.exportPasswordRequired) {
+        SealedPasswordSheet(wrong = false, onSubmit = vm::resumeExport, onDismiss = vm::cancelExport, recoverExport = true)
     }
 
     vm.pending?.let { pending ->
@@ -246,6 +237,12 @@ private fun ExportSheet(
             }
             Label(stringResource(R.string.settings_backup_encrypt_title))
             Note(stringResource(R.string.settings_backup_encrypt_message))
+            Note(stringResource(
+                tv.own.owntv.mobile.R.string.own_backup_summary,
+                pluralStringResource(tv.own.owntv.mobile.R.plurals.own_backup_profiles_selected, profileIds.size, profileIds.size),
+                pluralStringResource(tv.own.owntv.mobile.R.plurals.own_backup_sections_selected, sections.size, sections.size),
+            ))
+            Note(stringResource(if (password.isBlank()) tv.own.owntv.mobile.R.string.own_backup_credentials_off else tv.own.owntv.mobile.R.string.own_backup_credentials_on))
             MobileTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -290,6 +287,7 @@ private fun SealedPasswordSheet(
     wrong: Boolean,
     onSubmit: (String) -> Unit,
     onDismiss: () -> Unit,
+    recoverExport: Boolean = false,
 ) {
     var password by remember { mutableStateOf("") }
     MobileBottomSheet(
@@ -304,7 +302,7 @@ private fun SealedPasswordSheet(
                 .padding(horizontal = MobileDimens.ScreenPaddingH),
             verticalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
         ) {
-            Note(stringResource(R.string.settings_backup_encrypted_description))
+            Note(stringResource(if (recoverExport) tv.own.owntv.mobile.R.string.own_export_password_recovery else R.string.settings_backup_encrypted_description))
             MobileTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -314,14 +312,14 @@ private fun SealedPasswordSheet(
                 onImeDone = { if (password.isNotBlank()) onSubmit(password) },
                 isError = wrong,
                 supportingText = if (wrong) {
-                    stringResource(R.string.settings_backup_password_encrypted_mismatch)
+                    stringResource(tv.own.owntv.mobile.R.string.own_backup_authentication_failed)
                 } else {
                     null
                 },
             )
         }
         SheetButtons(
-            confirm = stringResource(R.string.settings_backup_unlock),
+            confirm = stringResource(if (recoverExport) R.string.common_save else R.string.settings_backup_unlock),
             confirmEnabled = password.isNotBlank(),
             // Kept open on purpose: a wrong password comes back to this same sheet with its message.
             onConfirm = { onSubmit(password) },
@@ -386,7 +384,7 @@ private fun RestoreSheet(
                     isPassword = true,
                     isError = wrongPassword,
                     supportingText = if (wrongPassword) {
-                        stringResource(R.string.settings_backup_password_mismatch)
+                        stringResource(tv.own.owntv.mobile.R.string.own_backup_authentication_failed)
                     } else {
                         null
                     },

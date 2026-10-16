@@ -57,7 +57,7 @@ import tv.own.owntv.core.home.TrendingHomeItem
 import tv.own.owntv.core.metadata.MetadataCast
 import tv.own.owntv.core.metadata.MetadataImages
 import tv.own.owntv.core.trending.ProviderVariantParser
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MediaDetails
 import tv.own.owntv.mobile.ui.components.MobileIcons
 import tv.own.owntv.mobile.ui.components.TmdbDetailsSheet

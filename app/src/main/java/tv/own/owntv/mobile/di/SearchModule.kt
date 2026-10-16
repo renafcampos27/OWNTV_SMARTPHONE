@@ -8,10 +8,10 @@ import tv.own.owntv.mobile.ui.screens.search.SearchViewModel
 /**
  * Search, and the core reader that does it.
  *
- * [SearchReader] is the television's search engine word for word: assembled here the same way the
- * Guide's reader is, so the two apps cannot drift into finding different things for the same term.
+ * [SearchReader] uses the private Core and shares profile/source filtering with the Guide.
+ * Programme search is integrated here without changing the television checkout.
  */
 val searchModule = module {
-    single { SearchReader(get(), get(), get(), get(), get(), get()) }
+    single { SearchReader(get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModelOf(::SearchViewModel)
 }

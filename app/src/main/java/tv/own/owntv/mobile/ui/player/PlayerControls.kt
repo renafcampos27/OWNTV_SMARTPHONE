@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.own.owntv.core.live.EpgNowNext
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.core.player.PlayerControl
 import tv.own.owntv.core.player.ControlCluster
 import tv.own.owntv.mobile.cast.CastRouteButton
@@ -56,7 +56,7 @@ import java.text.NumberFormat
 
 /** The pickers the tool bar opens. Each one is a sheet; each one also has a gesture. */
 enum class PlayerSheet {
-    VOLUME, BRIGHTNESS, SUBTITLES, SUBTITLE_SEARCH, AUDIO, ASPECT, QUALITY, SPEED, INFO, CHANNELS, CATCHUP, SLEEP_TIMER,
+    VOLUME, BRIGHTNESS, SUBTITLES, AUDIO, ASPECT, QUALITY, SPEED, INFO, CHANNELS, CATCHUP, CHAPTERS, SLEEP_TIMER,
 }
 
 /**
@@ -83,12 +83,12 @@ fun PlayerControls(
     logoUrl: String?,
     visible: Boolean,
     isLive: Boolean,
-    offsetSec: Int?,
+    offsetSecFlow: kotlinx.coroutines.flow.StateFlow<Int?>,
     archiveWindowSec: Int,
     /** Now and Next for the channel playing, or null when its guide has nothing. */
     epg: EpgNowNext?,
     /** The wall-clock instant on screen while an archive plays; null at the live edge. */
-    watchingWallMs: Long?,
+    watchingWallMsFlow: kotlinx.coroutines.flow.StateFlow<Long?>,
     /** The channel's guide window, as the live timeline's boundary ticks. */
     timelineProgrammes: List<LiveProgramme>,
     /** The provider's own number for the channel, or null when the user has numbers turned off. */
@@ -99,6 +99,7 @@ fun PlayerControls(
      * The engine button used to be hidden on live, and the comment beside it said why: the phone had
      * only mpv, so there was nothing to swap to. Now there is.
      */
+    allowEngineSwapBehindLive: Boolean = false,
     liveOnExo: Boolean = false,
     /**
      * Flip the live channel between ExoPlayer and mpv, remembering the choice for that channel —
@@ -116,15 +117,8 @@ fun PlayerControls(
     onOpenSheet: (PlayerSheet) -> Unit,
     /** Shrink into the app's own mini player, still playing. */
     onMini: () -> Unit,
-    audioOnly: Boolean,
-    onAudioOnly: () -> Unit,
-    /** Whether what is playing is one of this profile's favourites. */
-    favorite: Boolean,
-    onToggleFavorite: () -> Unit,
     /** Opens "Go back to…", or null when this channel's provider keeps no archive. */
     onCatchup: (() -> Unit)?,
-    /** N2 — back to the channel watched before this one; null hides the button. */
-    onPreviousChannel: (() -> Unit)? = null,
     // Live only, and only once Multiview is switched on in Settings. Null hides the button.
     onMultiview: (() -> Unit)? = null,
     /** Files a diagnostic report about the stream on screen. */
@@ -138,6 +132,7 @@ fun PlayerControls(
     // Live only, and only once "Record what I'm watching" is switched on (D3). Null hides it.
     onRecordThis: (() -> Unit)? = null,
     recordingThis: Boolean = false,
+    hasRecordingChapters: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     // The app's own effects spring, not Material's default: with animations off it snaps, so the
@@ -149,6 +144,9 @@ fun PlayerControls(
         exit = fadeOut(fade),
         modifier = modifier,
     ) {
+        val offsetSec by offsetSecFlow.collectAsStateWithLifecycle()
+        val watchingWallMs by watchingWallMsFlow.collectAsStateWithLifecycle()
+
         Box(Modifier.fillMaxSize()) {
             Column(
                 Modifier
@@ -215,20 +213,16 @@ fun PlayerControls(
                         goLive = if (isLive && (offsetSec ?: 0) > 1) onGoLive else null,
                         onOpenSheet = onOpenSheet,
                         onMini = onMini,
-                        audioOnly = audioOnly,
-                        onAudioOnly = onAudioOnly,
-                        favorite = favorite,
-                        onToggleFavorite = onToggleFavorite,
                         onCatchup = onCatchup,
-                        onPreviousChannel = onPreviousChannel,
                         onMultiview = onMultiview,
                         onReport = onReport,
                         onToast = onToast,
                         infoOpen = infoOpen,
                         onRecordThis = onRecordThis,
                         recordingThis = recordingThis,
+                        hasRecordingChapters = hasRecordingChapters,
                         liveOnExo = liveOnExo,
-                        onToggleLiveEngine = onToggleLiveEngine,
+                        onToggleLiveEngine = onToggleLiveEngine.takeIf { (offsetSec ?: 0) <= 1 || allowEngineSwapBehindLive },
                     )
                 }
             }
@@ -452,12 +446,7 @@ private fun ToolBar(
     onOpenSheet: (PlayerSheet) -> Unit,
     /** Shrink into the app's own mini player, still playing. */
     onMini: () -> Unit,
-    audioOnly: Boolean,
-    onAudioOnly: () -> Unit,
-    favorite: Boolean,
-    onToggleFavorite: () -> Unit,
     onCatchup: (() -> Unit)?,
-    onPreviousChannel: (() -> Unit)? = null,
     // Live only, and only once Multiview is switched on in Settings. Null hides the button.
     onMultiview: (() -> Unit)? = null,
     onReport: () -> Unit,
@@ -471,6 +460,7 @@ private fun ToolBar(
     // hides the button, exactly as on the television.
     onRecordThis: (() -> Unit)? = null,
     recordingThis: Boolean = false,
+    hasRecordingChapters: Boolean = false,
     liveOnExo: Boolean = false,
     onToggleLiveEngine: (() -> Unit)? = null,
 ) {
@@ -515,12 +505,14 @@ private fun ToolBar(
                 )
             }
             PlayerControl.SUBTITLES, PlayerControl.AUDIO -> Unit
-            // Adding what is on to Favourites without leaving it. From here there is no list row
-            // to hold down, so the player has to carry the toggle itself.
             PlayerControl.FAVOURITE -> Unit
             // H3 - the television's catch-up glyph, not History.
             PlayerControl.CATCH_UP -> if (onCatchup != null) {
                 CtrlButton(MobileIcons.Catchup, stringResource(R.string.content_catchup_jump), onCatchup)
+            } else if (hasRecordingChapters) {
+                CtrlButton(MobileIcons.FormatListBulleted, stringResource(tv.own.owntv.mobile.R.string.own_recording_chapters), {
+                    onOpenSheet(PlayerSheet.CHAPTERS)
+                })
             }
             // N2 — the television's glyph for it, History; present only once there is a channel to go back to.
             PlayerControl.PREVIOUS_CHANNEL -> Unit

@@ -8,6 +8,8 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.filter
 import androidx.paging.map
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -63,7 +65,6 @@ import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.ui.screens.live.LiveCategory
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
-import java.util.Calendar
 
 /** The stretch of time the guide is showing, on the clock the user reads. */
 data class GuideWindow(val start: Long, val end: Long)
@@ -261,34 +262,19 @@ class GuideViewModel(
     fun selectDay(offset: Int) {
         if (_day.value == offset) return
         _day.value = offset.coerceIn(-tv.own.owntv.core.live.MAX_CATCHUP_DAYS, guideDays.value - 1)
-        synchronized(rowCache) { rowCache.clear() }
+        refreshClock(System.currentTimeMillis())
     }
 
-    /**
-     * The window on screen. Today starts at the last half hour rather than at midnight — a guide
-     * that opens on this morning's programmes is a guide the user has to scroll before it is useful.
-     */
-    val window: StateFlow<GuideWindow> = _day
-        .map { offset ->
-            val cal = Calendar.getInstance()
-            if (offset == 0) {
-                cal.set(Calendar.MINUTE, if (cal.get(Calendar.MINUTE) < 30) 0 else 30)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
-            } else {
-                cal.add(Calendar.DAY_OF_YEAR, offset)
-                cal.set(Calendar.HOUR_OF_DAY, 0)
-                cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
-            }
-            val start = cal.timeInMillis
-            cal.add(Calendar.DAY_OF_YEAR, 1)
-            cal.set(Calendar.HOUR_OF_DAY, 0)
-            cal.set(Calendar.MINUTE, 0)
-            GuideWindow(start, cal.timeInMillis)
-        }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, GuideWindow(0, 0))
+    /** Updated only while the screen is visible; returning to it refreshes immediately. */
+    private val _window = MutableStateFlow(GuideTimePolicy.window(0, System.currentTimeMillis()))
+    val window: StateFlow<GuideWindow> = _window
+
+    fun refreshClock(atMs: Long) {
+        val next = GuideTimePolicy.window(_day.value, atMs)
+        if (next == _window.value) return
+        invalidateRows()
+        _window.value = next
+    }
 
     /** Grid, on-now list or one channel's schedule. Null until the user picks: the screen then
      *  decides from its own width, which is the only thing that knows whether a grid fits. */
@@ -446,32 +432,80 @@ class GuideViewModel(
     /** This channel's programmes for the selected day, read as the row comes into view. */
     suspend fun row(channel: ChannelEntity): List<EpgProgrammeEntity> {
         cachedRow(channel.id)?.let { return it }
+        val generation = rowGeneration
         val w = window.value
-        val rows = guide.row(channel, custom.value, epgOffset.value, w.start, w.end)
+        val c = custom.value
+        val profile = ctx.value
+        val offset = epgOffset.value
+        val rows = guide.row(channel, c, offset, w.start, w.end)
+        if (generation != rowGeneration || w != window.value || c != custom.value ||
+            profile != ctx.value || offset != epgOffset.value
+        ) throw CancellationException("Guide context changed")
         synchronized(rowCache) { rowCache[channel.id] = rows }
         return rows
     }
 
     private val _onNow = MutableStateFlow<Map<Long, GuideSlot>>(emptyMap())
-
-    /** What is on now, and next, for the rows the "On now" list can see. */
     val onNow: StateFlow<Map<Long, GuideSlot>> = _onNow
+    private data class Freshness(val loadedAt: Long, val expiresAt: Long)
+    private val onNowFreshness = mutableMapOf<Long, Freshness>()
+    private var onNowJob: Job? = null
+    private var pendingOnNowIds: Set<Long> = emptySet()
+    private var rowGeneration = 0
 
-    /** Fill [onNow] for the rows on screen, in one query — channels already answered are skipped. */
+    /** Refresh visible entries at programme boundaries; empty results are retried after a short TTL. */
     fun loadOnNow(visible: List<ChannelEntity>) {
-        val missing = visible.filter { it.id !in _onNow.value }
+        val atMs = System.currentTimeMillis()
+        val missing = visible.distinctBy { it.id }.filter { channel ->
+            onNowFreshness[channel.id]?.let {
+                GuideTimePolicy.isFresh(it.loadedAt, it.expiresAt, atMs)
+            } != true
+        }
+        val ids = missing.map { it.id }.toSet()
+        if (onNowJob?.isActive == true && ids == pendingOnNowIds) return
+        onNowJob?.cancel()
+        pendingOnNowIds = ids
         if (missing.isEmpty()) return
-        viewModelScope.launch {
+        val generation = rowGeneration
+        val c = custom.value
+        val profile = ctx.value
+        val offset = epgOffset.value
+        onNowJob = viewModelScope.launch {
             val found = guide.onNow(
                 channels = missing,
-                cust = custom.value,
-                globalShiftMinutes = epgOffset.value,
-                atMs = System.currentTimeMillis(),
+                cust = c,
+                globalShiftMinutes = offset,
+                atMs = atMs,
                 lookAheadMs = ON_NOW_LOOK_AHEAD_MS,
             )
-            // Channels with no guide are recorded as empty, or every scroll re-asks for them.
-            _onNow.value = _onNow.value + missing.associate { it.id to (found[it.id] ?: GuideSlot(null, null)) }
+            if (generation != rowGeneration || c != custom.value ||
+                profile != ctx.value || offset != epgOffset.value
+            ) return@launch
+            val answered = missing.associate { it.id to (found[it.id] ?: GuideSlot(null, null)) }
+            answered.forEach { (id, slot) ->
+                onNowFreshness[id] = Freshness(atMs, GuideTimePolicy.expiry(atMs, slot.now?.stopMs, slot.next?.startMs))
+            }
+            // Bound the cache while retaining the rows currently on screen.
+            val retained = (_onNow.value.filterKeys { it !in answered } + answered)
+                .entries.toList().takeLast(MAX_CACHED_ROWS).associate { it.toPair() }
+            onNowFreshness.keys.retainAll(retained.keys)
+            _onNow.value = retained
         }
+    }
+
+    fun cancelOnNowLoad() {
+        onNowJob?.cancel()
+        pendingOnNowIds = emptySet()
+    }
+
+    private fun invalidateRows() {
+        rowGeneration++
+        onNowJob?.cancel()
+        pendingOnNowIds = emptySet()
+        synchronized(rowCache) { rowCache.clear() }
+        onNowFreshness.clear()
+        _onNow.value = emptyMap()
+        _revision.value++
     }
 
     /** The synopsis, fetched when a programme is opened — the list queries leave it out. */
@@ -502,6 +536,12 @@ class GuideViewModel(
     /** Still to come, or already aired on a channel that keeps an archive. */
     fun canRecord(channel: ChannelEntity, programme: EpgProgrammeEntity): Boolean =
         programme.stopMs > System.currentTimeMillis() || canCatchup(channel, programme)
+
+    suspend fun spaceForecast(channel: ChannelEntity, programme: EpgProgrammeEntity): tv.own.owntv.core.recording.RecordingSpaceForecast {
+        val window = if (programme.stopMs <= System.currentTimeMillis()) programme.startMs..programme.stopMs
+            else recordings.windowFor(programme.startMs, programme.stopMs)
+        return recordings.spaceForecast(channel, window.first, window.last, recordingFor(channel, programme)?.id ?: 0)
+    }
 
     /** Schedule it, or pull it from the archive when it has already been on. */
     fun record(channel: ChannelEntity, programme: EpgProgrammeEntity) {
@@ -612,7 +652,11 @@ class GuideViewModel(
 
     init {
         viewModelScope.launch {
-            ctx.collect { if (it.profileId >= 0) loadStats() }
+            combine(ctx, custom, epgOffset) { c, cust, offset -> Triple(c, cust, offset) }
+                .distinctUntilChanged().collect {
+                    invalidateRows()
+                    if (it.first.profileId >= 0) loadStats()
+                }
         }
         // The guide's own data changing under the screen — a feed added, re-synced or deleted — is
         // not something the rows can notice by themselves: each one keeps what it read. Room reports
@@ -834,6 +878,7 @@ class GuideViewModel(
         val ids = epgIds.map { it.trim().lowercase() }.filterTo(HashSet()) { it.isNotEmpty() }
         if (ids.isEmpty()) return
         runCatching { epgRepository.storeProgrammesForIdsFromCache(ids) }
+            .onFailure { if (it is CancellationException) throw it }
         refreshRows()
         // A single match that produced nothing is worth saying out loud: the match worked, but the
         // feed simply has no schedule for that channel, and an empty row looks like a failure.
@@ -871,12 +916,10 @@ class GuideViewModel(
 
     /** Drop everything read so far and tell the rows on screen to ask again. */
     private suspend fun refreshRows() {
-        synchronized(rowCache) { rowCache.clear() }
+        invalidateRows()
         // The reader keeps its own now/next for five minutes, keyed by channel — stale the moment a
         // match changes, so it goes too.
         epgReader.clearCache()
-        _onNow.value = emptyMap()
-        _revision.value++
         loadStats()
     }
 

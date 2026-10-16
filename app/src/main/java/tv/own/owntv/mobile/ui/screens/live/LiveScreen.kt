@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -53,7 +54,7 @@ import org.koin.compose.koinInject
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.live.LiveKey
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.CategoryPickerSheet
 import tv.own.owntv.mobile.ui.components.ChannelLogoImage
 import tv.own.owntv.mobile.ui.components.BrowseCategorySheet
@@ -109,11 +110,13 @@ fun LiveScreen(
         }
     }
 
+    val sort by vm.sortMode.collectAsStateWithLifecycle()
+    var sortMenu by remember { mutableStateOf(false) }
+    var editingOrder by remember { mutableStateOf<LiveKey?>(null) }
     val categories by vm.categories.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
     val channels = vm.channels.collectAsLazyPagingItems()
     val nowPlaying by vm.nowPlaying.collectAsStateWithLifecycle()
-    val favorites by vm.favoriteIds.collectAsStateWithLifecycle()
     val providers by vm.providerNames.collectAsStateWithLifecycle()
     val showNumbers by vm.showChannelNumbers.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
@@ -151,21 +154,32 @@ fun LiveScreen(
 
     // The guide is read for what is actually on screen. Watching the visible range rather than each
     // row means one batched query per scroll settle instead of one per row appearing.
-    LaunchedEffect(listState, channels, guideDelay) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.map { it.index } }
+    val guideLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(listState, channels, guideDelay, selected, guideLifecycle) {
+        guideLifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.mapNotNull { channels.peek(it.index) } }
             .distinctUntilChanged()
-            .collectLatest { indices ->
+            .collectLatest { visible ->
                 if (guideDelay > 0) delay(guideDelay.toLong())
-                vm.loadNowPlaying(indices.mapNotNull { channels.peek(it) })
+                while (true) {
+                    vm.loadNowPlaying(visible)
+                    delay(30_000L)
+                }
             }
+        }
     }
 
     // Changing category scrolls back to the top: the position of the old list means nothing in the new one.
-    LaunchedEffect(selected) { listState.scrollToItem(0) }
+    LaunchedEffect(selected, sort) { listState.scrollToItem(0) }
     LaunchedEffect(simple.hideCategories, selected) { if (simple.hideCategories) vm.select(LiveKey.All) }
 
     val listPane = @Composable {
     Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal=MobileDimens.ScreenPaddingH), horizontalArrangement=Arrangement.End) {
+            androidx.compose.material3.TextButton(onClick={sortMenu=true}) {
+                Text(stringResource(tv.own.owntv.mobile.R.string.own_channel_sort_current, stringResource(sort.liveLabelRes())))
+            }
+        }
         if (lockedKey == null && !simple.hideCategories) Box(Modifier.fillMaxWidth()) {
             FilterChipRow(
                 labels = categories.map { it.label() },
@@ -243,6 +257,20 @@ fun LiveScreen(
             }
         }
     }
+    }
+
+    if (sortMenu) LiveSortSheet(sort=sort, editable=vm.contextKeyOf(selected)!=null,
+        onSelect={vm.setSort(it); sortMenu=false},
+        onEdit={editingOrder=selected; sortMenu=false},
+        onRestore={vm.restoreOrder(selected); sortMenu=false},
+        onDismiss={sortMenu=false})
+    editingOrder?.let { key ->
+        tv.own.owntv.mobile.ui.components.ReorderSheet(
+            title=stringResource(tv.own.owntv.mobile.R.string.own_channel_sort_edit),
+            openAt=returnChannelId ?: -1L,
+            load={vm.moveList(key)},
+            onSave={ids -> vm.contextKeyOf(key)?.let { vm.commitMove(it,ids) }; editingOrder=null},
+            onDismiss={editingOrder=null})
     }
 
     if (twoPane) {

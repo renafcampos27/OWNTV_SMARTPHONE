@@ -22,7 +22,8 @@ object RecordingProgrammeMatcher {
         allowedSourceIds: Set<Long>,
     ): EpgProgrammeEntity? {
         val title = titleKey(recording.title)
-        if (title.isEmpty() || epgKey.isBlank()) return null
+        // A manual clock interval has no programme identity, even when its channel has a guide.
+        if (recording.epgChannelId == null || title.isEmpty() || epgKey.isBlank()) return null
         val candidates = programmes.filter {
             it.sourceId in allowedSourceIds &&
                 it.epgChannelId.trim().equals(epgKey.trim(), ignoreCase = true) &&

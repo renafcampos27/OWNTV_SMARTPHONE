@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import tv.own.owntv.core.R as CoreR
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -58,7 +60,7 @@ fun SettingsRecordingPage(
         // switch that would fix it, and there isn't one — the app cannot grant itself the permission.
         if (!recordingsVm.timersAreExact) {
             Text(
-                text = stringResource(R.string.settings_recording_timers_inexact),
+                text = stringResource(CoreR.string.settings_recording_timers_inexact),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(
@@ -72,14 +74,14 @@ fun SettingsRecordingPage(
         SettingsSlider(title = stringResource(R.string.own_internal_quota), value = internalQuota, range = 1..32, valueLabel = stringResource(R.string.own_gib_value, internalQuota), onValueChange = { vm.edit { setInternalMediaQuotaGiB(it) } })
         SettingsSlider(title = stringResource(R.string.own_external_quota), value = externalQuota, range = 1..256, valueLabel = stringResource(R.string.own_gib_value, externalQuota), onValueChange = { vm.edit { setExternalMediaQuotaGiB(it) } })
         SettingRow(
-            title = stringResource(R.string.settings_recording_reserve),
-            subtitle = stringResource(R.string.settings_recording_reserve_description),
+            title = stringResource(CoreR.string.settings_recording_reserve),
+            subtitle = stringResource(CoreR.string.settings_recording_reserve_description),
             checked = reserve,
             onCheckedChange = { on -> vm.edit { setRecordingReserveConnection(on) } },
         )
         SettingRow(
-            title = stringResource(R.string.settings_recording_mobile_data),
-            subtitle = stringResource(R.string.settings_recording_mobile_data_description),
+            title = stringResource(CoreR.string.settings_recording_mobile_data),
+            subtitle = stringResource(CoreR.string.settings_recording_mobile_data_description),
             checked = mobileData,
             onCheckedChange = { on -> vm.edit { setRecordingOverMobileData(on) } },
         )
@@ -87,23 +89,23 @@ fun SettingsRecordingPage(
         // where the one-connection trade-off is explained and accepted. Turning it off needs no
         // dialog: nothing is being given up.
         SettingRow(
-            title = stringResource(R.string.settings_record_watching),
-            subtitle = stringResource(R.string.settings_record_watching_description),
+            title = stringResource(CoreR.string.settings_record_watching),
+            subtitle = stringResource(CoreR.string.settings_record_watching_description),
             checked = recordWatching,
             onCheckedChange = { on ->
                 if (on) warnAboutWatching = true else vm.edit { setRecordWhatImWatching(false) }
             },
         )
         SettingRow(
-            title = stringResource(R.string.settings_recording_pre_roll),
-            subtitle = stringResource(R.string.settings_recording_pre_roll_description),
-            value = pluralStringResource(R.plurals.recording_minutes, preRoll, preRoll),
+            title = stringResource(CoreR.string.settings_recording_pre_roll),
+            subtitle = stringResource(CoreR.string.settings_recording_pre_roll_description),
+            value = pluralStringResource(CoreR.plurals.recording_minutes, preRoll, preRoll),
             onClick = { sheet = RollSheet.PRE },
         )
         SettingRow(
-            title = stringResource(R.string.settings_recording_post_roll),
-            subtitle = stringResource(R.string.settings_recording_post_roll_description),
-            value = pluralStringResource(R.plurals.recording_minutes, postRoll, postRoll),
+            title = stringResource(CoreR.string.settings_recording_post_roll),
+            subtitle = stringResource(CoreR.string.settings_recording_post_roll_description),
+            value = pluralStringResource(CoreR.plurals.recording_minutes, postRoll, postRoll),
             onClick = { sheet = RollSheet.POST },
         )
     }
@@ -116,19 +118,19 @@ fun SettingsRecordingPage(
         AlertDialog(
             modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { warnAboutWatching = false },
-            title = { Text(stringResource(R.string.settings_record_watching_warning_title)) },
-            text = { Text(stringResource(R.string.settings_record_watching_warning_description)) },
+            title = { Text(stringResource(CoreR.string.settings_record_watching_warning_title)) },
+            text = { Text(stringResource(CoreR.string.settings_record_watching_warning_description)) },
             confirmButton = {
                 TextButton(onClick = {
                     vm.edit { setRecordWhatImWatching(true) }
                     warnAboutWatching = false
                 }) {
-                    Text(stringResource(R.string.settings_record_watching_turn_on))
+                    Text(stringResource(CoreR.string.settings_record_watching_turn_on))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { warnAboutWatching = false }) {
-                    Text(stringResource(R.string.settings_record_watching_keep_off))
+                    Text(stringResource(CoreR.string.settings_record_watching_keep_off))
                 }
             },
         )
@@ -138,13 +140,13 @@ fun SettingsRecordingPage(
         val pre = sheet == RollSheet.PRE
         SettingsChoiceSheet(
             title = stringResource(
-                if (pre) R.string.settings_recording_pre_roll else R.string.settings_recording_post_roll,
+                if (pre) CoreR.string.settings_recording_pre_roll else CoreR.string.settings_recording_post_roll,
             ),
             description = stringResource(
                 if (pre) {
-                    R.string.settings_recording_pre_roll_description
+                    CoreR.string.settings_recording_pre_roll_description
                 } else {
-                    R.string.settings_recording_post_roll_description
+                    CoreR.string.settings_recording_post_roll_description
                 },
             ),
             // A short list of sensible paddings rather than a free number: on a phone this is a
@@ -152,7 +154,7 @@ fun SettingsRecordingPage(
             choices = ROLL_CHOICES.map { minutes ->
                 SettingsChoice(
                     value = minutes,
-                    label = pluralStringResource(R.plurals.recording_minutes, minutes, minutes),
+                    label = pluralStringResource(CoreR.plurals.recording_minutes, minutes, minutes),
                 )
             },
             selected = if (pre) preRoll else postRoll,

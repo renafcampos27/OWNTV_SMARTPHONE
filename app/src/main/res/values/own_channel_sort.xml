@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_channel_sort_title">Sort channels</string>
+    <string name="own_channel_sort_current">Sort: %1$s</string>
+    <string name="own_channel_sort_name">Name</string>
+    <string name="own_channel_sort_provider">Provider</string>
+    <string name="own_channel_sort_custom">Custom</string>
+    <string name="own_channel_sort_edit">Edit custom order</string>
+    <string name="own_channel_sort_restore">Restore provider order</string>
+    <string name="own_channel_sort_provider_hint">Keep the original order supplied by the playlist</string>
+</resources>

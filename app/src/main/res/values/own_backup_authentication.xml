@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_backup_authentication_failed">Incorrect password or backup file altered</string>
+</resources>

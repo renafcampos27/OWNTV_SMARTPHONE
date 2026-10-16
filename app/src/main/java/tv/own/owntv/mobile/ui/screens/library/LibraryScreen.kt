@@ -54,7 +54,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.settings.SettingsRepository
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileSlider
 import tv.own.owntv.mobile.ui.components.CategoryPickerSheet
 import tv.own.owntv.mobile.ui.components.BrowseCategorySheet
@@ -330,7 +330,7 @@ private fun LibraryOptionsSheet(vm: LibraryViewModel, columns: Int, onDismiss: (
     val viewMode by vm.viewMode.collectAsStateWithLifecycle()
 
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.content_sorting)) {
-        SettingsRepository.SortMode.entries.forEach { mode ->
+        SettingsRepository.SortMode.entries.filter { it != SettingsRepository.SortMode.CUSTOM }.forEach { mode ->
             MobileListRow(
                 title = stringResource(mode.labelRes()),
                 leading = { RadioButton(selected = mode == sort, onClick = { vm.setSort(mode); onDismiss() }) },
@@ -409,6 +409,7 @@ private fun LibraryTab.labelRes() = when (this) {
 }
 
 private fun SettingsRepository.SortMode.labelRes() = when (this) {
+    SettingsRepository.SortMode.CUSTOM -> R.string.settings_sort_playlist
     SettingsRepository.SortMode.PLAYLIST -> R.string.settings_sort_playlist
     SettingsRepository.SortMode.ALPHA -> R.string.settings_sort_alpha
     SettingsRepository.SortMode.RATING -> R.string.settings_sort_rating

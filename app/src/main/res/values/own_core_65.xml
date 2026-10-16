@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_programmes_search">TV programmes</string>
+    <string name="own_manual_title">Schedule by date and time</string>
+    <string name="own_manual_zone">Time zone: %1$s</string>
+    <string name="own_manual_channel">Find a channel</string>
+    <string name="own_manual_selected">Channel: %1$s</string>
+    <string name="own_manual_date">Date (DD/MM/YYYY)</string>
+    <string name="own_manual_start">Start (HH:MM)</string>
+    <string name="own_manual_end">End (HH:MM)</string>
+    <string name="own_manual_overnight">An end at or before the start means the following day. Maximum 24 hours. Repeated clock times use the first occurrence.</string>
+    <string name="own_manual_invalid">Check date and time. Unavailable clock times or intervals over 24 hours cannot be scheduled.</string>
+    <string name="own_manual_failed">Recording could not be scheduled. Check time, playlist and storage.</string>
+    <string name="own_manual_working">Scheduling…</string>
+    <string name="own_manual_save">Schedule recording</string>
+</resources>

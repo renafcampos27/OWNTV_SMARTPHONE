@@ -1,6 +1,8 @@
 package tv.own.owntv.core.profile
 
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.dao.SourceDao
 import tv.own.owntv.core.database.entity.ProfileEntity
@@ -27,9 +29,11 @@ class ProfileManager(
     private val openSubtitlesAccounts: OpenSubtitlesAccountManager,
     private val avatars: ProfileAvatarStore,
 ) {
+    private val authorization = ProfileOperationAuthorization()
+    private val mutationMutex = Mutex()
 
     /** Make [id] the profile the app is showing. */
-    suspend fun switchTo(id: Long) = settings.setActiveProfile(id)
+    suspend fun switchTo(id: Long) = mutationMutex.withLock { settings.setActiveProfile(id) }
 
     fun verifyPin(profile: ProfileEntity, pin: String): Boolean = Pin.verify(pin, profile.pinHash)
 
@@ -52,21 +56,27 @@ class ProfileManager(
     }
 
     /** Apply the editor's changes. [pin]: null keeps the existing PIN, "" removes it. */
-    suspend fun edit(profile: ProfileEntity, name: String, avatarId: Int, isKids: Boolean, pin: String?) {
+    suspend fun authorizeEdit(profileId: Long, currentPin: String, isKids: Boolean, pin: String?): ProfileAuthorizationGrant? {
+        val current = profileDao.getById(profileId) ?: return null
+        return authorization.issue(current, currentPin, sensitiveProfileEdit(current, isKids, pin))
+    }
+
+    suspend fun authorizeDelete(profileId: Long, currentPin: String): ProfileAuthorizationGrant? {
+        val current = profileDao.getById(profileId) ?: return null
+        return authorization.issue(current, currentPin, if (current.pinHash.isNullOrBlank()) emptySet() else setOf(ProfileSensitiveAction.DELETE))
+    }
+
+    suspend fun edit(profile: ProfileEntity, name: String, avatarId: Int, isKids: Boolean, pin: String?, grant: ProfileAuthorizationGrant? = null) = mutationMutex.withLock {
+        val current = profileDao.getById(profile.id) ?: throw ProfileAuthorizationRequired()
+        if (!authorization.consume(current, sensitiveProfileEdit(current, isKids, pin), grant)) throw ProfileAuthorizationRequired()
         val pinHash = when {
-            pin == null -> profile.pinHash
+            pin == null -> current.pinHash
             pin.isEmpty() -> null
             else -> Pin.hash(pin)
         }
-        profileDao.update(
-            profile.copy(
-                name = name.ifBlank { profile.name },
-                avatarId = avatarId,
-                isKids = isKids,
-                pinHash = pinHash,
-            ),
-        )
-        if (profile.isKids != isKids) {
+        if (profileDao.updateAuthorized(current.id, current.pinHash, current.isKids,
+                name.ifBlank { current.name }, avatarId, isKids, pinHash) != 1) throw ProfileAuthorizationRequired()
+        if (current.isKids != isKids) {
             launcherIntegration.refreshProfile(profile.id, allowBrowsableRequest = false)
         }
     }
@@ -92,14 +102,13 @@ class ProfileManager(
 
     private suspend fun apply(profile: ProfileEntity, savedPath: String?): Boolean {
         val path = savedPath ?: return false
-        profileDao.update(profile.copy(avatarPath = path))
-        return true
+        return profileDao.setAvatarPath(profile.id, path) == 1
     }
 
     /** Drop [profile]'s own picture, returning it to the drawn tile named by its `avatarId`. */
     suspend fun clearCustomAvatar(profile: ProfileEntity) {
         avatars.clear(profile.id)
-        profileDao.update(profile.copy(avatarPath = null))
+        if (profileDao.setAvatarPath(profile.id, null) != 1) throw ProfileAuthorizationRequired()
     }
 
     /**
@@ -107,18 +116,22 @@ class ProfileManager(
      * was the one on screen. The last profile is never deleted — an app with none has nobody to
      * resolve any content for.
      */
-    suspend fun delete(profile: ProfileEntity) {
-        if (profileDao.count() <= 1) return
-        val activeProfileId = settings.activeProfileId.first()
-        val remainingProfileId = profileDao.getAllOnce().firstOrNull { it.id != profile.id }?.id
+    suspend fun delete(profile: ProfileEntity, grant: ProfileAuthorizationGrant? = null): Boolean = mutationMutex.withLock {
+        if (profileDao.count() <= 1) return@withLock false
+        val current = profileDao.getById(profile.id) ?: return@withLock false
+        val required = if (current.pinHash.isNullOrBlank()) emptySet() else setOf(ProfileSensitiveAction.DELETE)
+        if (!authorization.consume(current, required, grant)) throw ProfileAuthorizationRequired()
+        if (profileDao.deleteAuthorized(current.id, current.pinHash, current.isKids) != 1) throw ProfileAuthorizationRequired()
+        if (settings.activeProfileId.first() == current.id) {
+            settings.setActiveProfile(profileDao.getAllOnce().firstOrNull()?.id ?: -1L)
+        }
         runCatching { launcherIntegration.clearProfile(profile.id) }
         // Deleting a profile permanently erases its stored OpenSubtitles login (subtitle plan §5.5).
         openSubtitlesAccounts.eraseFor(profile.id)
         // …and its picture, which nothing else would ever clean up.
         avatars.clear(profile.id)
         settings.setStartupChannel(profile.id, null)
-        profileDao.delete(profile)
-        if (activeProfileId == profile.id) settings.setActiveProfile(remainingProfileId ?: -1L)
+        true
     }
 }
 

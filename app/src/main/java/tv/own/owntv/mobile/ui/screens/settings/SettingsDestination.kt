@@ -35,16 +35,15 @@ fun SettingsGroupPage(group: SettingsGroup, onOpenRoute: (String) -> Unit) {
 @Composable
 fun SettingsLeafPage(leaf: SettingsLeaf, onOpenRoute: (String) -> Unit, onAddSource: () -> Unit) {
     when (leaf) {
+        SettingsLeaf.BACKUP -> SettingsBackupPage()
         SettingsLeaf.CHANNEL_PLAYBACK -> SettingsChannelPlaybackPage()
         SettingsLeaf.LIVE_CUSTOM -> SettingsLiveCustomPage()
         SettingsLeaf.PLAYLISTS -> SettingsPlaylistsPage(onAddSource = onAddSource)
         SettingsLeaf.EPG_SOURCES -> SettingsEpgSourcesPage()
         SettingsLeaf.GLASS_EFFECT -> SettingsGlassPage()
         SettingsLeaf.FONTS -> SettingsFontsPage()
-        SettingsLeaf.WEATHER -> SettingsWeatherPage()
         SettingsLeaf.CUSTOMIZE -> SettingsCustomizePage()
         SettingsLeaf.METADATA -> SettingsMetadataPage()
-        SettingsLeaf.OPEN_SUBTITLES -> SettingsOpenSubtitlesPage()
         SettingsLeaf.VIDEO_PLAYER -> SettingsVideoPlayerPage(
             onOpenLeaf = { target -> onOpenRoute(target.route) },
         )

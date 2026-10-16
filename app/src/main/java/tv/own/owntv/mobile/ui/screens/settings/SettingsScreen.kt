@@ -31,7 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.components.TwoPane
@@ -136,6 +136,7 @@ private fun SettingsList(
     selectedRoute: String? = null,
     vm: SettingsViewModel = koinViewModel(),
 ) {
+    var advanced by rememberSaveable { mutableStateOf(false) }
     val entries = rememberSettingsSearchEntries()
     val results = entries.matching(query)
     SettingsPage(modifier) {
@@ -204,8 +205,17 @@ private fun SettingsList(
 
 
 
+        item { SettingsSectionLabel(stringResource(tv.own.owntv.mobile.R.string.own_common_settings)) }
+        settingsGroup(key = "backup-shortcut") {
+            SettingRow(title = stringResource(R.string.settings_backup_title), onClick = { onOpenRoute(SettingsLeaf.BACKUP.route) })
+        }
+        settingsGroup(key = "advanced-toggle") {
+            SettingRow(title = stringResource(tv.own.owntv.mobile.R.string.own_advanced_settings),
+                subtitle = stringResource(tv.own.owntv.mobile.R.string.own_advanced_hint),
+                checked = advanced, onCheckedChange = { advanced = it })
+        }
         settingsGroup(key = "groups") {
-            SettingsGroup.entries.forEach { group ->
+            SettingsGroup.entries.filter { advanced || it !in setOf(SettingsGroup.PLAYBACK, SettingsGroup.NETWORK, SettingsGroup.CONTENT) }.forEach { group ->
                 SettingRow(
                     title = stringResource(group.titleRes),
                     subtitle = stringResource(group.summaryRes),

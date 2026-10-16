@@ -85,7 +85,7 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
         // This app's own releases, not the television's. Left at its default, an update check here
         // would offer OwnTV-v*.apk — a different applicationId, which the installer refuses after
         // the whole download.
-        CoreBuildInfo.releaseRepo = "ahXN00/OwnTV_Mobile"
+        CoreBuildInfo.releaseRepo = "renafcampos27/OWNTV_SMARTPHONE"
         // First thing after the context exists: a crash from here on leaves a trace on disk instead
         // of dying with the process, with the playback ring attached.
         CrashRecorder.diagnostics = { tv.own.owntv.player.LiveDiagnosticsLog.snapshot() }

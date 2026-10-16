@@ -7,6 +7,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
 
 /**
@@ -24,10 +27,14 @@ import kotlinx.coroutines.delay
 @Composable
 fun rememberClockTick(periodMs: Long = 30_000L): State<Long> {
     val tick = remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(periodMs) {
-        while (true) {
-            delay(periodMs)
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(periodMs, lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             tick.longValue = System.currentTimeMillis()
+            while (true) {
+                delay(periodMs.coerceAtLeast(1L))
+                tick.longValue = System.currentTimeMillis()
+            }
         }
     }
     return tick

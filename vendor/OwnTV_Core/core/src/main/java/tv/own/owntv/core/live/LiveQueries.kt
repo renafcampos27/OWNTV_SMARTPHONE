@@ -33,19 +33,25 @@ fun livePagingSource(
     hasManualOrder: (String) -> Boolean,
 ): PagingSource<Int, ChannelEntity> {
     val ids = sourceIds.ifEmpty { listOf(-1L) }
-    val playlist = sort == SettingsRepository.SortMode.PLAYLIST
+    val playlist = sort != SettingsRepository.SortMode.ALPHA
+    val manual = sort == SettingsRepository.SortMode.CUSTOM
     return if (query.isBlank()) {
         when (key) {
-            LiveKey.All -> if (playlist) channelDao.pagingAllOriginal(ids) else channelDao.pagingAll(ids)
+            LiveKey.All -> if (manual && hasManualOrder(ContentOrderEntity.ALL_CONTEXT))
+                channelDao.pagingAllManual(ids, profileId, ContentOrderEntity.ALL_CONTEXT, false)
+                else if (playlist) channelDao.pagingAllOriginal(ids) else channelDao.pagingAll(ids)
             LiveKey.Favorites -> channelDao.pagingFavoritesManual(profileId, ContentOrderEntity.FAV_CONTEXT, ids)
             LiveKey.History -> channelDao.pagingHistory(profileId, ids)
-            LiveKey.Catchup -> if (playlist) channelDao.pagingCatchupOriginal(ids) else channelDao.pagingCatchup(ids)
-            is LiveKey.Custom -> if (playlist) customCategoryDao.pagingChannels(profileId, key.id, ids) else customCategoryDao.pagingChannelsAlpha(profileId, key.id, ids)
+            LiveKey.Catchup -> if (manual && hasManualOrder(ContentOrderEntity.CATCHUP_CONTEXT))
+                channelDao.pagingAllManual(ids, profileId, ContentOrderEntity.CATCHUP_CONTEXT, true)
+                else if (playlist) channelDao.pagingCatchupOriginal(ids) else channelDao.pagingCatchup(ids)
+            is LiveKey.Custom -> if (manual) customCategoryDao.pagingChannels(profileId, key.id, ids)
+                else customCategoryDao.pagingChannelsNatural(profileId, key.id, ids, !playlist)
             is LiveKey.Folder -> {
                 val ctxKey = contextKey(key.id) ?: ""
                 // C3 fast path: no manual order in this folder → the plain indexed query has
                 // the identical (sortOrder, name) order without the join-sort.
-                if (!hasManualOrder(ctxKey)) {
+                if (!manual || !hasManualOrder(ctxKey)) {
                     if (playlist) channelDao.pagingByCategory(key.id) else channelDao.pagingByCategoryAlpha(key.id)
                 } else {
                     if (playlist) channelDao.pagingByCategoryManual(key.id, profileId, ctxKey) else channelDao.pagingByCategoryManualAlpha(key.id, profileId, ctxKey)

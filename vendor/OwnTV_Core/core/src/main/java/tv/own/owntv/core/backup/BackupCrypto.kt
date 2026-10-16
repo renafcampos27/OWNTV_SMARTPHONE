@@ -1,6 +1,6 @@
 package tv.own.owntv.core.backup
 
-import android.util.Base64
+import java.util.Base64
 import org.json.JSONObject
 import java.security.SecureRandom
 import javax.crypto.Cipher
@@ -36,8 +36,8 @@ object BackupCrypto {
 
     private val rng = SecureRandom()
 
-    private fun b64(bytes: ByteArray): String = Base64.encodeToString(bytes, Base64.NO_WRAP)
-    private fun unb64(s: String): ByteArray = Base64.decode(s, Base64.NO_WRAP)
+    private fun b64(bytes: ByteArray): String = Base64.getEncoder().encodeToString(bytes)
+    private fun unb64(s: String): ByteArray = Base64.getDecoder().decode(s.filterNot(Char::isWhitespace))
 
     /** A fresh random salt for a new backup. */
     fun newSalt(): ByteArray = ByteArray(SALT_BYTES).also { rng.nextBytes(it) }
@@ -65,7 +65,12 @@ object BackupCrypto {
     fun deriveKey(passphrase: String, crypto: JSONObject?): SecretKey? {
         crypto ?: return null
         val salt = runCatching { unb64(crypto.getString("salt")) }.getOrNull() ?: return null
-        val iters = crypto.optInt("iterations", ITERATIONS)
+        if (salt.size != SALT_BYTES) return null
+        if (crypto.has("scheme") && crypto.opt("scheme") !in setOf(SCHEME, "container-aes-gcm")) return null
+        if (crypto.has("kdf") && crypto.opt("kdf") != KDF) return null
+        val raw = if (crypto.has("iterations")) crypto.opt("iterations") else ITERATIONS
+        val iters = when (raw) { is Int -> raw; is Long -> raw.takeIf { it in 1..2_000_000L }?.toInt(); else -> null } ?: return null
+        if (iters !in 1..2_000_000) return null
         return deriveKey(passphrase.toCharArray(), salt, iters)
     }
 
@@ -92,10 +97,40 @@ object BackupCrypto {
 
     /** Opens an [encryptBytes] blob. Throws on a wrong passphrase (GCM tag mismatch) or truncation. */
     fun decryptBytes(key: SecretKey, blob: ByteArray): ByteArray {
-        require(blob.size > IV_BYTES) { "Truncated encrypted backup" }
+        require(blob.size >= IV_BYTES + GCM_TAG_BITS / 8) { "Truncated encrypted backup" }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, blob.copyOf(IV_BYTES)))
         return cipher.doFinal(blob, IV_BYTES, blob.size - IV_BYTES)
+    }
+
+    /** Same iv || AES-GCM wire format as encryptBytes, without a whole-archive byte array. */
+    internal fun encryptingStream(key: SecretKey, output: java.io.OutputStream): java.io.OutputStream {
+        val iv = ByteArray(IV_BYTES).also { rng.nextBytes(it) }
+        output.write(iv)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, iv))
+        return javax.crypto.CipherOutputStream(output, cipher)
+    }
+
+    /** Authentication must finish before a caller opens/parses the staged plaintext ZIP. */
+    internal fun decryptTo(key: SecretKey, input: java.io.InputStream, output: java.io.OutputStream,
+        maxBytes: Long) {
+        val iv = ByteArray(IV_BYTES)
+        java.io.DataInputStream(input).readFully(iv)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, iv))
+        val buffer = ByteArray(64 * 1024)
+        var total = 0L
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            total += count
+            require(total <= maxBytes)
+            cipher.update(buffer, 0, count)?.let(output::write)
+        }
+        require(total >= GCM_TAG_BITS / 8) { "Truncated encrypted backup" }
+        // doFinal verifies the tag. A provider may internally buffer until authentication.
+        output.write(cipher.doFinal())
     }
 
     /** True if [value] is an encrypted secret object (vs a legacy plaintext string). */
@@ -108,6 +143,7 @@ object BackupCrypto {
     fun decrypt(key: SecretKey, sealed: JSONObject): String {
         val iv = unb64(sealed.getString("iv"))
         val ct = unb64(sealed.getString("ct"))
+        require(iv.size == IV_BYTES && ct.size >= GCM_TAG_BITS / 8) { "Malformed encrypted backup field" }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, iv))
         return String(cipher.doFinal(ct), Charsets.UTF_8)

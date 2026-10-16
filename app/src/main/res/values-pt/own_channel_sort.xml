@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_channel_sort_title">Ordenar canais</string>
+    <string name="own_channel_sort_current">Ordenar: %1$s</string>
+    <string name="own_channel_sort_name">Nome</string>
+    <string name="own_channel_sort_provider">Fornecedor</string>
+    <string name="own_channel_sort_custom">Personalizado</string>
+    <string name="own_channel_sort_edit">Editar ordem personalizada</string>
+    <string name="own_channel_sort_restore">Restaurar ordem do fornecedor</string>
+    <string name="own_channel_sort_provider_hint">Manter a ordem original fornecida pela lista</string>
+</resources>

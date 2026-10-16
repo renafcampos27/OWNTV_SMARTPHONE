@@ -1,0 +1,5 @@
+<resources>
+    <string name="own_recording_play_error">Não foi possível abrir esta gravação. Verifique se o ficheiro e o armazenamento estão disponíveis.</string>
+    <string name="own_recording_export_error">Não foi possível exportar a gravação completa. A gravação original foi preservada.</string>
+    <string name="own_recording_export_copy">A cópia foi exportada. A gravação original foi mantida na aplicação.</string>
+</resources>

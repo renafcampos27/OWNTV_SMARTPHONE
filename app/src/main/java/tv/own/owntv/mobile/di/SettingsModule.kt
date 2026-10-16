@@ -5,7 +5,6 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import tv.own.owntv.mobile.ui.screens.settings.DeleteSubtitlesViewModel
 import tv.own.owntv.mobile.ui.screens.settings.EpgSourcesViewModel
-import tv.own.owntv.mobile.ui.screens.settings.OpenSubtitlesViewModel
 import tv.own.owntv.mobile.ui.screens.settings.SettingsViewModel
 import tv.own.owntv.mobile.ui.screens.settings.customize.CustomizeItemsViewModel
 import tv.own.owntv.mobile.ui.screens.settings.customize.CustomizeViewModel
@@ -86,6 +85,5 @@ val settingsModule = module {
             userDataWriter = get(),
         )
     }
-    viewModel { OpenSubtitlesViewModel(settings = get(), accounts = get()) }
     viewModel { DeleteSubtitlesViewModel(controller = get()) }
 }

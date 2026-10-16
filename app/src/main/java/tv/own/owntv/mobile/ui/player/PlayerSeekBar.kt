@@ -44,7 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.screens.guide.rememberGuideTimeFormat
 import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.SquircleShape

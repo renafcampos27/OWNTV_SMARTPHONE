@@ -75,6 +75,7 @@ class UpdateManager(
     val state: StateFlow<State> = _state.asStateFlow()
 
     private class RecordingsBusyException : IOException()
+    @Volatile private var checkCall: okhttp3.Call? = null
     @Volatile private var downloadCall: okhttp3.Call? = null
     private var downloadJob: kotlinx.coroutines.Job? = null
     @Volatile private var activeInstallSessionId: Int? = null
@@ -102,10 +103,18 @@ class UpdateManager(
 
     val currentVersion: String = CoreBuildInfo.versionName
 
+    private val startupChecked = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** At most one automatic check per process, even after navigation or rotation. */
+    fun checkOnStartup() {
+        if (startupChecked.compareAndSet(false, true)) check()
+    }
+
     /** Queries GitHub's latest release; moves to Available / UpToDate / a semantic failure. */
     fun check() {
         if (_state.value is State.Checking || _state.value is State.Downloading) return
         _state.value = State.Checking
+        val owner = downloadGeneration.get()
         scope.launch {
             runCatching {
                 val request = Request.Builder()
@@ -113,22 +122,27 @@ class UpdateManager(
                     .header("Accept", "application/vnd.github+json")
                     .header("User-Agent", "OwnTV")
                     .build()
-                client.newCall(request).execute().use { resp ->
-                    if (resp.code == 404) {
-                        _state.value = State.UpToDate
-                        return@launch
-                    }
+                val call = client.newCall(request)
+                checkCall = call
+                if (owner != downloadGeneration.get()) return@launch
+                call.execute().use { resp ->
+                    if (owner != downloadGeneration.get()) return@launch
                     if (!resp.isSuccessful) throw CheckHttpException(resp.code)
                     val body = resp.body.string()
                     if (body.isBlank()) throw InvalidReleaseResponseException()
                     val o = runCatching { JSONObject(body) }.getOrElse { throw InvalidReleaseResponseException() }
                     val version = o.optString("tag_name").removePrefix("v").takeIf { it.isNotBlank() }
                         ?: throw InvalidReleaseResponseException()
+                    if (!isNewer(version, currentVersion)) {
+                        synchronized(downloadGeneration) {
+                            if (owner == downloadGeneration.get()) _state.value = State.UpToDate
+                        }
+                        return@launch
+                    }
                     val notes = o.optString("body").take(16_000)
                     val assets = o.optJSONArray("assets") ?: throw InvalidReleaseResponseException()
                     // Releases carry one APK per ABI flavor (arm = generic, x86_64 suffixed). Never
                     // silently install an APK for the wrong ABI.
-                    val wantX86 = android.os.Build.SUPPORTED_ABIS.firstOrNull() == "x86_64"
                     val apks = (0 until assets.length())
                         .asSequence()
                         .mapNotNull { assets.optJSONObject(it) }
@@ -140,17 +154,19 @@ class UpdateManager(
                         }
                         .toList()
 
-                    val apkUrl = apks.firstOrNull { (name, _) ->
-                        val isX86 = name.contains("x86_64", ignoreCase = true)
-                        isX86 == wantX86
-                    }?.second ?: apks.firstOrNull()?.second ?: throw NoCompatibleApkException()
+                    val apkUrl = selectUpdateApk(apks, android.os.Build.SUPPORTED_ABIS.toList())
+                        ?: throw NoCompatibleApkException()
                     val info = UpdateInfo(version, notes, apkUrl)
-                    if (isNewer(version, currentVersion)) _state.value = State.Available(info)
-                    else _state.value = State.UpToDate
+                    synchronized(downloadGeneration) {
+                        if (owner == downloadGeneration.get()) _state.value = State.Available(info)
+                    }
                 }
             }.onFailure { error ->
+                if (owner != downloadGeneration.get()) return@launch
                 Log.w(TAG, "update check failed: ${error.message}", error)
-                _state.value = State.Failed(failureFor(error, checking = true))
+                synchronized(downloadGeneration) {
+                    if (owner == downloadGeneration.get()) _state.value = State.Failed(failureFor(error, checking = true))
+                }
             }
         }
     }
@@ -232,6 +248,7 @@ class UpdateManager(
     /** Closing or postponing revokes an unfinished download's right to launch the installer. */
     fun cancelPendingUpdate() {
         synchronized(downloadGeneration) { downloadGeneration.incrementAndGet(); _state.value = State.Idle }
+        checkCall?.cancel()
         downloadCall?.cancel()
         downloadJob?.cancel()
         activeInstallSessionId?.let { id -> runCatching { context.packageManager.packageInstaller.abandonSession(id) } }

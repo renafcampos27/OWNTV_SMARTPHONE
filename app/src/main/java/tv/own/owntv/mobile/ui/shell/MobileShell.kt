@@ -156,9 +156,11 @@ fun MobileShell(
      *  - Only then "Who is watching?", and only when the gate is genuinely required: more than one
      *    profile, or a single one with a PIN.
      */
+    val importer: tv.own.owntv.core.setup.SourceImporter = koinInject()
+    val restoring by importer.restoring.collectAsStateWithLifecycle()
     val loadedProfiles = profiles ?: return
     val activeId = activeProfileId ?: return
-    if (activeId < 0L || loadedProfiles.none { it.id == activeId }) {
+    if (restoring || activeId < 0L || loadedProfiles.none { it.id == activeId }) {
         // The wizard reports the profile it activated, and that is the unlock — the same handover the
         // television does. Without it the shell would have a valid active profile and no session for
         // it, which is the one state that shows the chooser.
@@ -210,6 +212,7 @@ fun MobileShell(
     // and no mini player, because the thing the mini player would be showing is already on screen.
     val fullscreen = currentRoute == PLAYER_ROUTE || currentRoute == SETUP_ROUTE
     val tuner: LiveTuner = koinInject()
+    val backDispatcher = androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val vodTuner: VodTuner = koinInject()
     val channel by tuner.channel.collectAsStateWithLifecycle()
     val nowNext by tuner.nowNext.collectAsStateWithLifecycle()
@@ -276,7 +279,7 @@ fun MobileShell(
     // picked up in places where sound arriving unannounced is not welcome.
     val context = LocalContext.current
     val startupLive: StartupLiveSelection = koinInject()
-    val startupUnavailable = stringResource(tv.own.owntv.mobile.R.string.settings_startup_channel_unavailable)
+    val startupUnavailable = stringResource(tv.own.owntv.core.R.string.settings_startup_channel_unavailable)
     var startupHandled by remember { mutableStateOf(false) }
     // Reaching this point already means the setup flow and the profile chooser are both behind us —
     // that is what the branches above guarantee — so there is nothing left to wait for.
@@ -330,7 +333,7 @@ fun MobileShell(
             budgetNoticeShown = true
             Toast.makeText(
                 context,
-                tv.own.owntv.mobile.R.string.settings_metadata_limit_reached,
+                tv.own.owntv.core.R.string.settings_metadata_limit_reached,
                 Toast.LENGTH_LONG,
             ).show()
         }
@@ -347,17 +350,24 @@ fun MobileShell(
     val updateManager: UpdateManager = koinInject()
     val updateState by updateManager.state.collectAsStateWithLifecycle()
     var updateSheetOpen by remember { mutableStateOf(false) }
-    // Custom mobile builds are updated manually until a dedicated release repository exists.
+    val checkUpdatesOnStart by settings.updateCheckOnStart.collectAsStateWithLifecycle(false)
+    LaunchedEffect(checkUpdatesOnStart) {
+        if (checkUpdatesOnStart) {
+            delay(5_000)
+            updateManager.checkOnStartup()
+        }
+    }
     LaunchedEffect(updateState) {
         if (updateState is UpdateManager.State.Available) updateSheetOpen = true
+        else if (updateState is UpdateManager.State.Idle) updateSheetOpen = false
     }
     // Not over the player, and not over setup: both own the whole screen for a reason.
-    if (updateSheetOpen && !fullscreen) {
+    if (updateSheetOpen && !fullscreen && currentRoute?.startsWith("settings") != true) {
         UpdateSheet(
             onDismiss = {
                 updateSheetOpen = false
                 // Back to Idle, or the next recomposition reopens the sheet on the same release.
-                updateManager.reset()
+                updateManager.cancelPendingUpdate()
             },
         )
     }
@@ -407,7 +417,7 @@ fun MobileShell(
                             // A settings page names itself too, and that name is what "back" leaves.
                             text = stringResource(
                                 settingsTitle
-                                    ?: if (currentRoute == SEARCH_ROUTE_PATTERN) tv.own.owntv.mobile.R.string.search_title
+                                    ?: if (currentRoute == SEARCH_ROUTE_PATTERN) tv.own.owntv.core.R.string.search_title
                                     else current?.labelRes ?: offBarTitle ?: MobileDestination.HOME.labelRes,
                             ),
                             maxLines = 1,
@@ -420,10 +430,10 @@ fun MobileShell(
                         // bottom bar or the rail is already where it is, and there is nothing above it
                         // to leave. That covers the settings root on a rail, which is a tab there.
                         if (destinations.none { it.route == currentRoute }) {
-                            IconButton(onClick = { navController.popBackStack() }) {
+                            IconButton(onClick = { backDispatcher?.onBackPressed() ?: navController.popBackStack() }) {
                                 Icon(
                                     imageVector = MobileIcons.ArrowBack,
-                                    contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_back),
+                                    contentDescription = stringResource(tv.own.owntv.core.R.string.common_back),
                                 )
                             }
                         }
@@ -432,7 +442,7 @@ fun MobileShell(
                         if (simpleMode.hideSidebar) IconButton(onClick = {
                             navController.navigate(MobileDestination.MORE.route) { launchSingleTop = true }
                         }) {
-                            Icon(MobileIcons.MoreHoriz, stringResource(tv.own.owntv.mobile.R.string.common_nav_more))
+                            Icon(MobileIcons.MoreHoriz, stringResource(tv.own.owntv.core.R.string.common_nav_more))
                         }
                         // Which way round the icon is drawn follows the app's own theme, not the
                         // phone's night mode: OwnTV's light/dark is a setting, and the two can
@@ -657,14 +667,14 @@ fun MobileShell(
         // The app's own picker sheet, not one written for this: "which of these" is a solved shape
         // here, tick and all. `All playlists` is id -1, the same value Settings → Playlists stores.
         SettingsChoiceSheet(
-            title = stringResource(tv.own.owntv.mobile.R.string.content_playlist_picker_title),
+            title = stringResource(tv.own.owntv.core.R.string.content_playlist_picker_title),
             description = stringResource(
-                tv.own.owntv.mobile.R.string.content_playlist_picker_description,
+                tv.own.owntv.core.R.string.content_playlist_picker_description,
             ),
             choices = listOf(
                 SettingsChoice(
                     value = -1L,
-                    label = stringResource(tv.own.owntv.mobile.R.string.content_all_playlists),
+                    label = stringResource(tv.own.owntv.core.R.string.content_all_playlists),
                 ),
             ) + playlists.map { SettingsChoice(value = it.id, label = it.name) },
             // A stored default the profile no longer has is All playlists, exactly as the browse
@@ -688,9 +698,9 @@ fun MobileShell(
 private fun SourceEntity.displayName(): String = name.ifBlank {
     stringResource(
         when (type) {
-            SourceType.XTREAM -> tv.own.owntv.mobile.R.string.setup_default_iptv
-            SourceType.STALKER -> tv.own.owntv.mobile.R.string.setup_default_portal
-            else -> tv.own.owntv.mobile.R.string.setup_name_default_playlist
+            SourceType.XTREAM -> tv.own.owntv.core.R.string.setup_default_iptv
+            SourceType.STALKER -> tv.own.owntv.core.R.string.setup_default_portal
+            else -> tv.own.owntv.core.R.string.setup_name_default_playlist
         },
     )
 }
@@ -713,7 +723,7 @@ private fun PlaylistChip(
     val label = when {
         playlists.size == 1 -> playlists.first().displayName()
         else -> playlists.firstOrNull { it.id == activeId }?.displayName()
-            ?: stringResource(tv.own.owntv.mobile.R.string.content_all_playlists)
+            ?: stringResource(tv.own.owntv.core.R.string.content_all_playlists)
     }
     val switchable = playlists.size > 1
     val shape = RoundedCornerShape(50)
@@ -729,7 +739,7 @@ private fun PlaylistChip(
                     Modifier.clickable(
                         onClick = onClick,
                         onClickLabel = stringResource(
-                            tv.own.owntv.mobile.R.string.content_playlist_picker_title,
+                            tv.own.owntv.core.R.string.content_playlist_picker_title,
                         ),
                     )
                 } else {

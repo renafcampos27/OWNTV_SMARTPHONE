@@ -1,0 +1,5 @@
+<resources>
+    <string name="own_recording_play_error">Could not open this recording. Check that the file and storage are available.</string>
+    <string name="own_recording_export_error">Could not export the complete recording. The original recording was preserved.</string>
+    <string name="own_recording_export_copy">The copy was exported. The original recording was kept in the app.</string>
+</resources>

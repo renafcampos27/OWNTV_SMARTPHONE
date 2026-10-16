@@ -27,7 +27,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import tv.own.owntv.core.customize.SpanSelector
 import tv.own.owntv.core.model.MediaType
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.screens.settings.SettingsPage
 import tv.own.owntv.mobile.ui.screens.settings.settingsNote

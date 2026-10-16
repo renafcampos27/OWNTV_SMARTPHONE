@@ -40,7 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import tv.own.owntv.core.theme.parseAccentHex
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /** An HSV triple (h 0..360, s/v 0..1) as an uppercase "#RRGGBB" string. */

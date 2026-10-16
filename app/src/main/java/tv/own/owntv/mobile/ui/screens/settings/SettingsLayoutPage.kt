@@ -19,7 +19,7 @@ import tv.own.owntv.core.menu.catalogue
 import tv.own.owntv.core.model.ContentMenu
 import tv.own.owntv.core.nav.MainSection
 import tv.own.owntv.core.settings.SettingsRepository
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.SettingRow

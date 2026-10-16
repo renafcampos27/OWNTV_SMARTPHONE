@@ -4,6 +4,10 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.room.execSQL
 import androidx.room.useWriterConnection
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -71,7 +75,10 @@ class EpgRepository(
     private fun sweepOrphanedTempCaches(now: Long) {
         runCatching {
             context.cacheDir.listFiles()
-                ?.forEach { if (isOrphanedEpgTempCache(it.name, it.lastModified(), now, CACHE_TTL_MS)) it.delete() }
+                ?.forEach {
+                    if (isOrphanedEpgTempCache(it.name, it.lastModified(), now, CACHE_TTL_MS) ||
+                        it.name.startsWith("own-epg-fill-") && it.name.endsWith(".spool") && now - it.lastModified() > CACHE_TTL_MS) it.delete()
+                }
         }
     }
 
@@ -207,7 +214,18 @@ class EpgRepository(
      * Download [url] (XMLTV, gzip-aware) into the guide tables keyed by [storeId], keeping only the
      * rolling window. Used for standalone EPG sources (negative ids). Throws on network/parse failure.
      */
+    private val storeLocks = EpgStoreLocks()
+
     suspend fun refreshUrl(
+        storeId: Long,
+        url: String,
+        userAgent: String?,
+        onProgress: (channels: Int, programmes: Int) -> Unit = { _, _ -> },
+    ): Int = storeLocks.withStores(listOf(storeId)) {
+        refreshUrlLocked(storeId, url, userAgent, onProgress)
+    }
+
+    private suspend fun refreshUrlLocked(
         storeId: Long,
         url: String,
         userAgent: String?,
@@ -609,59 +627,95 @@ class EpgRepository(
      * have, so a freshly-matched id wasn't stored). Parses each cache file ONCE for the whole id set. Returns
      * false if there's no fresh (≤24h) cache to read — the caller then does a full network re-sync.
      */
-    suspend fun storeProgrammesForIdsFromCache(epgIds: Set<String>): Boolean = withContext(Dispatchers.IO) {
+    private val cacheFillQueue = CachedEpgFillQueue(CoroutineScope(SupervisorJob() + Dispatchers.IO), ::fillCachedProgrammes)
+
+    suspend fun storeProgrammesForIdsFromCache(epgIds: Set<String>): Boolean {
         val keys = epgIds.map { it.trim().lowercase() }.filterTo(HashSet()) { it.isNotBlank() }
-        if (keys.isEmpty()) return@withContext true
+        return cacheFillQueue.request(keys)
+    }
+
+    private suspend fun fillCachedProgrammes(keys: Set<String>, needed: () -> Boolean): Set<String> {
         val now = System.currentTimeMillis()
         val from = now - WINDOW_BACK_MS; val to = now + guideAheadMs()
-        // Only promoted (complete) caches are eligible — an in-flight or abandoned `.xmltv.tmp` is
-        // excluded by name, so a truncated download can't be mistaken for the whole feed (E1).
-        val files = context.cacheDir.listFiles()
-            ?.filter { isUsableEpgCache(it.name, it.length(), it.lastModified(), now, CACHE_TTL_MS) }
-            ?: emptyList<java.io.File>()
-        if (files.isEmpty()) return@withContext false // no fresh cache → caller falls back to a network re-sync
-        Log.d("EpgRepository", "Cached EPG channel filter ids=${keys.size} files=${files.size}")
-
-        val storeFiles = files.mapNotNull { f ->
-            epgCacheStoreId(f.name)?.let { it to f }
+        sweepOrphanedTempCaches(now)
+        val files = context.cacheDir.listFiles().orEmpty()
+            .filter { isUsableEpgCache(it.name, it.length(), it.lastModified(), now, CACHE_TTL_MS) }
+            .sortedBy { it.name }
+        if (files.isEmpty()) return emptySet()
+        val fingerprint = files.map { Triple(it.name, it.length(), it.lastModified()) }
+        val staged = mutableListOf<Pair<Long, EpgProgrammeSpool>>()
+        var completedBytes = 0L
+        val found = HashSet<String>()
+        fun checkNeeded() {
+            if (!needed()) throw CancellationException("No pending EPG cache requests")
         }
-        val storeIds = storeFiles.map { it.first }
-        val collected = HashMap<String, MutableList<EpgProgrammeEntity>>()
-        for ((storeId, file) in storeFiles) {
-            var foundHere = 0
-            runCatching {
-                file.inputStream().use { input ->
-                    XmltvParser.parse(
-                        input,
-                        onChannel = { _, _, _ -> },
-                        onProgramme = { _, _, _, _, _ -> },
-                            onProgrammeDetails = { channelId, startMs, stopMs, title, desc, details ->
-                            val key = channelId.trim().lowercase()
-                            if (key in keys && stopMs > from && startMs < to) {
-                                collected.getOrPut(key) { ArrayList() }
-                                    .add(EpgProgrammeEntity(sourceId = storeId, epgChannelId = key, startMs = startMs, stopMs = stopMs, title = title, description = desc, categories = details.categories, year = details.year, rating = details.rating, lengthMin = details.lengthMin, episode = details.episode))
-                                foundHere++
+        try {
+            for (file in files) {
+                currentCoroutineContext().ensureActive(); checkNeeded()
+                val storeId = epgCacheStoreId(file.name) ?: continue
+                val spool = EpgProgrammeSpool(context.cacheDir)
+                val foundHere = HashSet<String>()
+                try {
+                    val fillContext = currentCoroutineContext()
+                    file.inputStream().use { raw ->
+                        val input = object : java.io.FilterInputStream(raw) {
+                            override fun read(): Int { fillContext.ensureActive(); checkNeeded(); return super.read() }
+                            override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+                                fillContext.ensureActive(); checkNeeded()
+                                return super.read(buffer, offset, length)
                             }
-                        },
-                        channelFilter = keys,
-                    )
+                        }
+                        XmltvParser.parse(input, onChannel = { _, _, _ -> checkNeeded() },
+                            onProgramme = { _, _, _, _, _ -> },
+                            onProgrammeDetails = { channelId, startMs, stopMs, title, desc, details ->
+                                currentCoroutineContext().ensureActive(); checkNeeded()
+                                val key = channelId.trim().lowercase()
+                                if (key in keys && stopMs > from && startMs < to) {
+                                    spool.append(EpgProgrammeEntity(sourceId = storeId, epgChannelId = key,
+                                        startMs = startMs, stopMs = stopMs, title = title, description = desc,
+                                        categories = details.categories, year = details.year, rating = details.rating,
+                                        lengthMin = details.lengthMin, episode = details.episode))
+                                    require(completedBytes + spool.byteCount <= 128L * 1024 * 1024)
+                                    foundHere += key
+                                }
+                            }, channelFilter = keys)
+                    }
+                    spool.finish()
+                    staged += storeId to spool
+                    completedBytes += spool.byteCount
+                    found += foundHere
+                } catch (cancelled: CancellationException) {
+                    spool.close(); throw cancelled
+                } catch (error: Exception) {
+                    spool.close()
+                    Log.w("EpgRepository", "cacheFill parse failed storeId=$storeId (other sources unaffected)", error)
                 }
-            }.onFailure { Log.w("EpgRepository", "cacheFill parse failed storeId=$storeId (other sources unaffected)", it) }
+            }
+            if (found.isEmpty()) return emptySet()
+            // A promoted cache changed while parsing: do not commit an obsolete/mixed snapshot.
+            if (fingerprint != files.map { Triple(it.name, it.length(), it.lastModified()) }) return emptySet()
+            currentCoroutineContext().ensureActive(); checkNeeded()
+            val storeIds = staged.map { it.first }
+            return storeLocks.withStores(storeIds) {
+                // Recheck after waiting for a download and its cache promotion to finish.
+                if (fingerprint != files.map { Triple(it.name, it.length(), it.lastModified()) }) {
+                    return@withStores emptySet()
+                }
+                currentCoroutineContext().ensureActive(); checkNeeded()
+                db.transaction {
+                    for (key in found) storeIds.chunked(QUERY_CHUNK).forEach {
+                        epgDao.clearChannelForSources(key, it)
+                    }
+                    for ((_, spool) in staged) spool.consume(QUERY_CHUNK) { rows ->
+                        currentCoroutineContext().ensureActive(); checkNeeded()
+                        epgDao.upsertProgrammes(rows)
+                    }
+                }
+                found
+            }
+        } finally {
+            staged.forEach { it.second.close() }
         }
-
-        var insertedTotal = 0
-        for ((key, rows) in collected) {
-            if (rows.isEmpty()) continue
-            epgDao.clearChannelForSources(key, storeIds)
-            rows.chunked(QUERY_CHUNK).forEach { epgDao.upsertProgrammes(it) }
-            insertedTotal += rows.size
-        }
-        // Report handled ONLY if the cache actually yielded programmes for a requested id. A fresh cache
-        // that contains none of them (stale file, or a channel whose programmes weren't in the earlier
-        // tee'd download) must fall through to a network re-sync — the match is now persisted, so the
-        // re-sync's channel filter includes it and will fetch the missing schedule. Returning true here
-        // used to leave a just-matched channel permanently empty with no fallback.
-        insertedTotal > 0
     }
 
     /**
@@ -702,7 +756,10 @@ class EpgRepository(
         }
         Log.i("EpgRepository", "guide gap fill sourceId=$sourceId channelsWithoutProgrammes=${missing.size}")
         val filled = runCatching { storeProgrammesForIdsFromCache(missing) }
-            .onFailure { Log.w("EpgRepository", "guide gap fill failed sourceId=$sourceId", it) }
+            .onFailure {
+                if (it is CancellationException) throw it
+                Log.w("EpgRepository", "guide gap fill failed sourceId=$sourceId", it)
+            }
             .getOrDefault(false)
         // A false return means no fresh cache, or the cache genuinely carries nothing for these ids
         // (they may simply not be in this feed) — either way there is nothing more to do offline.

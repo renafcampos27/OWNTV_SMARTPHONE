@@ -25,7 +25,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.theme.AccentColor
-import tv.own.owntv.core.theme.AnimationLevel
 import tv.own.owntv.core.theme.AppFontFamily
 import tv.own.owntv.core.theme.GlassConfig
 import tv.own.owntv.core.theme.GlassPreset
@@ -33,7 +32,7 @@ import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.core.theme.ThemeMode
 import tv.own.owntv.core.theme.UiZoom
 import tv.own.owntv.core.theme.roles
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.ColorPickerSheet
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
@@ -57,7 +56,6 @@ fun SettingsAppearancePage(
     val accent = vm.settings.accent.pref(AccentColor.TEAL)
     val glass = vm.settings.glassConfig.pref(GlassConfig())
     val zoom = vm.settings.uiZoomPercent.pref(UiZoom.DEFAULT)
-    val animations = vm.settings.animationLevel.pref(AnimationLevel.FULL)
     val highlightWidth = vm.settings.focusHighlightWidth.pref(2)
     val customAccent = vm.settings.customAccent.pref("")
 
@@ -135,14 +133,7 @@ fun SettingsAppearancePage(
                 },
             )
 
-            SettingRow(
-                title = stringResource(R.string.settings_animations),
-                subtitle = stringResource(R.string.settings_animations_description_mobile),
-                checked = animations == AnimationLevel.FULL,
-                onCheckedChange = { on ->
-                    vm.edit { setAnimationLevel(if (on) AnimationLevel.FULL else AnimationLevel.OFF) }
-                },
-            )
+
         }
 
     }

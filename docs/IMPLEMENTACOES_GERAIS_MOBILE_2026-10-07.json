@@ -1,0 +1,62 @@
+{
+  "tests": {
+    "app": {
+      "tests": 48,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "core": {
+      "tests": 1050,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "player": {
+      "tests": 417,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "changed": [
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\LivePreviewEngine.kt",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\PlaybackSession.kt",
+    "vendor\\OwnTV_Core\\core\\src\\test\\java\\tv\\own\\owntv\\core\\recording\\HlsCaptureReliabilityTest.kt",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\customize\\CustomizationStore.kt",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\live\\LiveEpgReader.kt",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\recording\\HlsCaptureSession.kt",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\recording\\HlsSegmentTransfer.kt",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\recording\\RecordingEngine.kt",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\settings\\SettingsRepository.kt",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\database\\dao\\ChannelDao.kt",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\database\\dao\\RecordingDao.kt",
+    "tools\\i18n\\safe_literals.txt",
+    "baselineprofile\\src\\main\\java\\tv\\own\\owntv\\mobile\\baselineprofile\\BaselineProfileGenerator.kt",
+    "app\\src\\main\\res\\values\\own_general_improvements.xml",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\di\\ShellModule.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\components\\ClockTick.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\nav\\MobileNavHost.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\player\\PlayerControls.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\player\\PlayerScreen.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\FavoritesScreen.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\MoreCountsViewModel.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\MoreLeaf.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\MoreLeafPage.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\MoreScreen.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\shell\\MobileShell.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\guide\\GuideScreen.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\live\\LiveScreen.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\live\\LiveViewModel.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\BackupViewModel.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsBackupPage.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsChannelPlaybackPage.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsDestination.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsLeaf.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsScreen.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsSearch.kt",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsViewModel.kt"
+  ],
+  "backup": "C:\\Users\\renat\\Downloads\\OwnTV_Mobile-main\\OwnTV_Mobile-before-general-improvements-20261007.zip",
+  "build_log": "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-general-validated.log"
+}

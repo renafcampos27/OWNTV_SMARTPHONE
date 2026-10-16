@@ -31,7 +31,7 @@ import tv.own.owntv.core.theme.AccentColor
 import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.core.theme.ThemeMode
 import tv.own.owntv.core.theme.UiZoom
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton

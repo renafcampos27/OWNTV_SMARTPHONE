@@ -1,0 +1,7 @@
+<resources>
+    <string name="own_export_request_lost">Não foi possível recuperar o pedido de exportação. Inicia a exportação novamente.</string>
+    <string name="own_export_cancel_pending">Cancelar exportação pendente</string>
+    <string name="own_export_password_recovery">Para concluir o backup protegido, introduz novamente a palavra-passe que pretendes usar. A palavra-passe não fica guardada quando o Android recria a app.</string>
+    <string name="own_recording_delete_confirm">Apagar “%1$s” e o respetivo ficheiro de gravação? Esta ação não pode ser anulada.</string>
+    <string name="own_recording_delete_active">Parar e apagar “%1$s”, incluindo o ficheiro gravado? Esta ação não pode ser anulada.</string>
+</resources>

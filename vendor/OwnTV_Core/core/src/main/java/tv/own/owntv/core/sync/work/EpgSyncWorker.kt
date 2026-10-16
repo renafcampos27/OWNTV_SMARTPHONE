@@ -24,6 +24,7 @@ class EpgSyncWorker(
     private val activityTracker: EpgActivityTracker,
     private val recordings: tv.own.owntv.core.recording.RecordingManager,
     private val localeStore: LocaleStore,
+    private val autoRefreshGate: tv.own.owntv.core.sync.AutoRefreshGate,
 ) : CoroutineWorker(context, params) {
 
     /**
@@ -43,6 +44,7 @@ class EpgSyncWorker(
     override suspend fun doWork(): Result {
         val sourceId = inputData.getLong(KEY_SOURCE_ID, Long.MIN_VALUE)
         val reason = inputData.getString(KEY_REASON) ?: "unknown"
+        if (reason == tv.own.owntv.core.sync.AutoRefresh.REASON && !autoRefreshGate.awaitIdle()) return Result.retry()
         if (sourceId == Long.MIN_VALUE) return Result.failure()
 
         val source = store.getAll().firstOrNull { it.id == sourceId } ?: run {

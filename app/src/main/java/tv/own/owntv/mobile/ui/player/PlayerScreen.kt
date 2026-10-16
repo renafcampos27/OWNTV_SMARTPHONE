@@ -58,7 +58,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import tv.own.owntv.mobile.MainActivity
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.core.epg.displayLogoUrl
@@ -66,7 +66,6 @@ import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.subtitles.SubtitleController
-import tv.own.owntv.mobile.ui.screens.ContentActions
 import tv.own.owntv.mobile.ui.setup.copyPickedFile
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.theme.glassDialogWindow
@@ -108,7 +107,6 @@ fun PlayerScreen(
     vodTuner: VodTuner = koinInject(),
     pip: PipController = koinInject(),
     settings: SettingsRepository = koinInject(),
-    actions: ContentActions = koinInject(),
     subtitles: SubtitleController = koinInject(),
     cast: CastController = koinInject(),
 ) {
@@ -130,12 +128,10 @@ fun PlayerScreen(
 
     val channel by tuner.channel.collectAsStateWithLifecycle()
     val autoFrameRate by settings.autoFrameRate.collectAsStateWithLifecycle(initialValue = false)
-    val previousChannel by tuner.previousChannel.collectAsStateWithLifecycle()
     val film by vodTuner.playing.collectAsStateWithLifecycle()
+    val recordingChapters by vodTuner.recordingChapters.collectAsStateWithLifecycle()
     val nowNext by tuner.nowNext.collectAsStateWithLifecycle()
     val siblings by tuner.siblings.collectAsStateWithLifecycle()
-    val offsetSec by tuner.offsetSec.collectAsStateWithLifecycle()
-    val watchingWallMs by tuner.watchingWallMs.collectAsStateWithLifecycle()
     val timelineProgrammes by tuner.timelineProgrammes.collectAsStateWithLifecycle()
     // The same switch the Live TV list reads: off hides every number in the app, this one included.
     val showChannelNumbers by settings.directTune.collectAsStateWithLifecycle(true)
@@ -228,13 +224,6 @@ fun PlayerScreen(
 
     // What Favourite would act on: the channel, the film, or — for an episode — the show it is from,
     // because an episode is never favourited on its own.
-    val favoriteType = channel?.let { MediaType.LIVE }
-        ?: film?.let { if (it.mediaType == MediaType.EPISODE) MediaType.SERIES else it.mediaType }
-    val favoriteId = channel?.id ?: film?.let { it.seriesId ?: it.itemId }
-    val favoriteIds by remember(favoriteType) {
-        favoriteType?.let { actions.favoriteIds(it) } ?: flowOf(emptySet())
-    }.collectAsStateWithLifecycle(emptySet())
-
     // A line over the picture: the engine swap, the report, a subtitle file that would not load.
     var toast by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(toast) { if (toast != null) { delay(TOAST_MS); toast = null } }
@@ -604,10 +593,10 @@ fun PlayerScreen(
             // system draws its own buttons on top of it.
             visible = controlsVisible && !inPip,
             isLive = isLive,
-            offsetSec = offsetSec,
+            offsetSecFlow = tuner.offsetSec,
             archiveWindowSec = tuner.archiveWindowSec(),
             epg = nowNext,
-            watchingWallMs = watchingWallMs,
+            watchingWallMsFlow = tuner.watchingWallMs,
             timelineProgrammes = timelineProgrammes,
             channelNumber = channel?.number?.takeIf { showChannelNumbers },
             liveOnExo = liveOnExo,
@@ -615,8 +604,9 @@ fun PlayerScreen(
             // re-open the channel at the live edge and throw the user out of the rewind; a protected
             // channel has only one engine that can obtain its key, so swapping would trade a playing
             // picture for a guaranteed failure. `isLive` already excludes a replay.
+            allowEngineSwapBehindLive = hasLocalCopy,
             onToggleLiveEngine = tuner::toggleLiveEngine.takeIf {
-                isLive && ((offsetSec ?: 0) <= 1 || hasLocalCopy) && channel?.drmConfig == null
+                isLive && channel?.drmConfig == null
             },
             onBack = stopAndExit,
             onGoLive = tuner::goToLive,
@@ -628,29 +618,8 @@ fun PlayerScreen(
             // or floating as the user set it. This is the app's own small window and stays inside the
             // app — the system one that floats over *other* apps is what pressing Home gives.
             onMini = onExit,
-            // A stream with no video track has nothing to go back to, so for that one the button
-            // only ever reports the state it is already in. Every other stream is showing its
-            // picture here, because full screen is never sound-only — so the button is only ever
-            // one way round.
-            audioOnly = audioOnlyMedia,
-            // Sound only is a way of leaving the picture, so it leaves the full screen with it —
-            // otherwise the user is staring at a black rectangle they asked to stop drawing. What it
-            // leaves behind is the docked bar, there being no picture to float.
-            onAudioOnly = {
-                if (!audioOnlyMedia) {
-                    tuner.setAudioOnly(true)
-                    onExit()
-                }
-            },
-            favorite = favoriteId != null && favoriteId in favoriteIds,
-            onToggleFavorite = {
-                val type = favoriteType ?: return@PlayerControls
-                val id = favoriteId ?: return@PlayerControls
-                scope.launch { actions.toggleFavorite(type, id) }
-            },
             // Only a live channel whose provider keeps an archive has anything to go back into.
             onCatchup = if (catchup != null) ({ sheet = PlayerSheet.CATCHUP }) else null,
-            onPreviousChannel = if (isLive && previousChannel != null) tuner::tunePrevious else null,
             // Live channels only, and only once Multiview is switched on. The channel on screen
             // becomes tile 1 and the grid takes over from this player.
             onMultiview = if (multiviewEnabled && isLive && channel != null) {
@@ -705,6 +674,7 @@ fun PlayerScreen(
                 null
             },
             recordingThis = playerRecording != null,
+            hasRecordingChapters = film != null && recordingChapters.isNotEmpty(),
         )
 
         // Independent of the controls, so it still appears after they have faded out on their own.
@@ -842,6 +812,7 @@ fun PlayerScreen(
     sheet.takeIf { !inPip && multiview == null && (it != PlayerSheet.CHANNELS || playerCategory != null) }?.let { open ->
         PlayerSheetHost(
             sheet = open,
+            recordingChapters = if (film != null) recordingChapters else emptyList(),
             player = activeEngine,
             channels = if (open == PlayerSheet.CHANNELS) playerChannels else siblings,
             brightness = brightness,

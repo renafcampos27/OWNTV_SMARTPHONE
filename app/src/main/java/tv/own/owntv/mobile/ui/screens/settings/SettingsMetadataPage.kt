@@ -23,7 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.metadata.MetadataConfig
 import tv.own.owntv.core.metadata.MetadataMode
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
 import tv.own.owntv.mobile.ui.components.MobileTextField

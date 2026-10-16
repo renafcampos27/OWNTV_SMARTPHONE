@@ -4,8 +4,7 @@ import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import tv.own.owntv.core.nav.MainSection
-import tv.own.owntv.mobile.R
-
+import tv.own.owntv.core.R
 /**
  * Where the phone can navigate to.
  *

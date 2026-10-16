@@ -24,7 +24,7 @@ import tv.own.owntv.core.customize.MoveKind
 import tv.own.owntv.core.customize.SpanSelector
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.settings.SettingsRepository
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.screens.settings.SettingsPage

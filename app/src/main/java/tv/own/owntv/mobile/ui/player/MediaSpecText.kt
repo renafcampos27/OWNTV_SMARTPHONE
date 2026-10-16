@@ -2,7 +2,7 @@ package tv.own.owntv.mobile.ui.player
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.player.DecoderSpec
 import tv.own.owntv.player.MediaSpec
 

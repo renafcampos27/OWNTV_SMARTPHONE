@@ -1,11 +1,10 @@
 FFmpeg audio extension for OwnTV
 
-Java audio renderer/decoder: AndroidX Media3 1.11.1, Apache License 2.0.
-Source: https://github.com/androidx/media/tree/1.11.1/libraries/decoder_ffmpeg
-Native binaries: org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1, GPL-3.0.
-Source/build project: https://github.com/jellyfin/jellyfin-androidx-media
-Source archive: https://repo.maven.apache.org/maven2/org/jellyfin/media3/media3-ffmpeg-decoder/1.9.0+1/media3-ffmpeg-decoder-1.9.0+1-sources.jar
-JNI signatures and the audio decode algorithm were compared against Media3 1.11.1.
-Only the audio extension is included. Native libs support armv7, arm64, x86, x86_64
-and have 16 KiB ELF LOAD alignment. File checksums: tools/ffmpeg/audio_manifest.json.
-The original notices in the Java files are retained. OwnTV_Core is GPL-3.0.
+Java renderer/decoder: AndroidX Media3 1.11.1 adapted by OwnTV_Core, Apache-2.0.
+Source: https://github.com/ahXN00/OwnTV_Core/tree/core-1.0.66/player-core/src/main/java/tv/own/owntv/player/ffmpeg
+Native bridge: libowntvffmpeg.so from tv.own.owntv:libmpv:2026.10.3, sharing mpv FFmpeg libraries.
+Source/build: https://github.com/ahXN00/OwnTV_libmpv/tree/v2026.10.3
+ABIs: armeabi-v7a, arm64-v8a, x86_64. Only audio uses this ExoPlayer extension.
+Previous Jellyfin libffmpegJNI.so binaries are no longer packaged.
+Original Java copyright notices and Apache-2.0/GPL-3.0 texts are retained.
+Verification: vendor/OwnTV_Core/tools/ffmpeg/verify_audio.py.

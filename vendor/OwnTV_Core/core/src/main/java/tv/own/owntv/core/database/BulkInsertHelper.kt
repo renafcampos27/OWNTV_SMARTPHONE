@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.room.execSQL
 import androidx.room.useWriterConnection
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -35,27 +37,34 @@ class BulkInsertHelper(
         // second source could bypass the mode once the first had inserted rows, then collide with
         // its restore — the truncated-movies/skipped-series concurrent-sync bug.) block() runs
         // OUTSIDE the lock, so concurrent syncs fetch/parse/insert in parallel.
-        stateMutex.withLock {
-            val state = tableStates.getOrPut(table) { TableBulkState() }
-            if (eligible && state.dropped == null && tableIsEmpty(table)) {
-                state.dropped = dropIndexesForBulkInsert(table, ftsTable)
-                state.ftsOnly = ftsOnly
-            }
-            state.writers++
-        }
+        var registered = false
         try {
+            // Registration must either roll back its DDL or reach the finally below. Cancellation
+            // at the return boundary of withContext must not leave a dropped trigger without owner.
+            withContext(NonCancellable) {
+                stateMutex.withLock {
+                    val state = tableStates.getOrPut(table) { TableBulkState() }
+                    if (eligible && state.dropped == null && tableIsEmpty(table)) {
+                        state.dropped = db.transaction { dropIndexesForBulkInsert(table, ftsTable, ftsOnly) }
+                        state.ftsOnly = ftsOnly
+                    }
+                    state.writers++
+                    registered = true
+                }
+            }
+            currentCoroutineContext().ensureActive()
             return block()
         } finally {
             // NonCancellable: a cancelled sync must still deregister and (as the last writer)
             // restore — otherwise the table stays index-less until the next app open heals it.
-            withContext(NonCancellable) {
+            if (registered) withContext(NonCancellable) {
                 stateMutex.withLock {
                     val state = tableStates.getValue(table)
                     state.writers--
                     val toRestore = state.dropped?.takeIf { state.writers == 0 }
                     if (toRestore != null) {
+                        db.transaction { restoreIndexes(toRestore, ftsOnly = state.ftsOnly) }
                         state.dropped = null
-                        restoreIndexes(toRestore, ftsOnly = state.ftsOnly)
                     }
                 }
             }
@@ -76,7 +85,7 @@ class BulkInsertHelper(
         }
     }
 
-    private suspend fun dropIndexesForBulkInsert(table: String, ftsTable: String?): BulkIndexState {
+    private suspend fun dropIndexesForBulkInsert(table: String, ftsTable: String?, ftsOnly: Boolean): BulkIndexState {
         requireKnownTable(table)
         if (ftsTable != null) requireKnownFtsTable(ftsTable)
 
@@ -86,19 +95,22 @@ class BulkInsertHelper(
             // Collect first, drop second. The statement is reading sqlite_master while DROP INDEX
             // mutates it, and stepping a cursor over a catalogue being rewritten underneath is the
             // kind of thing that works until it does not.
-            val doomed = mutableListOf<Pair<String, String>>()
-            connection.usePrepared(
-                "SELECT name, sql FROM sqlite_master WHERE type='index' AND tbl_name='$table' AND sql IS NOT NULL",
-            ) { statement ->
-                while (statement.step()) {
-                    val name = statement.getText(0)
-                    val sql = if (statement.isNull(1)) null else statement.getText(1)
-                    if (sql != null && !sql.contains("UNIQUE", ignoreCase = true)) doomed.add(name to sql)
+            // FTS-only ingestion must keep B-tree indexes available throughout the operation.
+            if (!ftsOnly) {
+                val doomed = mutableListOf<Pair<String, String>>()
+                connection.usePrepared(
+                    "SELECT name, sql FROM sqlite_master WHERE type='index' AND tbl_name='$table' AND sql IS NOT NULL",
+                ) { statement ->
+                    while (statement.step()) {
+                        val name = statement.getText(0)
+                        val sql = if (statement.isNull(1)) null else statement.getText(1)
+                        if (sql != null && !sql.contains("UNIQUE", ignoreCase = true)) doomed.add(name to sql)
+                    }
                 }
-            }
-            doomed.forEach { (name, sql) ->
-                indexSqls.add(sql)
-                connection.execSQL("DROP INDEX IF EXISTS `$name`")
+                doomed.forEach { (name, sql) ->
+                    indexSqls.add(sql)
+                    connection.execSQL("DROP INDEX IF EXISTS `$name`")
+                }
             }
 
             val triggerName = ftsTable?.let { "room_fts_content_sync_${it}_AFTER_INSERT" }

@@ -12,7 +12,8 @@ import tv.own.owntv.mobile.ui.screens.recordings.RecordingsViewModel
  * dialog; Recordings needs nothing but core and the tuner that plays a file.
  */
 val downloadsModule = module {
-    viewModel { RecordingsViewModel(context = androidContext(), settings = get(), recordings = get(), vodTuner = get()) }
+    viewModel { tv.own.owntv.mobile.ui.screens.recordings.ManualRecordingViewModel(get(), get(), get(), get()) }
+    viewModel { RecordingsViewModel(context = androidContext(), settings = get(), recordings = get(), vodTuner = get(), recordingDao = get(), savedState = get()) }
     viewModel {
         DownloadsViewModel(
             context = androidContext(),

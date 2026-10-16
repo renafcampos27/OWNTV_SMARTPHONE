@@ -39,7 +39,7 @@ import tv.own.owntv.core.storage.MediaFolders
 import tv.own.owntv.mobile.ui.components.ExportDocument
 import tv.own.owntv.core.storage.MediaTarget
 import tv.own.owntv.core.storage.StorageAccess
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow

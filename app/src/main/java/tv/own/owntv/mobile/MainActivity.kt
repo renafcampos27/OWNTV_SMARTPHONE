@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile
 
+import tv.own.owntv.core.R
+
 import android.Manifest
 import android.app.PendingIntent
 import android.app.PictureInPictureParams
@@ -24,6 +26,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -53,10 +57,14 @@ import tv.own.owntv.mobile.ui.theme.MobileTheme
 open class MainActivity : FragmentActivity() {
 
     private val tuner: LiveTuner by inject()
+    private val vodTuner: tv.own.owntv.mobile.ui.screens.library.VodTuner by inject()
     private val pip: PipController by inject()
     private val cast: CastController by inject()
     private val localeStore: LocaleStore by inject()
     private val settings: SettingsRepository by inject()
+    private val autoRefresh: tv.own.owntv.core.sync.AutoRefresh by inject()
+    private val sourceImporter: tv.own.owntv.core.setup.SourceImporter by inject()
+    private var refreshStarted = false
 
     /**
      * The engine actually holding the stream — mpv for a film, a download or a recording, ExoPlayer
@@ -75,11 +83,7 @@ open class MainActivity : FragmentActivity() {
     private val pipEnabled = false
     private var backgroundPlayback = true
     private var audioOnScreenOff = true
-    private var pausedForBackground = false
-
-    /** Set when *this* class dropped the picture on the way off screen, so returning restores it —
-     *  and a sound-only mode the user chose themselves is left exactly as they left it. */
-    private var droppedVideoForBackground = false
+    private val backgroundHold = tv.own.owntv.mobile.playback.BackgroundPlaybackHold<tv.own.owntv.player.PlaybackEngine>()
 
     /** Set the moment the floating window opens, and cleared by whichever comes first: coming back to
      *  full screen, or the window being closed — see [onPictureInPictureModeChanged]. */
@@ -123,6 +127,23 @@ open class MainActivity : FragmentActivity() {
         lifecycleScope.launch { settings.backgroundPlayback.collect { backgroundPlayback = it } }
         lifecycleScope.launch { settings.audioOnScreenOff.collect { audioOnScreenOff = it } }
         keepScreenOnWhileThereIsAPicture()
+        lifecycleScope.launch {
+            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                combine(settings.activeProfileId, sourceImporter.restoring) { id, restoring ->
+                    id >= 0L && !restoring
+                }.first { it }
+                try {
+                    val startup = !refreshStarted
+                    autoRefresh.check(includeStartup = startup)
+                    refreshStarted = true
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (failed: Exception) {
+                    android.util.Log.w("OwnTVAutoRefresh", "Could not schedule automatic refresh", failed)
+                }
+                kotlinx.coroutines.awaitCancellation()
+            }
+        }
         setContent {
             MobileTheme {
                 // The wallpaper and its blurred copy sit outside the shell, so the frost every glass
@@ -206,10 +227,10 @@ open class MainActivity : FragmentActivity() {
         // undoes it. Without that, tapping the quick-panel controls opened the app with sound and a
         // black screen — and there is no full-screen sound-only mode in this app.
         if (!playing.audioOnly.value) {
-            droppedVideoForBackground = true
             playing.enterAudioOnly()
+            backgroundHold.rememberHiddenVideo(playing, playing.audioOnlyRevision)
         }
-        if (playing.isPlaying.value) playing.togglePlayPause()
+        if (playing.playbackRequested.value) playing.pause()
     }
 
     /** The playback notification was tapped. The player is a navigation destination, so the shell
@@ -250,40 +271,32 @@ open class MainActivity : FragmentActivity() {
         if (pip.inPip.value) return
         if (!tuner.hasStream) return
         val playing = engine
-        if (!backgroundPlayback) {
-            // Remembered, so a stream the user paused themselves is not resumed for them on return.
-            if (playing.isPlaying.value) {
-                pausedForBackground = true
-                playing.togglePlayPause()
-            }
-            return
-        }
-        // Only when the user wants the picture dropped. With that switch off the stream keeps
-        // decoding video nobody is looking at, which is their choice to make and costs battery.
-        if (!audioOnScreenOff) return
-        // Not if they are already in sound-only mode on purpose — coming back must not hand them a
-        // picture they switched off themselves.
-        if (playing.audioOnly.value) return
-        droppedVideoForBackground = true
-        playing.enterAudioOnly()
+        backgroundHold.onBackground(
+            owner = playing,
+            itemRevision = playing.playbackItemRevision,
+            requested = playing.playbackRequested.value, audioOnly = playing.audioOnly.value,
+            allowBackground = backgroundPlayback, dropVideo = audioOnScreenOff,
+            pause = { playing.pause(); playing.playbackRequestRevision.value },
+            hideVideo = { playing.enterAudioOnly(); playing.audioOnlyRevision },
+        )
     }
 
     /** Back on screen at full size, so the window was tapped rather than closed. */
     override fun onResume() {
         super.onResume()
+        vodTuner.onExternalPlayerReturned()
         wasInPipWindow = false
     }
 
     override fun onStart() {
         super.onStart()
-        if (droppedVideoForBackground) {
-            droppedVideoForBackground = false
-            engine.exitAudioOnly()
-        }
-        if (pausedForBackground) {
-            pausedForBackground = false
-            if (tuner.hasStream && !engine.isPlaying.value) engine.togglePlayPause()
-        }
+        val playing = engine
+        val restore = backgroundHold.onForeground(
+            playing, playing.playbackRequestRevision.value, playing.playbackItemRevision, playing.audioOnlyRevision,
+            failed = !tuner.hasStream || playing.error.value != null,
+        )
+        if (restore.video) playing.exitAudioOnly()
+        if (restore.play && !playing.playbackRequested.value) playing.play()
     }
 
     /**

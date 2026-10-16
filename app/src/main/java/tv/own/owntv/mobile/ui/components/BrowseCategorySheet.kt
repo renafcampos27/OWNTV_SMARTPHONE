@@ -3,8 +3,7 @@ package tv.own.owntv.mobile.ui.components
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import tv.own.owntv.core.customize.MoveKind
-import tv.own.owntv.mobile.R
-
+import tv.own.owntv.core.R
 /**
  * Hide or move a category without leaving the screen it is on — a long press on its chip.
  *

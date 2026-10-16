@@ -12,7 +12,7 @@ import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.settings.SubtitleStyle
 import tv.own.owntv.core.theme.AppFontFamily
 import tv.own.owntv.core.theme.parseAccentHex
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.ColorPickerSheet
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton

@@ -80,6 +80,9 @@ val dataModule = module {
     // for EPG, panel API, metadata and image traffic (F28).
     single { tv.own.owntv.core.network.StreamingHttpClient(get()) }
     single { HttpClient(get()) }
+    single { tv.own.owntv.core.sync.AutoRefresh(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { tv.own.owntv.core.sync.AutoRefreshGate(get(), get(), get()) }
+    single { tv.own.owntv.core.sync.RestoredSourceRefresh(get(), get(), get()) }
     single { ConnectivityObserver(androidContext()) }
     single { CustomizationStore(androidContext()) }
     single { tv.own.owntv.core.epg.EpgSourceStore(androidContext()) }

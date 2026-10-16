@@ -15,7 +15,7 @@ import tv.own.owntv.core.model.HomeLiveRowMode
 import tv.own.owntv.core.model.HomeRow
 import tv.own.owntv.core.model.HomeTrendingStyle
 import tv.own.owntv.core.trending.TrendingAvailability
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileSwitch
 import tv.own.owntv.mobile.ui.components.SettingRow

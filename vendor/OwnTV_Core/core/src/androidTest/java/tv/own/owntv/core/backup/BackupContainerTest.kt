@@ -33,6 +33,41 @@ class BackupContainerTest {
         File(folder.root, name).apply { writeBytes(bytes) }
 
     @Test
+    fun streamedEncryptedAssetsAuthenticateBeforeInspectionAndCleanScratch() {
+        val image = folder.newFile().apply { writeBytes(wallpaper.bytes) }
+        val file = File(folder.root, "streamed.own")
+        val scratch = folder.newFolder()
+        BackupManager.writeAtomically(file) {
+            BackupContainer.writeTo(it, BackupContainer.Payload(json, null,
+                fileAssets = mapOf("wallpaper/background.jpg" to image)), "hunter2")
+        }
+        val inspected = BackupContainer.open(file, "hunter2", includeAssets = false, temporaryDirectory = scratch)
+        assertEquals(json, inspected.json); assertNull(inspected.wallpaper)
+        assertTrue(scratch.listFiles()!!.isEmpty())
+        val restored = BackupContainer.open(file, "hunter2", temporaryDirectory = scratch)
+        assertArrayEquals(wallpaper.bytes, restored.wallpaper!!.bytes)
+        assertTrue(scratch.listFiles()!!.isEmpty())
+        val damaged = file.readBytes().apply { this[lastIndex] = (this[lastIndex].toInt() xor 1).toByte() }
+        file.writeBytes(damaged)
+        assertTrue(runCatching { BackupContainer.open(file, "hunter2", temporaryDirectory = scratch) }
+            .exceptionOrNull() is BackupManager.WrongPasswordException)
+        assertTrue(scratch.listFiles()!!.isEmpty())
+    }
+
+    @Test
+    fun encryptedContainerWrittenWithPreviousByteArrayFormatStillOpens() {
+        val salt = BackupCrypto.newSalt()
+        val key = BackupCrypto.deriveKey("hunter2".toCharArray(), salt, BackupCrypto.ITERATIONS)
+        val header = BackupCrypto.cryptoBlock(salt).put("scheme", "container-aes-gcm").toString().toByteArray(Charsets.UTF_8)
+        val zip = BackupContainer.pack(BackupContainer.Payload(json, wallpaper), null)
+        val old = "OWNTVBK1".toByteArray(Charsets.US_ASCII) +
+            java.nio.ByteBuffer.allocate(4).putInt(header.size).array() + header + BackupCrypto.encryptBytes(key, zip)
+        val restored = BackupContainer.open(write(old), "hunter2")
+        assertEquals(json, restored.json)
+        assertArrayEquals(wallpaper.bytes, restored.wallpaper!!.bytes)
+    }
+
+    @Test
     fun plain_container_round_trips_with_the_wallpaper() {
         val file = write(BackupContainer.pack(BackupContainer.Payload(json, wallpaper), passphrase = null))
 

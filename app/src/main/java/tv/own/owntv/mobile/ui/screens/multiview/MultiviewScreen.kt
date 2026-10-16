@@ -50,7 +50,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.live.displayText
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileIcons
 import tv.own.owntv.player.LivePreviewEngine
 import tv.own.owntv.player.PlaybackFailure

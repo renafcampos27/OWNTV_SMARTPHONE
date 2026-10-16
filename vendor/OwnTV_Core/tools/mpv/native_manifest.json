@@ -1178,5 +1178,6 @@
       "undefined_count": 93,
       "ffmpeg_export_count": 459
     }
-  ]
+  ],
+  "status": "historical pre-2026.10.3 inventory; current shared audio audit: tools/ffmpeg/audio_manifest.json"
 }

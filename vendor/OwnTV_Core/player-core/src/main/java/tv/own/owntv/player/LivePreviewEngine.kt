@@ -1,5 +1,7 @@
 package tv.own.owntv.player
 
+import kotlinx.coroutines.flow.collectLatest
+
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 
@@ -233,6 +235,7 @@ class LivePreviewEngine(
     override val playbackRequested: StateFlow<Boolean> = _playbackRequested.asStateFlow()
     private val _playbackRequestRevision = MutableStateFlow(0L)
     override val playbackRequestRevision: StateFlow<Long> = _playbackRequestRevision.asStateFlow()
+    override val playbackItemRevision: Long get() = ownership.current.tuneId
     private val playbackQoe = PlaybackQoe { android.os.SystemClock.elapsedRealtime() }
     private var rebuildingCurrentTune = false
     private var rebuildAfterProviderWait = false
@@ -322,6 +325,10 @@ class LivePreviewEngine(
         // this one — on the hardware decoder the user was trying to avoid. Rebuild so the new selector
         // takes effect; the factory is fixed at construction.
         playbackSettings.field { it.decoderQueueing }.onEach { decoderQueueing = it }.launchIn(settingsScope)
+        playbackSettings.field { it.backgroundPlayback }.onEach { enabled ->
+            backgroundPlayback = enabled
+            player?.setWakeMode(if (enabled) C.WAKE_MODE_NETWORK else C.WAKE_MODE_NONE)
+        }.launchIn(settingsScope)
         playbackSettings.field { it.softwareAudio }.onEach { enabled ->
             val effective = channelPlaybackOptions?.softwareAudio ?: enabled
             val changed = softwareAudio != effective
@@ -357,6 +364,7 @@ class LivePreviewEngine(
     @Volatile private var hwDecodingEnabled = true
     private var decoderQueueing = tv.own.owntv.core.settings.DecoderQueueing.AUTO
     private var builtForQueueing = tv.own.owntv.core.settings.DecoderQueueing.AUTO
+    private var backgroundPlayback = false
     private var softwareAudio = false
     private var builtForSoftwareAudio = false
     private var builtForHwDecoding = true
@@ -996,8 +1004,8 @@ class LivePreviewEngine(
                 // Audio output health. Runs in EVERY surround mode including "Surround" — a user who asked
                 // for 5.1 did not ask for silence — and cannot be turned off. On a hit the session latches
                 // to stereo (which every engine reads) and this channel is rebuilt on a stereo-only sink.
-                audioWatchdog.poll(p.isPlaying)?.let { reason ->
-                    if (audioRescueConsumed || !AudioOutputPolicy.allowsMultichannel(surroundMode)) {
+                audioWatchdog.poll(p.isPlaying, audioExpected = !muted)?.let { reason ->
+                    if (audioRescueConsumed) {
                         LiveDiagnosticsLog.event("audio_rescue_exhausted engine=$engineId reason=$reason")
                         mainHandler.clear()
                         cancelTuneResolver("audio rescue exhausted")
@@ -1009,10 +1017,14 @@ class LivePreviewEngine(
                         return
                     }
                     audioRescueConsumed = true
-                    LiveDiagnosticsLog.event("audioWatchdog: $reason — one bounded stereo rescue")
-                    AudioOutputPolicy.latchStereo("exo/live: $reason")
-                    PlaybackErrorLog.event(context, "ExoPlayer", live = true, reason = PlayerFailureReason.STEREO_FALLBACK, detail = reason)
-                    onAudioFallback?.invoke()
+                    if (audioWatchdog.isStereoPcmOutput || !AudioOutputPolicy.allowsMultichannel(surroundMode)) {
+                        LiveDiagnosticsLog.event("audioWatchdog: $reason — one PCM output rebuild")
+                    } else {
+                        LiveDiagnosticsLog.event("audioWatchdog: $reason — one bounded stereo rescue")
+                        AudioOutputPolicy.latchStereo("exo/live: $reason")
+                        PlaybackErrorLog.event(context, "ExoPlayer", live = true, reason = PlayerFailureReason.STEREO_FALLBACK, detail = reason)
+                        onAudioFallback?.invoke()
+                    }
                     rebuildForSettingChange()
                     return
                 }
@@ -1158,6 +1170,8 @@ class LivePreviewEngine(
         if (ownership.suspended || !_playbackRequested.value) return
         if (ownership.current.sourceId > 0) trace("retry_prepare")
         ownership.nextSource()
+        responseDeadlineToken = null
+        responseDeadlineMisses = 0
         tune.sourceReady = false
         _playbackConfirmed.value = false
         tune.renderedFirstFrame = false
@@ -1480,6 +1494,7 @@ class LivePreviewEngine(
                 trace("first_frame", "rendererTimeMs=$renderTimeMs elapsedMs=${android.os.SystemClock.elapsedRealtime() - tune.playStartedMs} surfaceValid=${surface?.isValid} surfaceGeneration=${_surfaceGeneration.value}")
             }
             tune.renderedFirstFrame = true
+            responseDeadlineToken = ownership.current
             recoverCurrentPlayback()
         }
 
@@ -1692,6 +1707,7 @@ class LivePreviewEngine(
         hwDecodingEnabled = s.hwDecoding
         decoderQueueing = s.decoderQueueing
         softwareAudio = s.softwareAudio
+        backgroundPlayback = s.backgroundPlayback
         surroundMode = s.surroundMode
         liveBufferSecs = s.liveBufferSeconds
         reserveBufferSecs = s.liveReserveSeconds
@@ -1755,6 +1771,8 @@ class LivePreviewEngine(
         // [TuneState], so forgetting it is one assignment that cannot be partially done.
         selectionId = choiceId
         ownership.nextTune()
+        responseDeadlineToken = null
+        responseDeadlineMisses = 0
         cancelTuneResolver("new tune/stop/release")
         prepareJob?.cancel()
         mainHandler.clear()
@@ -2111,6 +2129,8 @@ class LivePreviewEngine(
     }
 
     fun stop() {
+        responseDeadlineToken = null
+        responseDeadlineMisses = 0
         _playbackConfirmed.value = false
         recordPlaybackRequest(false)
         playbackQoe.suspendMeasurement()
@@ -2154,6 +2174,8 @@ class LivePreviewEngine(
     }
 
     fun release() {
+        responseDeadlineToken = null
+        responseDeadlineMisses = 0
         _playbackConfirmed.value = false
         recordPlaybackRequest(false)
         trace("release")
@@ -2786,13 +2808,18 @@ class LivePreviewEngine(
     private val _audioOnlyMedia = MutableStateFlow(false)
     /** This channel carries no video track — a radio station. See [PlaybackEngine.audioOnlyMedia]. */
     override val audioOnlyMedia: StateFlow<Boolean> = _audioOnlyMedia.asStateFlow()
+    override var audioOnlyRevision: Long = 0L
+        private set
+
     override fun enterAudioOnly() {
+        audioOnlyRevision++
         if (_audioOnly.value) return
         _audioOnly.value = true
         player?.clearVideoSurface() // audio keeps playing without a surface; [surface] kept for return
         setVideoTrackDisabled(true)
     }
     override fun exitAudioOnly() {
+        audioOnlyRevision++
         if (!_audioOnly.value) return
         _audioOnly.value = false
         setVideoTrackDisabled(false)
@@ -3086,10 +3113,7 @@ class LivePreviewEngine(
             )
         }
         // Audio exists but ExoPlayer can decode none of it → the VM will route this stream to mpv.
-        val anySupportedAudio = tracks.groups.any { g ->
-            g.type == androidx.media3.common.C.TRACK_TYPE_AUDIO && (0 until g.length).any { g.isTrackSupported(it) }
-        }
-        _audioUnsupported.value = audio.isNotEmpty() && !anySupportedAudio
+        _audioUnsupported.value = audio.isNotEmpty() && !ExoAudioGate.anyPlayableAudio(tracks)
     }
 
     /**
@@ -3118,6 +3142,21 @@ class LivePreviewEngine(
     private var cachedDefaultFactory: DefaultMediaSourceFactory? = null
     private var cachedHlsCcFactory: HlsMediaSource.Factory? = null
     private var cachedHlsCompatibility: HlsCompatibility? = null
+    @Volatile private var responseDeadlineToken: TuneToken? = null
+    private var responseDeadlineMisses = 0
+
+    private fun responseDeadlineMissed(request: okhttp3.Request) {
+        val token = request.tag(TuneToken::class.java) ?: return
+        mainHandler.postFor(token) {
+            if (responseDeadlineToken != token || !_playbackRequested.value || tune.gaveUp || tune.reconnectPending) return@postFor
+            responseDeadlineMisses++
+            LiveDiagnosticsLog.event("response_headers_timeout engine=$engineId tuneId=${token.tuneId} sourceId=${token.sourceId} consecutive=$responseDeadlineMisses")
+            if (activeIsHls && tune.renderedFirstFrame && responseDeadlineMisses >= 2) {
+                responseDeadlineMisses = 0
+                reconnect("media server not answering", fastHlsHttpRecovery = true)
+            }
+        }
+    }
     /** Debug-build HTTP probe for provider-side failures. It persists redacted metadata, a
      *  media-signature classification, and — for FAILED responses only — a short scrubbed text prefix of
      *  the error body, which is usually the panel telling us exactly why it refused ("token expired",
@@ -3142,6 +3181,21 @@ class LivePreviewEngine(
                 }
                 LiveDiagnosticsLog.event("provider_http_refusal code=${refusal.responseCode} retryAfter=${refusal.responseHeaders.entries.firstOrNull { it.key.equals("Retry-After", true) }?.value?.firstOrNull()} timeMs=${android.os.SystemClock.elapsedRealtime()}")
             })
+            .addNetworkInterceptor(ResponseDeadline(
+                deadlineMs = streamingHttp.client.readTimeoutMillis.toLong().takeIf { it > 0L }?.coerceAtMost(5_000L) ?: 5_000L,
+                onMissed = ::responseDeadlineMissed,
+                onAnswered = { request ->
+                    request.tag(TuneToken::class.java)?.let { token ->
+                        mainHandler.postFor(token) {
+                            if (responseDeadlineToken == token) responseDeadlineMisses = 0
+                        }
+                    }
+                },
+                active = { request ->
+                    val token = request.tag(TuneToken::class.java)
+                    token != null && responseDeadlineToken == token && ownership.accepts(token)
+                },
+            ))
             .eventListenerFactory { call ->
                 val token = call.request().tag(TuneToken::class.java)
                 val transfers = call.request().tag(StartupTransfers::class.java)
@@ -3576,12 +3630,17 @@ class LivePreviewEngine(
             queueing = decoderQueueing,
             audioDelay = audioDelayClock,
         )
+        val trackSelector = androidx.media3.exoplayer.trackselection.DefaultTrackSelector(context).apply {
+            setParameters(buildUponParameters().setAllowInvalidateSelectionsOnRendererCapabilitiesChange(true))
+        }
         return ExoPlayer.Builder(context)
+            .setTrackSelector(trackSelector)
             .setRenderersFactory(renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(httpDataSourceFor(currentUa)))
             .setLoadControl(InitialOnlyLoadControl(loadControl) { tune.hasPlayed })
             .build()
             .apply {
+                setWakeMode(if (backgroundPlayback) C.WAKE_MODE_NETWORK else C.WAKE_MODE_NONE)
                 // Media3's default ONLY_IF_SEAMLESS still issues Surface.setFrameRate() requests. Some
                 // vendor stacks advertise a seamless switch but visibly re-handshake HDMI, so Off must
                 // explicitly disable this second AFR mechanism as well as FrameRateController.
@@ -3606,9 +3665,11 @@ class LivePreviewEngine(
     // Independent of source-owned recovery timers: a suspended or stuck tune must still be observable.
     init {
         settingsScope.launch {
-            while (!disposed) {
+            settings.detailedDiagnostics.collectLatest { enabled ->
+                if (!enabled) return@collectLatest
+                while (!disposed) {
                 kotlinx.coroutines.delay(2000L)
-                if (LiveDiagnosticsLog.enabled && currentUrl != null) {
+                if (currentUrl != null) {
                     val p = player
                     LiveDiagnosticsLog.event(
                         "playback_sample engine=$engineId tuneId=${ownership.current.tuneId} sourceId=${ownership.current.sourceId} " +
@@ -3618,6 +3679,7 @@ class LivePreviewEngine(
                             "surfaceValid=${surface?.isValid} surfaceGeneration=${_surfaceGeneration.value} renderedFirstFrame=${tune.renderedFirstFrame} suspended=${ownership.suspended} preparing=${prepareJob?.isActive} " +
                             "activeHttp=${httpRequests.snapshot()}"
                     )
+                }
                 }
             }
         }

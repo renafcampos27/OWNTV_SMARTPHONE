@@ -9,25 +9,41 @@ internal object HlsSegmentTransfer {
     const val MAX_SEGMENT_BYTES = 64L * 1024 * 1024
     fun copy(input: InputStream, destination: File, expectedBytes: Long? = null,
              beforeWrite: (writtenBytes: Long, additionalBytes: Int) -> Unit = { _, _ -> },
-             check: () -> Unit = {}) {
+             cipher: javax.crypto.Cipher? = null, check: () -> Unit = {}): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
         try {
             FileOutputStream(destination).use { out ->
                 val buffer = ByteArray(128 * 1024)
                 var total = 0L
+                var clearBytes = 0L
                 while (true) {
                     check()
                     val read = input.read(buffer)
                     if (read < 0) break
                     require(total + read <= MAX_SEGMENT_BYTES) { "HLS segment exceeds capture limit" }
                     require(expectedBytes == null || total + read <= expectedBytes) { "Incomplete HLS segment" }
-                    beforeWrite(total, read)
                     total += read
-                    out.write(buffer, 0, read)
+                    val clear = if (cipher == null) buffer else cipher.update(buffer, 0, read)
+                    val length = if (cipher == null) read else clear?.size ?: 0
+                    if (length > 0) {
+                        beforeWrite(clearBytes, length)
+                        clearBytes += length
+                        digest.update(clear, 0, length)
+                        out.write(clear, 0, length)
+                    }
                 }
                 check()
                 require(total > 0 && (expectedBytes == null || expectedBytes == total)) { "Incomplete HLS segment" }
+                cipher?.doFinal()?.let { tail ->
+                    beforeWrite(clearBytes, tail.size)
+                    clearBytes += tail.size
+                    digest.update(tail)
+                    out.write(tail)
+                }
+                require(clearBytes > 0) { "Empty HLS media" }
                 out.fd.sync()
             }
+            return digest.digest().joinToString("") { "%02x".format(it) }
         } catch (error: Throwable) {
             destination.delete()
             throw error

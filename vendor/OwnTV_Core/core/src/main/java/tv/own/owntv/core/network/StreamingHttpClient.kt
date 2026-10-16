@@ -26,7 +26,9 @@ class StreamingHttpClient(base: OkHttpClient) {
      *  from a warm socket and only a *stop* clears the pool. */
     private val pool = ConnectionPool(MAX_IDLE_CONNECTIONS, KEEP_ALIVE_MINUTES, TimeUnit.MINUTES)
 
-    val client: OkHttpClient = base.newBuilder().connectionPool(pool).build()
+    val client: OkHttpClient = base.newBuilder().connectionPool(pool)
+        .dns(if (base.dns is BoundedDns) base.dns else BoundedDns(delegate = base.dns))
+        .build()
     private val evictionQueued = AtomicBoolean(false)
     private val evictionRequested = AtomicBoolean(false)
 

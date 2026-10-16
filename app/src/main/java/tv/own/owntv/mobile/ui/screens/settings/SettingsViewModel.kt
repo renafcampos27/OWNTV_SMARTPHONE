@@ -666,12 +666,28 @@ class SettingsViewModel(
     fun setHideSidebar(on: Boolean) { viewModelScope.launch { SimpleModePreferences.setHideSidebar(context, on) } }
     fun setChannelRecovery(on: Boolean) { viewModelScope.launch { SimpleModePreferences.setChannelRecovery(context, on) } }
     fun setRecoveryTimeout(seconds: Int) { viewModelScope.launch { SimpleModePreferences.setRecoveryTimeout(context, seconds) } }
-    val channelPlaybackConfigs = settings.channelPlaybackConfigs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-    suspend fun searchPlaybackChannels(sourceId: Long, query: String): List<ChannelEntity> = withContext(Dispatchers.IO) {
-        if (sources.value.none { it.id == sourceId && it.syncLive }) emptyList() else channelDao.searchList(query.trim(), listOf(sourceId), 100)
+    val channelPlaybackConfigs = settings.channelPlaybackConfigs.map { it as List<tv.own.owntv.core.settings.ChannelPlaybackConfig>? }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    suspend fun searchPlaybackChannels(sourceId: Long, query: String, customizedOnly: Boolean = false): List<ChannelEntity> = withContext(Dispatchers.IO) {
+        if (sources.value.none { it.id == sourceId && it.syncLive }) return@withContext emptyList()
+        if (!customizedOnly) return@withContext channelDao.searchList(query.trim(), listOf(sourceId), 100)
+        val refs = settings.channelPlaybackConfigs.first().map { it.channel }.filter { it.sourceId == sourceId }
+        val rows = refs.mapNotNull { it.remoteId }.distinct().chunked(400).flatMap { channelDao.findByRemoteIds(sourceId, it) } +
+            refs.filter { it.remoteId == null }.map { it.name }.distinct().chunked(400).flatMap { channelDao.findByNames(sourceId, it) }
+        rows.distinctBy { it.id }.filter { row -> refs.any { it.matches(row) } && row.name.contains(query.trim(), ignoreCase = true) }.sortedBy { it.name.lowercase() }
     }
-    fun saveChannelPlayback(channel: ChannelEntity, options: tv.own.owntv.core.settings.ChannelPlaybackOptions) {
-        viewModelScope.launch { settings.setChannelPlaybackConfig(tv.own.owntv.core.settings.ManualTsChannel.of(channel), options) }
+    suspend fun rememberedPlaybackAudioDelay(channel: ChannelEntity): Int? = withContext(Dispatchers.IO) {
+        val key = tv.own.owntv.core.player.enginePinKey(channel.sourceId, MediaType.LIVE.name, channel.remoteId) ?: channel.streamUrl
+        playbackPrefs.prefsFor(key)?.audioDelayMs
+    }
+    suspend fun playbackChannelById(id: Long): ChannelEntity? = withContext(Dispatchers.IO) { channelDao.getById(id) }
+    fun saveChannelPlayback(channel: ChannelEntity, options: tv.own.owntv.core.settings.ChannelPlaybackOptions, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                settings.setChannelPlaybackConfig(tv.own.owntv.core.settings.ManualTsChannel.of(channel), options)
+                onComplete(true)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { onComplete(false) }
+        }
     }
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val channelVersionSettings = settings.activeProfileId.flatMapLatest { pid ->

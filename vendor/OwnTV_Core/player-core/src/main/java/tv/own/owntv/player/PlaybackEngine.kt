@@ -15,6 +15,8 @@ interface PlaybackEngine {
     val playbackRequested: StateFlow<Boolean> get() = isPlaying
     /** Revision of deliberate commands, including a repeated Pause while already paused. */
     val playbackRequestRevision: StateFlow<Long> get() = ZERO_LONG
+    /** Identity of the loaded item, independent of manual transport commands. */
+    val playbackItemRevision: Long get() = playbackRequestRevision.value
     val buffering: StateFlow<Boolean>
     val error: StateFlow<PlaybackFailure?>
     /** The structured underlying failure (plain reason • media spec • raw engine text), shown under the
@@ -63,6 +65,8 @@ interface PlaybackEngine {
 
     /** True while the engine decodes audio only (video output stopped to save power) — Audio Mode. */
     val audioOnly: StateFlow<Boolean> get() = FALSE_FLOW
+    /** Explicit mode choices, independent of reconnects and transport Play/Pause. */
+    val audioOnlyRevision: Long get() = 0L
 
     /**
      * True when the ITEM itself carries no video track at all — a radio channel in a TV playlist, a
@@ -183,6 +187,7 @@ class MpvPlaybackEngine(private val p: OwnTVPlayer) : PlaybackEngine {
     override val isPlaying get() = p.isPlaying
     override val playbackRequested get() = p.playbackRequested
     override val playbackRequestRevision get() = p.playbackRequestRevision
+    override val playbackItemRevision get() = p.playbackGeneration.toLong()
     override val buffering get() = p.buffering
     override val error get() = p.error
     override val errorInfo get() = p.errorInfo
@@ -198,6 +203,7 @@ class MpvPlaybackEngine(private val p: OwnTVPlayer) : PlaybackEngine {
     override val subCount get() = p.subCount
     override val currentMeta get() = p.currentMeta
     override val isLiveContent get() = p.isLiveContent
+    override val audioOnlyRevision get() = p.audioOnlyRevision
     override val audioOnly get() = p.audioOnly
     override val audioOnlyMedia get() = p.audioOnlyMedia
     override fun enterAudioOnly() = p.enterAudioOnly()

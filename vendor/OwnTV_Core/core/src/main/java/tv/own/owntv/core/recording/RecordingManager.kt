@@ -3,6 +3,7 @@ package tv.own.owntv.core.recording
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -64,6 +65,7 @@ class RecordingManager(
     private val storageBudget: tv.own.owntv.core.storage.MediaStorageBudget,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val chapterStore = RecordingChapterStore(java.io.File(context.filesDir, "recording-chapters"))
     private val recoveryMutex = kotlinx.coroutines.sync.Mutex()
     private val actionMutex = kotlinx.coroutines.sync.Mutex()
 
@@ -110,6 +112,35 @@ class RecordingManager(
         val info = root?.let { storageBudget.info(it.stored) }
         RecordingStorageInfo(info?.free ?: 0, info?.total ?: 0, info?.reserve ?: 0,
             info?.quota ?: 0, info?.used ?: 0, info?.known == true, info?.removable == true)
+    }
+
+    suspend fun spaceForecast(channel: ChannelEntity, startMs: Long, stopMs: Long, excludeId: Long = 0): RecordingSpaceForecast =
+        withContext(Dispatchers.IO) {
+            RecordingSpaceEstimator.estimate(stopMs - startMs, channel.sourceId, channel.id,
+                recordingDao.storageRows(), storageInfo(), excludeId)
+        }
+
+    private suspend fun snapshotChapters(row: RecordingEntity) {
+        try {
+            val channel = channelDao.getById(row.channelId)?.takeIf { it.sourceId == row.sourceId }
+            val cust = customize.observe(row.profileId, MediaType.LIVE).first()
+            val shift = channel?.let { tv.own.owntv.core.epg.EpgShift.minutesFor(cust, it, settings.epgOffsetMinutes.first()) } ?: 0
+            val archive = RecordingSchedule.isCatchUp(row)
+            val from = tv.own.owntv.core.epg.EpgShift.toStored(if (archive) row.programmeStartMs else row.startMs, shift)
+            val to = tv.own.owntv.core.epg.EpgShift.toStored(if (archive) row.programmeStopMs else row.stopMs, shift)
+            val key = channel?.let { tv.own.owntv.core.epg.GuideInheritance.key(it, cust, epgDao, from, to) }
+                ?: row.epgChannelId
+            val programmes = key?.let { epgDao.programmeSummariesForChannel(it, from, to) }.orEmpty()
+            val chapterRow = if (archive) row.copy(startMs = row.programmeStartMs, stopMs = row.programmeStopMs) else row
+            val snapshot = RecordingChapters.snapshot(chapterRow, tv.own.owntv.core.epg.EpgShift.apply(programmes, shift))
+            if (runCatching { chapterStore.read(row) }.getOrDefault(emptyList()) != snapshot) chapterStore.save(row, snapshot)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+        catch (_: Exception) { /* Optional metadata must never prevent a recording. */ }
+    }
+
+    suspend fun chapters(row: RecordingEntity): List<RecordingChapterPoint> = withContext(Dispatchers.IO) {
+        val saved = runCatching { chapterStore.read(row) }.getOrDefault(emptyList())
+        RecordingChapters.points(row, saved)
     }
 
     /**
@@ -168,6 +199,7 @@ class RecordingManager(
         // happens, and the kick below only helps if its window is already open.
         if (target != null) RecordingSchedule.wakeAtFor(saved, System.currentTimeMillis())?.let { scheduler.arm(saved.id, it) }
         kick()
+        snapshotChapters(saved)
         saved
     }
 
@@ -228,6 +260,26 @@ class RecordingManager(
                 stopMs = window.last,
             ),
         )
+    } }
+
+    /** User-selected clock interval, independent of guide timing and programme identity. */
+    suspend fun scheduleManual(
+        profileId: Long, channel: ChannelEntity, startMs: Long, stopMs: Long,
+    ): RecordingEntity? = withContext(Dispatchers.IO) { actionMutex.withLock {
+        if (settings.activeProfileId.first() != profileId) return@withContext null
+        val now = System.currentTimeMillis()
+        val manual = RecordingSchedule.manualWindow(startMs, stopMs, now) ?: return@withContext null
+        val current = channelDao.getById(channel.id)?.takeIf { it.sourceId == channel.sourceId } ?: return@withContext null
+        val window = RecordingSchedule.windowFor(manual.first, manual.last, 0, 0, scheduler.canBeExact())
+        schedule(RecordingEntity(
+            profileId = profileId, sourceId = current.sourceId, channelId = current.id,
+            channelName = channel.name, channelIconUrl = current.logoUrl,
+            epgChannelId = null, streamUrl = current.streamUrl, httpHeaders = current.httpHeaders,
+            title = channel.name, description = null,
+            // Keep requested identity stable even when starting late or tapping twice.
+            programmeStartMs = startMs, programmeStopMs = manual.last,
+            startMs = window.first, stopMs = window.last,
+        ))
     } }
 
     // --- Series recording: "record every showing of this title on this channel" (D7) -------------
@@ -352,6 +404,8 @@ class RecordingManager(
             val globalShift = settings.epgOffsetMinutes.first()
             // Manual timers need reconciliation too, even when there are no enabled series rules.
             refreshScheduledTimings(now, guideSourceIds, globalShift)
+            // Refresh only pending snapshots; completed captures keep the guide used for recording.
+            recordingDao.scheduled().forEach { snapshotChapters(it) }
             val rules = recordingDao.enabledRules()
             if (rules.isEmpty()) return@withLock
             for (rule in rules) {
@@ -526,11 +580,54 @@ class RecordingManager(
 
     fun isParts(recording: RecordingEntity): Boolean = MediaTarget.of(context, recording.filePath)?.let(RecordingParts::isIndex) == true
 
-    suspend fun openParts(recording: RecordingEntity): RecordingPlayback? = withContext(Dispatchers.IO) {
+    /** USB/grants can recover; availability is never persisted as a recording failure. Run on IO. */
+    suspend fun availability(recording: RecordingEntity, verifyReadable: Boolean = false): tv.own.owntv.core.storage.MediaAvailability =
+        withContext(Dispatchers.IO) {
+            tv.own.owntv.core.storage.MediaAvailabilityProbe.inspect(context, recording.filePath, verifyReadable)
+        }
+
+    /** Metadata only; multipart entries are validated by openParts when actually opened. */
+    suspend fun unavailableFiles(rows: List<RecordingEntity>): Map<Long, tv.own.owntv.core.storage.MediaAvailability> =
+        withContext(Dispatchers.IO) {
+            buildMap {
+                for (row in rows) {
+                    kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                    if (!RecordingIntegrity.canPlay(row) || row.status == RecordingStatus.RECORDING) continue
+                    val state = availability(row)
+                    if (state != tv.own.owntv.core.storage.MediaAvailability.AVAILABLE) put(row.id, state)
+                }
+            }
+        }
+
+    suspend fun openParts(recording: RecordingEntity): RecordingPlayback? {
+        // withContext has prompt cancellation on return: close a lease not delivered to the caller.
+        var acquired: RecordingPlayback? = null
+        try {
+            return withContext(Dispatchers.IO) {
+                actionMutex.withLock {
+                    val row = current(recording) ?: return@withLock null
+                    if (settings.activeProfileId.first() != row.profileId || !RecordingIntegrity.canPlay(row)) return@withLock null
+                    acquired = runCatching { engine.openParts(row) }.getOrNull()
+                    acquired
+                }
+            }
+        } catch (error: Throwable) {
+            acquired?.close()
+            throw error
+        }
+    }
+
+    /** Serialize against deletion/relocation; never move the index without its media. */
+    suspend fun exportParts(recording: RecordingEntity, output: java.io.OutputStream) = withContext(Dispatchers.IO) {
         actionMutex.withLock {
-            val row = current(recording) ?: return@withLock null
-            if (settings.activeProfileId.first() != row.profileId || !RecordingIntegrity.canPlay(row)) return@withLock null
-            runCatching { engine.openParts(row) }.getOrNull()
+            val row = current(recording) ?: error("Recording no longer available")
+            check(settings.activeProfileId.first() == row.profileId && RecordingIntegrity.canPlay(row))
+            val target = requireNotNull(MediaTarget.of(context, row.filePath))
+            check(RecordingParts.isIndex(target))
+            // Pin the package against storage-budget cleanup while copying its media.
+            val lease = requireNotNull(engine.openParts(row))
+            try { RecordingParts.exportPackage(context, target, output) }
+            finally { lease.close() }
         }
     }
 
@@ -610,6 +707,7 @@ class RecordingManager(
                         if (!RecordingParts.isIndex(file) && file.exists() && !file.delete()) return@withLock
                     }
                     recordingDao.delete(finished)
+                    chapterStore.delete(finished)
                 } finally { engine.release(row.id) }
             }
         }

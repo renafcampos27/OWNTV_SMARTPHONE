@@ -1,0 +1,11 @@
+<resources>
+    <string name="own_recording_all">All</string>
+    <string name="own_recording_tab_count">%1$s (%2$d)</string>
+    <string name="own_recording_empty_active">No recordings are running now.</string>
+    <string name="own_recording_empty_scheduled">No recordings are scheduled. Choose a programme in the TV guide to schedule one.</string>
+    <string name="own_recording_empty_completed">No saved recordings yet.</string>
+    <string name="own_recording_empty_failed">No failed or missed recordings.</string>
+    <string name="own_recording_today">Today</string>
+    <string name="own_recording_tomorrow">Tomorrow</string>
+    <string name="own_recording_date_time">%1$s, %2$s</string>
+</resources>

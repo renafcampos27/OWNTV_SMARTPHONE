@@ -10,7 +10,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import tv.own.owntv.core.network.DnsConfig
 import tv.own.owntv.core.network.DnsConfigHolder
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import java.io.IOException
 import java.net.ConnectException
 import java.net.InetSocketAddress

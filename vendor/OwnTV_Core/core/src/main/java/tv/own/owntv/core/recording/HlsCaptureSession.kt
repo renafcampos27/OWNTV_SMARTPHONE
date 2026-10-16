@@ -84,8 +84,8 @@ internal class HlsCaptureSession(val directory: File, val playback: RecordingPla
 
     fun persist() = writeAtomic(journal, checkpoint())
 
-    fun commitInit(complete: File) {
-        val hash = sha256(complete)
+    fun commitInit(complete: File, transferredHash: String? = null) {
+        val hash = transferredHash ?: sha256(complete)
         check(initHash == null || initHash == hash) { "HLS initialization changed" }
         atomicMove(complete, initFile)
         initHash = hash
@@ -93,9 +93,9 @@ internal class HlsCaptureSession(val directory: File, val playback: RecordingPla
     }
 
     /** No checkpoint advance before a complete, fsynced payload and its atomic record exist. */
-    fun commit(segment: HlsMediaPlaylist.Segment, complete: File): Boolean {
+    fun commit(segment: HlsMediaPlaylist.Segment, complete: File, transferredHash: String? = null): Boolean {
         if (segment.sequence <= lastSequence) { complete.delete(); return false }
-        val hash = sha256(complete)
+        val hash = transferredHash ?: sha256(complete)
         val name = "segment-${segment.sequence}.bin"
         val bytes = complete.length()
         val ms = HlsRecordingPlan.durationMs(segment)

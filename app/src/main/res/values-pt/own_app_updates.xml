@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_updates_check">Procurar atualizações</string>
+    <string name="own_updates_check_description">Procurar uma nova versão desta app Mobile personalizada.</string>
+    <string name="own_updates_auto">Procurar automaticamente ao iniciar</string>
+    <string name="own_updates_auto_description">Verificar após abrir a app. A transferência e a instalação precisam sempre da tua confirmação.</string>
+    <string name="own_updates_no_release">Não existe uma versão pública disponível. O repositório pode ser privado ou ainda não ter uma versão publicada.</string>
+</resources>

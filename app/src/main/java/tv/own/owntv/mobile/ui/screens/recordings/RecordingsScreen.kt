@@ -13,12 +13,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,8 +36,12 @@ import tv.own.owntv.core.database.entity.RecordingEntity
 import tv.own.owntv.mobile.ui.components.ExportDocument
 import tv.own.owntv.core.model.RecordingStatus
 import tv.own.owntv.core.recording.RecordingRules
+import tv.own.owntv.core.recording.RecordingIntegrity
 import tv.own.owntv.core.recording.RecordingStorageInfo
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.storage.MediaAvailability
+import tv.own.owntv.core.storage.MediaAvailabilityProbe
+import tv.own.owntv.core.R
+import tv.own.owntv.mobile.R as MobileR
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileIcons
@@ -45,11 +53,9 @@ import java.text.NumberFormat
 /**
  * Live TV recorded onto this phone.
  *
- * Four chips rather than the television's five groups — a phone list is scrolled, not scanned, and
- * the question a user opens this with is one of four: what is happening now, what will happen, what
- * can I watch, and what went wrong. **Missed and failed share the last chip**, because from the
- * user's side both mean "this is not going to be there", and each row still says which it was and
- * why.
+ * The default All tab groups every recording so completed or scheduled rows are visible immediately.
+ * The four status filters show their counts and retain the user's selection. Missed and failed share
+ * the last filter, and each row still explains which occurred and why.
  */
 @Composable
 fun RecordingsScreen(
@@ -64,21 +70,48 @@ fun RecordingsScreen(
     vm: RecordingsViewModel = koinViewModel(),
 ) {
     val rows by vm.rows.collectAsStateWithLifecycle()
+    val unavailable by vm.unavailableFiles.collectAsStateWithLifecycle()
     val storage by vm.storage.collectAsStateWithLifecycle()
     val playing by vm.playing.collectAsStateWithLifecycle()
 
-    var tab by remember { mutableStateOf(RecordingTab.ACTIVE) }
+    val error by vm.error.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+    var tab by rememberSaveable { mutableStateOf(RecordingTab.ALL) }
     var menuFor by remember { mutableStateOf<RecordingEntity?>(null) }
-    var savingCopyOf by remember { mutableStateOf<RecordingEntity?>(null) }
+    var manualOpen by rememberSaveable { mutableStateOf(false) }
+    var deleteFor by remember { mutableStateOf<RecordingEntity?>(null) }
+    val pendingExport by vm.pendingDocumentExport.collectAsStateWithLifecycle()
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(vm, lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, _ ->
+            vm.setListActive(lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED))
+        }
+        lifecycle.addObserver(observer)
+        vm.setListActive(lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED))
+        onDispose {
+            lifecycle.removeObserver(observer)
+            vm.setListActive(false)
+        }
+    }
 
     // The system's own "where do you want it?" — the only way an app may write outside its folder
     // on Android 11 without asking for a permission Play scrutinises.
     val saveCopy = androidx.activity.compose.rememberLauncherForActivityResult(
         ExportDocument("video/*"),
     ) { uri ->
-        val recording = savingCopyOf
-        savingCopyOf = null
-        if (uri != null && recording != null) vm.export(recording, uri)
+        vm.exportDestination(uri, tv.own.owntv.mobile.backup.DocumentExportTicket.Kind.RECORDING)
+    }
+    val saveParts = androidx.activity.compose.rememberLauncherForActivityResult(
+        ExportDocument("application/zip"),
+    ) { uri ->
+        vm.exportDestination(uri, tv.own.owntv.mobile.backup.DocumentExportTicket.Kind.RECORDING_PARTS)
+    }
+
+    LaunchedEffect(error) {
+        error?.let {
+            snackbar.showSnackbar(it)
+            vm.dismissError()
+        }
     }
 
     LaunchedEffect(playing) {
@@ -92,64 +125,93 @@ fun RecordingsScreen(
     // the television's shape, and the one that lets a running recording be seen without hunting
     // for the chip it is hiding behind.
     val sections = RecordingTab.entries
+        .filter { it != RecordingTab.ALL }
         .map { section -> section to rows.filter { section.holds(it.status) } }
         .filter { it.second.isNotEmpty() }
-    val shown = if (embedded) rows else rows.filter { tab.holds(it.status) }
+    val shown = rows.filter { (if (embedded) RecordingTab.ALL else tab).holds(it.status) }
 
-    Column(modifier.fillMaxSize()) {
-        if (!embedded) {
-            storage?.let { StorageHeader(it, vm.timersAreExact) }
-            FilterChipRow(
-                labels = RecordingTab.entries.map { stringResource(it.labelRes) },
-                selectedIndex = RecordingTab.entries.indexOf(tab),
-                onSelect = { tab = RecordingTab.entries[it] },
-            )
-        }
+    if (manualOpen) ManualRecordingSheet(onDismiss={ manualOpen=false })
 
-        if (shown.isEmpty()) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(MobileDimens.GapLarge),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.recording_empty),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
+    Box(modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            if (pendingExport != null) MobileListRow(title = stringResource(MobileR.string.own_export_cancel_pending), onClick = vm::cancelExport)
+            tv.own.owntv.mobile.ui.components.MobileListRow(title=stringResource(MobileR.string.own_manual_title), onClick={manualOpen=true})
+            if (!embedded) {
+                storage?.let { StorageHeader(it, vm.timersAreExact) }
+                FilterChipRow(
+                    labels = RecordingTab.entries.map { section ->
+                    stringResource(
+                        MobileR.string.own_recording_tab_count,
+                        stringResource(section.labelRes),
+                        rows.count { section.holds(it.status) },
+                    )
+                    },
+                    selectedIndex = RecordingTab.entries.indexOf(tab),
+                    onSelect = { tab = RecordingTab.entries[it] },
                 )
             }
-        } else {
-            LazyColumn(Modifier.fillMaxSize()) {
-                if (embedded) {
-                    sections.forEach { (section, items) ->
-                        item(key = "header_${section.name}") {
-                            SectionHeader(title = stringResource(section.labelRes))
+
+            if (shown.isEmpty()) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(MobileDimens.GapLarge),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(if (embedded) R.string.recording_empty else tab.emptyRes),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else {
+                LazyColumn(Modifier.fillMaxSize()) {
+                    if (embedded || tab == RecordingTab.ALL) {
+                        sections.forEach { (section, items) ->
+                            item(key = "header_${section.name}") {
+                                SectionHeader(title = stringResource(section.labelRes))
+                            }
+                            items(items, key = { it.id }) { recording ->
+                                RecordingRow(
+                                    recording = recording,
+                                    availability = unavailable[recording.id],
+                                    onClick = {
+                                        if (RecordingIntegrity.canPlay(recording)) vm.play(recording)
+                                        else menuFor = recording
+                                    },
+                                    onLongClick = { menuFor = recording },
+                                )
+                            }
                         }
-                        items(items, key = { it.id }) { recording ->
+                    } else {
+                        items(shown, key = { it.id }) { recording ->
                             RecordingRow(
                                 recording = recording,
+                                availability = unavailable[recording.id],
                                 onClick = {
-                                    if (recording.status == RecordingStatus.COMPLETED || recording.status == RecordingStatus.PARTIAL) vm.play(recording)
+                                    if (RecordingIntegrity.canPlay(recording)) vm.play(recording)
                                     else menuFor = recording
                                 },
                                 onLongClick = { menuFor = recording },
                             )
                         }
                     }
-                } else {
-                    items(shown, key = { it.id }) { recording ->
-                        RecordingRow(
-                            recording = recording,
-                            onClick = {
-                                if (recording.status == RecordingStatus.COMPLETED || recording.status == RecordingStatus.PARTIAL) vm.play(recording)
-                                else menuFor = recording
-                            },
-                            onLongClick = { menuFor = recording },
-                        )
-                    }
                 }
+            }
+        }
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+    }
+
+    deleteFor?.let { recording ->
+        MobileBottomSheet(onDismissRequest = { deleteFor = null }, title = stringResource(R.string.common_delete)) {
+            Text(
+                stringResource(if (recording.status == RecordingStatus.RECORDING) MobileR.string.own_recording_delete_active else MobileR.string.own_recording_delete_confirm, recording.title),
+                modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH),
+            )
+            Row(Modifier.fillMaxWidth().padding(horizontal = MobileDimens.ScreenPaddingH), horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall, Alignment.End)) {
+                tv.own.owntv.mobile.ui.components.MobileButton(text = stringResource(R.string.common_cancel), style = tv.own.owntv.mobile.ui.components.MobileButtonStyle.TEXT, onClick = { deleteFor = null })
+                tv.own.owntv.mobile.ui.components.MobileButton(text = stringResource(R.string.common_delete), onClick = { vm.delete(recording); deleteFor = null })
             }
         }
     }
@@ -159,23 +221,32 @@ fun RecordingsScreen(
             recording = recording,
             vm = vm,
             onSaveCopy = {
-                savingCopyOf = recording
-                saveCopy.launch(recording.filePath?.substringAfterLast('/') ?: recording.title)
+                val multipart = vm.isParts(recording)
+                if (vm.prepareExport(recording, multipart)) {
+                    if (multipart) {
+                        saveParts.launch("${recording.title}.zip")
+                    } else {
+                        saveCopy.launch(recording.filePath?.substringAfterLast('/') ?: "${recording.title}.ts")
+                    }
+                }
             },
+            onDelete = { deleteFor = recording },
             onDismiss = { menuFor = null },
         )
     }
 }
 
 /** Missed and failed are one chip: both mean "not going to be there". */
-private enum class RecordingTab(val labelRes: Int) {
-    ACTIVE(R.string.recording_group_now),
-    SCHEDULED(R.string.recording_group_scheduled),
-    COMPLETED(R.string.recording_group_completed),
-    FAILED(R.string.recording_group_failed),
+private enum class RecordingTab(val labelRes: Int, val emptyRes: Int) {
+    ALL(MobileR.string.own_recording_all, R.string.recording_empty),
+    ACTIVE(R.string.recording_group_now, MobileR.string.own_recording_empty_active),
+    SCHEDULED(R.string.recording_group_scheduled, MobileR.string.own_recording_empty_scheduled),
+    COMPLETED(R.string.recording_group_completed, MobileR.string.own_recording_empty_completed),
+    FAILED(R.string.recording_group_failed, MobileR.string.own_recording_empty_failed),
     ;
 
     fun holds(status: RecordingStatus): Boolean = when (this) {
+        ALL -> status != RecordingStatus.CANCELLED
         ACTIVE -> status == RecordingStatus.RECORDING
         SCHEDULED -> status == RecordingStatus.SCHEDULED
         COMPLETED -> status == RecordingStatus.COMPLETED || status == RecordingStatus.PARTIAL
@@ -213,6 +284,12 @@ private fun StorageHeader(storage: RecordingStorageInfo, timersAreExact: Boolean
                     .padding(start = MobileDimens.GapSmall),
             )
         }
+        Text(
+            text = if (storage.known) stringResource(MobileR.string.own_recording_writable, gigabytes(storage.writableBytes))
+                else stringResource(MobileR.string.own_recording_forecast_unknown),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         val used = (storage.totalBytes - storage.freeBytes).coerceAtLeast(0L)
         val fraction = if (storage.totalBytes > 0) {
             (used.toFloat() / storage.totalBytes).coerceIn(0f, 1f)
@@ -239,12 +316,13 @@ private fun StorageHeader(storage: RecordingStorageInfo, timersAreExact: Boolean
 }
 
 @Composable
-private fun RecordingRow(recording: RecordingEntity, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun RecordingRow(recording: RecordingEntity, availability: MediaAvailability?, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val unavailable = availability?.let { MediaAvailabilityProbe.text(it, LocalContext.current.resources) }
     MobileListRow(
         title = recording.title,
         // Three lines' worth in two: the channel it came from, then where it got to or why it did not.
-        subtitle = listOf(recording.channelName, statusLine(recording)).joinToString("\n"),
-        subtitleMaxLines = 2,
+        subtitle = listOfNotNull(recording.channelName, statusLine(recording), unavailable).joinToString("\n"),
+        subtitleMaxLines = if (unavailable == null) 2 else 3,
         leading = {
             Icon(
                 imageVector = MobileIcons.LiveTv,
@@ -257,11 +335,11 @@ private fun RecordingRow(recording: RecordingEntity, onClick: () -> Unit, onLong
             )
         },
         trailing = {
-            if (recording.status == RecordingStatus.COMPLETED || recording.status == RecordingStatus.PARTIAL) {
+            if (RecordingIntegrity.canPlay(recording)) {
                 Icon(
                     imageVector = MobileIcons.PlayArrow,
                     contentDescription = stringResource(R.string.content_downloads_play),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (unavailable == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         },
@@ -278,7 +356,7 @@ private fun statusLine(recording: RecordingEntity): String {
         RecordingStatus.RECORDING -> stringResource(R.string.recording_group_now)
         RecordingStatus.SCHEDULED -> stringResource(
             R.string.recording_scheduled_for,
-            android.text.format.DateFormat.getTimeFormat(context).format(java.util.Date(recording.startMs)),
+            scheduledDateTime(context, recording.startMs),
         )
         RecordingStatus.COMPLETED, RecordingStatus.PARTIAL -> pluralStringResource(
             R.plurals.recording_minutes,
@@ -297,12 +375,15 @@ private fun RecordingMenu(
     recording: RecordingEntity,
     vm: RecordingsViewModel,
     onSaveCopy: () -> Unit,
+    onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     MobileBottomSheet(onDismissRequest = onDismiss, title = recording.title) {
         when (recording.status) {
-            RecordingStatus.COMPLETED, RecordingStatus.PARTIAL -> MenuRow(R.string.content_downloads_play, MobileIcons.PlayArrow) {
-                vm.play(recording); onDismiss()
+            RecordingStatus.COMPLETED, RecordingStatus.PARTIAL -> if (RecordingIntegrity.canPlay(recording)) {
+                MenuRow(R.string.content_downloads_play, MobileIcons.PlayArrow) {
+                    vm.play(recording); onDismiss()
+                }
             }
             RecordingStatus.RECORDING -> MenuRow(R.string.recording_stop, MobileIcons.Pause) {
                 vm.stop(recording); onDismiss()
@@ -318,7 +399,7 @@ private fun RecordingMenu(
         // Nothing to delete while it is only scheduled: there is no file yet, and Cancel is what
         // "do not do this" means.
         // Only a finished recording has a file worth copying anywhere.
-        if (recording.status == RecordingStatus.COMPLETED || recording.status == RecordingStatus.PARTIAL) {
+        if (RecordingIntegrity.canPlay(recording)) {
             MenuRow(R.string.settings_export, MobileIcons.Save) { onSaveCopy(); onDismiss() }
         }
         // Where the file actually is, spelled out in full and copied on a tap — the download menu's
@@ -343,7 +424,7 @@ private fun RecordingMenu(
         if (recording.status != RecordingStatus.SCHEDULED) {
             HorizontalDivider()
             MenuRow(R.string.common_delete, MobileIcons.Delete, destructive = true) {
-                vm.delete(recording); onDismiss()
+                onDelete(); onDismiss()
             }
         }
     }

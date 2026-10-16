@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_programmes_search">Programas de TV</string>
+    <string name="own_manual_title">Agendar por data e hora</string>
+    <string name="own_manual_zone">Fuso horário: %1$s</string>
+    <string name="own_manual_channel">Procurar canal</string>
+    <string name="own_manual_selected">Canal: %1$s</string>
+    <string name="own_manual_date">Data (DD/MM/AAAA)</string>
+    <string name="own_manual_start">Início (HH:MM)</string>
+    <string name="own_manual_end">Fim (HH:MM)</string>
+    <string name="own_manual_overnight">Um fim igual ou anterior ao início corresponde ao dia seguinte. Máximo de 24 horas. Nas horas repetidas, usa-se a primeira ocorrência.</string>
+    <string name="own_manual_invalid">Verifica a data e as horas. Horas inexistentes ou intervalos superiores a 24 horas não podem ser agendados.</string>
+    <string name="own_manual_failed">Não foi possível agendar. Verifica o horário, a lista e o armazenamento.</string>
+    <string name="own_manual_working">A agendar…</string>
+    <string name="own_manual_save">Agendar gravação</string>
+</resources>

@@ -176,7 +176,9 @@ class CustomizationStore(private val context: Context) {
 
     fun observe(profileId: Long, type: MediaType): Flow<SectionCustomizations> =
         context.customizeStore.data
-            .map { prefs -> parse(prefs[key(profileId, type)]) }
+            .map { prefs -> prefs[key(profileId, type)] }
+            .distinctUntilChanged()
+            .map(::parse)
             .distinctUntilChanged()
 
     suspend fun update(profileId: Long, type: MediaType, transform: (SectionCustomizations) -> SectionCustomizations) {

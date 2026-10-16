@@ -1,6 +1,8 @@
 import java.io.ByteArrayOutputStream
 import java.util.Properties
 import javax.inject.Inject
+import org.gradle.api.provider.ValueSource
+import org.gradle.api.provider.ValueSourceParameters
 import org.gradle.process.ExecOperations
 
 // Packaged locale qualifiers are read from tools/i18n/locales.json entries where packaged = true.
@@ -29,6 +31,29 @@ plugins {
     alias(libs.plugins.baselineprofile)
 }
 
+abstract class GitTagValueSource : ValueSource<String, ValueSourceParameters.None> {
+    @get:Inject
+    abstract val execOperations: ExecOperations
+
+    override fun obtain(): String? {
+        return runCatching {
+            val output = ByteArrayOutputStream()
+            val result = execOperations.exec {
+                commandLine("git", "describe", "--tags", "--abbrev=0")
+                isIgnoreExitValue = true
+                standardOutput = output
+                errorOutput = ByteArrayOutputStream()
+            }
+            if (result.exitValue == 0) {
+                val tag = output.toString(Charsets.UTF_8).trim().removePrefix("v")
+                tag.ifBlank { null }
+            } else {
+                null
+            }
+        }.getOrNull()
+    }
+}
+
 android {
     // Distinct from the TV app's tv.own.owntv, so both install side by side on one device and each
     // keeps its own data. This value can never change after the first release — the launcher label
@@ -50,17 +75,10 @@ android {
         applicationId = "tv.own.owntv.mobile"
         minSdk = 26
         targetSdk = 36
-        // Version name and code: env var (CI) > git tag (local) > fallback (1.0.1)
-        val gitTagVersion = try {
-            val process = ProcessBuilder("git", "describe", "--tags", "--abbrev=0").start()
-            val output = process.inputStream.bufferedReader().readText().trim().removePrefix("v")
-            process.waitFor()
-            if (process.exitValue() == 0 && output.isNotBlank()) output else null
-        } catch (_: Exception) {
-            null
-        }
-        val computedVersionName = System.getenv("VERSION_NAME") ?: gitTagVersion ?: "1.0.1"
-        val computedVersionCode = (System.getenv("VERSION_CODE") ?: run {
+        // Version name and code: env var (CI) > git tag (local) > fallback (1.0.2)
+        val gitTagVersion = providers.of(GitTagValueSource::class.java) {}.orNull
+        val computedVersionName = providers.environmentVariable("VERSION_NAME").orNull ?: gitTagVersion ?: "1.0.2"
+        val computedVersionCode = (providers.environmentVariable("VERSION_CODE").orNull ?: run {
             val rawParts = computedVersionName.split(".")
             val p0 = rawParts.getOrNull(0)?.toIntOrNull() ?: 1
             val p1 = rawParts.getOrNull(1)?.toIntOrNull() ?: 0

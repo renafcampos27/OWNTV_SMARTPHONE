@@ -1,5 +1,6 @@
 package tv.own.owntv.core.recording
 
+import kotlinx.coroutines.ensureActive
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -214,6 +215,39 @@ internal object RecordingParts {
             }
             return RecordingPlayback(server.url) { server.close(); readers.decrementAndGet() }
         } catch (error: Exception) { readers.decrementAndGet(); throw error }
+    }
+    /** Portable copy: the source package remains authoritative until the entire ZIP is written. */
+    suspend fun exportPackage(context: Context?, target: MediaTarget, output: java.io.OutputStream) {
+        val dir = requireNotNull(directory(context, target, create = false))
+        val index = read(target)
+        validate(dir, index)
+        // Closing ZIP finalizes its directory; the caller owns the destination stream.
+        java.util.zip.ZipOutputStream(object : java.io.FilterOutputStream(output) {
+            override fun close() { flush() }
+        }).use { zip ->
+            zip.setLevel(java.util.zip.Deflater.NO_COMPRESSION)
+            suspend fun entry(name: String, expected: Long? = null, input: () -> java.io.InputStream) {
+                zip.putNextEntry(java.util.zip.ZipEntry(name))
+                var written = 0L
+                input().use { source ->
+                    val buffer = ByteArray(128 * 1024)
+                    while (true) {
+                        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                        val count = source.read(buffer)
+                        if (count < 0) break
+                        written += count
+                        check(expected == null || written <= expected) { "Recording part changed" }
+                        zip.write(buffer, 0, count)
+                    }
+                }
+                check(expected == null || written == expected) { "Recording part incomplete" }
+                zip.closeEntry()
+            }
+            entry(RecordingPartsPlan.INDEX_NAME) { index.encode().byteInputStream(Charsets.UTF_8) }
+            entry("index.m3u8") { index.playlist(portable = true).byteInputStream(Charsets.UTF_8) }
+            if (index.initBytes > 0) entry("init.mp4", index.initBytes) { requireNotNull(dir.child("init.mp4")).openInput() }
+            for (part in index.parts) entry(part.name, part.bytes) { requireNotNull(dir.child(part.name)).openInput() }
+        }
     }
     /** Metadata only, used on the IO dispatcher for an interrupted unpublished package. */
     fun stagedBytes(context: Context?, target: MediaTarget, id: Long): Long {

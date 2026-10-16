@@ -10,10 +10,13 @@ import android.media.AudioManager
 import android.media.MediaMetadata
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
+import android.view.KeyEvent
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -46,6 +49,7 @@ class PlaybackSession(
     private var engine: PlaybackEngine? = null
     private var collectJob: Job? = null
     private var session: MediaSession? = null
+    private val mediaButtonPairs = MediaButtonPairs()
 
     private enum class FocusState { NONE, GRANTED, DELAYED, TRANSIENT, FAILED }
     private var focusEpoch = 0L
@@ -61,6 +65,7 @@ class PlaybackSession(
      */
     fun attach(engine: PlaybackEngine?) {
         if (this.engine === engine) return
+        mediaButtonPairs.reset()
         collectJob?.cancel()
         // A different engine (or none) starts a fresh session as far as controllers are concerned, so the
         // next publish must send the metadata even if the title happens to match.
@@ -96,6 +101,9 @@ class PlaybackSession(
         val request = combine(engine.playbackRequested, engine.playbackRequestRevision) { requested, revision -> requested to revision }
         collectJob = combine(playbackState, engine.buffering, engine.error, request) { state, buffering, error, request ->
             state.copy(buffering = buffering, failed = error != null, requested = request.first, requestRevision = request.second)
+        }.distinctUntilChanged { old, new ->
+            old.copy(positionMs = if (old.live) 0L else old.positionMs) ==
+                new.copy(positionMs = if (new.live) 0L else new.positionMs)
         }.onEach(::publish)
             .launchIn(scope)
     }
@@ -138,7 +146,7 @@ class PlaybackSession(
             // carries the position, so it fires on every position tick — but the title, subtitle and
             // duration only change when the ITEM does. Rebuilding and re-publishing MediaMetadata dozens
             // of times a second was pure waste, and every controller on the TV had to process each one.
-            // The playback state below still updates every tick: a controller needs the moving position.
+            // Seekable playback retains moving positions; live publishes semantic changes.
             val metaKey = MetaKey(
                 title = state.meta.title.orEmpty(),
                 subtitle = state.meta.subtitle.orEmpty(),
@@ -177,6 +185,27 @@ class PlaybackSession(
 
     private fun createSession(): MediaSession = MediaSession(context, SESSION_TAG).apply {
         setCallback(object : MediaSession.Callback() {
+            override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
+                val event = IntentCompat.getParcelableExtra(mediaButtonIntent, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
+                    ?: return super.onMediaButtonEvent(mediaButtonIntent)
+                val key = event.keyCode
+                if (key !in setOf(KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) ||
+                    event.action !in setOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP)) {
+                    return super.onMediaButtonEvent(mediaButtonIntent)
+                }
+                if (!mediaButtonPairs.orphanUp(key, event.action == KeyEvent.ACTION_DOWN, event.downTime)) {
+                    return super.onMediaButtonEvent(mediaButtonIntent)
+                }
+                withEngine {
+                    resumeTicket = null
+                    when (key) {
+                        KeyEvent.KEYCODE_MEDIA_PLAY -> it.play()
+                        KeyEvent.KEYCODE_MEDIA_PAUSE -> it.pause()
+                        else -> if (it.playbackRequested.value) it.pause() else it.play()
+                    }
+                }
+                return true
+            }
             // Either transport button is the user speaking for themselves, so any resume this class
             // still owed is cancelled: their choice is newer than the interruption's.
             override fun onPlay() = withEngine { resumeTicket = null; it.play() }

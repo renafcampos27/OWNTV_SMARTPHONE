@@ -273,11 +273,17 @@ class LiveEpgReader(
      * **Nothing here goes to the network.** That is a hard rule, not an optimisation: see the note at
      * the second pass for what filling a list of hundreds by asking the provider actually did.
      */
-    suspend fun nowPlayingFor(
+    val cacheRevision: Long get() = revision.get()
+    data class NowPlayingEntry(val title: String, val expiresAtMs: Long)
+
+    suspend fun nowPlayingFor(channels: List<ChannelEntity>, cust: SectionCustomizations, globalShiftMinutes: Int): Map<Long, String> =
+        nowPlayingEntries(channels, cust, globalShiftMinutes).mapValues { it.value.title }
+
+    suspend fun nowPlayingEntries(
         channels: List<ChannelEntity>,
         cust: SectionCustomizations,
         globalShiftMinutes: Int,
-    ): Map<Long, String> = withContext(Dispatchers.IO) {
+    ): Map<Long, NowPlayingEntry> = withContext(Dispatchers.IO) {
         if (channels.isEmpty()) return@withContext emptyMap()
         val now = System.currentTimeMillis()
         // Every playlist plus every EPG feed — NOT just the sources the visible page happens to come
@@ -300,7 +306,7 @@ class LiveEpgReader(
         if (channelKeys.isEmpty() && channels.none { tv.own.owntv.core.epg.GuideInheritance.fallback(it, cust) != null }) return@withContext emptyMap()
         val startedAt = android.os.SystemClock.elapsedRealtime()
         var chunks = 0
-        val result = HashMap<Long, String>()
+        val result = HashMap<Long, NowPlayingEntry>()
         for ((shift, group) in channelKeys.groupBy { it.third }) {
             val at = EpgShift.toStored(now, shift)
             val rowsByKey = group
@@ -314,7 +320,7 @@ class LiveEpgReader(
             for ((channelId, epgKey, _) in group) {
                 rowsByKey[epgKey]
                     ?.firstOrNull { at in it.startMs until it.stopMs }
-                    ?.let { result[channelId] = it.title }
+                    ?.let { result[channelId] = NowPlayingEntry(it.title, minOf(now + CACHE_TTL_MS, it.stopMs + shift * 60_000L)) }
             }
         }
         val inherited = channels.filter { it.id !in result }
@@ -323,7 +329,7 @@ class LiveEpgReader(
             val at = EpgShift.toStored(now, shift)
             val rows = group.map { it.second }.distinct().chunked(400)
                 .flatMap { epgDao.programmeSummariesForChannels(it, at, at + 1) }.groupBy { it.epgChannelId }
-            for ((id, key, _) in group) rows[key]?.firstOrNull { at in it.startMs until it.stopMs }?.let { result[id] = it.title }
+            for ((id, key, _) in group) rows[key]?.firstOrNull { at in it.startMs until it.stopMs }?.let { result[id] = NowPlayingEntry(it.title, minOf(now + CACHE_TTL_MS, it.stopMs + shift * 60_000L)) }
         }
         // Second pass: whatever the preview pane has already resolved for a channel the stored guide
         // could not answer — **from cache, never from the network**.
@@ -341,7 +347,7 @@ class LiveEpgReader(
         val fromStored = result.size
         for (ch in channels) {
             if (ch.id in result) continue
-            cachedNowTitle(ch, now, cust, globalShiftMinutes)?.let { result[ch.id] = it }
+            cachedNowTitle(ch, now, cust, globalShiftMinutes)?.let { result[ch.id] = NowPlayingEntry(it, cache[ch.id]?.expiresAt ?: (now + 30_000L)) }
         }
         CorePerf.log {
             "live_nowplaying channels=${channels.size} keyed=${channelKeys.size} " +

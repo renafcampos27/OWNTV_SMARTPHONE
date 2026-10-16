@@ -69,6 +69,17 @@ object RecordingSchedule {
     fun overlaps(aStart: Long, aStop: Long, bStart: Long, bStop: Long): Boolean =
         aStart < bStop && aStop > bStart
 
+    /** Epoch instants; the caller resolves the chosen local day/time and DST before calling. */
+    fun manualWindow(startMs: Long, stopMs: Long, now: Long): LongRange? {
+        if (startMs < 0 || stopMs < 0) return null
+        val stop = if (stopMs <= startMs) {
+            if (stopMs > Long.MAX_VALUE - DAY_MS) return null
+            stopMs + DAY_MS
+        } else stopMs
+        if (stop <= startMs || stop - startMs > DAY_MS || stop <= now) return null
+        return maxOf(startMs, now)..stop
+    }
+
     /**
      * Which of [candidates] would contend with a recording over [startMs]..[stopMs] on the same
      * playlist. Shown to the user **before** they commit to anything, because a live programme

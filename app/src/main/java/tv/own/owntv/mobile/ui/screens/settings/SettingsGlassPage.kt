@@ -21,7 +21,7 @@ import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.theme.GlassConfig
 import tv.own.owntv.core.theme.GlassPreset
 import tv.own.owntv.core.theme.GlassSurface
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.SquircleShape

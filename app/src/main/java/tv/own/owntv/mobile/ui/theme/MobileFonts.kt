@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.theme
 
+import tv.own.owntv.core.R as CoreR
+
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -26,10 +28,10 @@ private fun variableFont(resourceId: Int, weight: FontWeight, style: FontStyle =
     )
 
 private val LoraFamily = FontFamily(
-    variableFont(R.font.lora_variable, FontWeight.Normal),
-    variableFont(R.font.lora_variable, FontWeight.Medium),
-    variableFont(R.font.lora_variable, FontWeight.SemiBold),
-    variableFont(R.font.lora_variable, FontWeight.Bold),
+    variableFont(CoreR.font.lora_variable, FontWeight.Normal),
+    variableFont(CoreR.font.lora_variable, FontWeight.Medium),
+    variableFont(CoreR.font.lora_variable, FontWeight.SemiBold),
+    variableFont(CoreR.font.lora_variable, FontWeight.Bold),
     variableFont(R.font.lora_italic_variable, FontWeight.Normal, FontStyle.Italic),
     variableFont(R.font.lora_italic_variable, FontWeight.Bold, FontStyle.Italic),
 )
@@ -95,7 +97,7 @@ private val PoppinsFamily = FontFamily(
  */
 val AppFontFamily.subtitleFontResource: Int
     get() = when (this) {
-        AppFontFamily.LORA -> R.font.lora_variable
+        AppFontFamily.LORA -> CoreR.font.lora_variable
         AppFontFamily.PLAYFAIR_DISPLAY -> R.font.playfair_display_variable
         AppFontFamily.DANCING_SCRIPT -> R.font.dancing_script_variable
         AppFontFamily.POPPINS -> R.font.poppins_regular

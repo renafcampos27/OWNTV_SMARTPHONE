@@ -41,7 +41,7 @@ import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.i18n.SupportedLocales
 import tv.own.owntv.core.settings.StartupMode
 import tv.own.owntv.mobile.BuildConfig
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
@@ -53,7 +53,7 @@ import tv.own.owntv.player.PlaybackErrorLog
 import java.text.DateFormat
 import java.util.Date
 
-/** Language, fixed startup channel and the installed custom build version. */
+/** Language, startup channel, installed version and custom Mobile updates. */
 @Composable
 fun SettingsAppPage(
     onOpenLanguage: () -> Unit,
@@ -61,6 +61,9 @@ fun SettingsAppPage(
     vm: SettingsViewModel = koinViewModel(),
     localeStore: LocaleStore = koinInject(),
 ) {
+    val updateManager: tv.own.owntv.core.update.UpdateManager = koinInject()
+    val checkOnStart = vm.settings.updateCheckOnStart.pref(true)
+    var showUpdates by remember { mutableStateOf(false) }
     val tag = localeStore.currentTag.pref("")
     val mode = vm.startupMode.pref(StartupMode.HOME)
     val channel = vm.startupChannel.pref(null)
@@ -110,11 +113,30 @@ fun SettingsAppPage(
             )
 
             SettingRow(title = stringResource(R.string.settings_about_version, BuildConfig.VERSION_NAME))
+            SettingRow(
+                title = stringResource(tv.own.owntv.mobile.R.string.own_updates_check),
+                subtitle = stringResource(tv.own.owntv.mobile.R.string.own_updates_check_description),
+                onClick = { showUpdates = true },
+                showChevron = true,
+            )
+            MobileListRow(
+                title = stringResource(tv.own.owntv.mobile.R.string.own_updates_auto),
+                subtitle = stringResource(tv.own.owntv.mobile.R.string.own_updates_auto_description),
+                onClick = { vm.edit { setUpdateCheckOnStart(!checkOnStart) } },
+                trailing = { tv.own.owntv.mobile.ui.components.MobileSwitch(checked = checkOnStart) },
+            )
 
         }
 
     }
 
+
+    if (showUpdates) {
+        UpdateSheet(checkOnOpen = true, onDismiss = {
+            showUpdates = false
+            updateManager.cancelPendingUpdate()
+        })
+    }
 
     if (startupSheet) {
         SettingsChoiceSheet(

@@ -15,16 +15,23 @@ data class HlsMediaPlaylist(
         val header: String get() = "bytes=$offset-${offset + length - 1}"
     }
     data class Init(val uri: String, val range: ByteRange? = null)
+    data class Key(val method: String, val uri: String, val iv: String? = null)
     data class Segment(
         val uri: String, val durationSecs: Double, val sequence: Long,
         val range: ByteRange? = null, val init: Init? = null,
         val discontinuity: Long = 0, val gap: Boolean = false,
+        val key: Key? = null,
     )
     data class Variant(val uri: String, val bandwidth: Long, val audioGroup: String?, val codecs: String?,
                        val width: Int? = null, val height: Int? = null)
     data class AudioRendition(val group: String, val uri: String?, val default: Boolean)
     val isEncrypted: Boolean get() = encryptionMethod != null && !encryptionMethod.equals("NONE", true)
     val isMaster: Boolean get() = variants.isNotEmpty()
+    /** AES-128 MPEG-TS is supported; DRM/sample encryption and encrypted maps/ranges are refused. */
+    val hasUnsupportedEncryption: Boolean get() = isEncrypted &&
+        (!encryptionMethod.equals("AES-128", true) || segments.any {
+            it.key != null && (it.init != null || it.range != null)
+        } || (!isMaster && segments.none { it.key != null }))
     val pollIntervalMs: Long get() = ((targetDurationSecs * 1000).toLong() / 2).coerceIn(1_000, 10_000)
 
     companion object {
@@ -37,6 +44,7 @@ data class HlsMediaPlaylist(
             var target = 6.0
             var ended = false
             var encryption: String? = null
+            var key: Key? = null
             var duration: Double? = null
             var pendingVariant: String? = null
             var pendingRange: String? = null
@@ -61,8 +69,21 @@ data class HlsMediaPlaylist(
                     line == "#EXT-X-ENDLIST" -> ended = true
                     line.startsWith("#EXT-X-KEY:") || line.startsWith("#EXT-X-SESSION-KEY:") -> {
                         val method = attribute(line.substringAfter(':'), "METHOD")
-                        // Any encrypted segment makes the capture unsupported, even if later cleared.
-                        if (method != null && (!method.equals("NONE", true) || encryption == null)) encryption = method
+                        if (method == null) invalid = true
+                        if (method.equals("NONE", true)) key = null
+                        else {
+                            val attributes = line.substringAfter(':')
+                            val uri = attribute(attributes, "URI")
+                            val iv = attribute(attributes, "IV")
+                            val format = attribute(attributes, "KEYFORMAT")
+                            val supported = method.equals("AES-128", true) &&
+                                (format == null || format == "identity")
+                            if (!supported) encryption = if (method.equals("AES-128", true)) "UNSUPPORTED" else method
+                            else if (encryption == null) encryption = "AES-128"
+                            if (uri.isNullOrBlank() || (iv != null && !HlsAes.validIv(iv))) invalid = true
+                            // SESSION-KEY describes possible keys, not the key of every media segment.
+                            if (line.startsWith("#EXT-X-KEY:")) key = uri?.let { Key(method.orEmpty(), it, iv) }
+                        }
                     }
                     line.startsWith("#EXT-X-STREAM-INF:") -> pendingVariant = line.substringAfter(':')
                     line.startsWith("#EXT-X-MEDIA:") -> {
@@ -99,7 +120,7 @@ data class HlsMediaPlaylist(
                     duration != null -> {
                         val range = pendingRange?.let { byteRange(it, if (lastRangeUri == line) lastRange else null) }
                         if (pendingRange != null && range == null) invalid = true
-                        segments += Segment(line, duration, sequence + segments.size, range, init, discontinuity, gap)
+                        segments += Segment(line, duration, sequence + segments.size, range, init, discontinuity, gap, key)
                         lastRange = range
                         lastRangeUri = line
                         duration = null

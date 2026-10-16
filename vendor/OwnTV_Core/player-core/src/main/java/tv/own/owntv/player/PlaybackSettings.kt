@@ -62,6 +62,7 @@ data class PlaybackSettings(
     val liveReserveExtraSecs: Int = 2,
     val decoderQueueing: tv.own.owntv.core.settings.DecoderQueueing = tv.own.owntv.core.settings.DecoderQueueing.AUTO,
     val softwareAudio: Boolean = false,
+    val backgroundPlayback: Boolean = false,
 ) {
     companion object {
         @Volatile private var shared: Pair<SettingsRepository, StateFlow<PlaybackSettings?>>? = null
@@ -87,7 +88,7 @@ data class PlaybackSettings(
                 s.subtitlePosition, s.subtitleBgOpacity, s.audioDelayMs, s.preferredAudioLang,
                 s.preferredSubLang, s.defaultZoom, s.defaultVolume, s.seekStepSec, s.autoFrameRate,
                 s.liveEnginePreference, s.liveTuneTimeoutSecs, s.liveHlsOnly,
-                s.liveReserveConfiguration, s.decoderQueueing, s.softwareAudio,
+                s.liveReserveConfiguration, s.decoderQueueing, s.softwareAudio, s.backgroundPlayback,
             )
             return combine(sources) { v ->
                 PlaybackSettings(
@@ -120,6 +121,7 @@ data class PlaybackSettings(
                     liveReserveExtraSecs = (v[25] as LiveReserveConfiguration).extraSecs,
                     decoderQueueing = v[26] as tv.own.owntv.core.settings.DecoderQueueing,
                     softwareAudio = v[27] as Boolean,
+                    backgroundPlayback = v[28] as Boolean,
                 )
             }.stateIn(CoroutineScope(SupervisorJob() + Dispatchers.Default), SharingStarted.Eagerly, null)
         }

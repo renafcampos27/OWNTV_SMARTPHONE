@@ -31,7 +31,7 @@ class SettingsSearchCoverageTest {
      * since a row that opens a whole page is already findable under that page's own name.
      */
     private val indexed: Set<String> by lazy {
-        Regex("""R\.string\.([a-z_0-9]+)""")
+        Regex("""(?:Core)?R\.string\.([a-z_0-9]+)""")
             .findAll(search + read("SettingsLeaf.kt"))
             .map { it.groupValues[1] }
             .toSet()
@@ -49,7 +49,7 @@ class SettingsSearchCoverageTest {
     @Test
     fun `every video player row can be found by search`() {
         val page = read("SettingsPlaybackPage.kt")
-        val titles = Regex("""title = stringResource\(R\.string\.([a-z_0-9]+)""")
+        val titles = Regex("""title = stringResource\((?:Core)?R\.string\.([a-z_0-9]+)""")
             .findAll(page).map { it.groupValues[1] }
             .filterNot { it.endsWith("_description") || it.endsWith("_description_mobile") || it in notRows }
             .toSortedSet()
@@ -67,7 +67,7 @@ class SettingsSearchCoverageTest {
         // the test above never saw them — Hardware decoding, Channel numbers and Measured stats were
         // unfindable by name.
         val quick = read("SettingsQuick.kt")
-        val titleOf = Regex("""QuickToggle\(\s*"([a-z_]+)",\s*R\.string\.([a-z_0-9]+)""")
+        val titleOf = Regex("""QuickToggle\(\s*"([a-z_]+)",\s*(?:Core)?R\.string\.([a-z_0-9]+)""")
             .findAll(quick).associate { it.groupValues[1] to it.groupValues[2] }
         val keys = Regex("""quickToggle\("([a-z_]+)"\)""")
             .findAll(read("SettingsPlaybackPage.kt")).map { it.groupValues[1] }.toList()
@@ -85,7 +85,7 @@ class SettingsSearchCoverageTest {
         // page's master switch is the page's own title, indexed with the leaf.
         val notRows = setOf("settings_subtitle_color", "settings_subtitle_default", "settings_color_picker")
         val titles = listOf("SettingsRecordingPage.kt", "SettingsSubtitleAppearancePage.kt").flatMap { page ->
-            Regex("""(?<![a-z])title = stringResource\(R\.string\.([a-z_0-9]+)""").findAll(read(page)).map { it.groupValues[1] }
+            Regex("""(?<![a-z])title = stringResource\((?:Core)?R\.string\.([a-z_0-9]+)""").findAll(read(page)).map { it.groupValues[1] }
         }.filterNot { it in notRows }.toSortedSet()
         assertTrue(titles.size >= 10)
         assertEquals(emptyList<String>(), titles.filterNot { it in indexed })
@@ -108,7 +108,7 @@ class SettingsSearchCoverageTest {
         assertEquals(
             "search entries should use a row's title, not its description",
             emptyList<String>(),
-            Regex("""SettingsRowEntry\([^)]*R\.string\.([a-z_0-9]*_description)""")
+            Regex("""SettingsRowEntry\([^)]*(?:Core)?R\.string\.([a-z_0-9]*_description)""")
                 .findAll(search).map { it.groupValues[1] }.toList(),
         )
     }
@@ -135,7 +135,7 @@ class SettingsSearchCoverageTest {
             "own_save", "own_reset", "own_cancel", "own_choose_playlist",
         ) + notRows
         val quick = read("SettingsQuick.kt")
-        val quickTitle = Regex("""QuickToggle\(\s*"([a-z_]+)",\s*R\.string\.([a-z_0-9]+)""")
+        val quickTitle = Regex("""QuickToggle\(\s*"([a-z_]+)",\s*(?:Core)?R\.string\.([a-z_0-9]+)""")
             .findAll(quick).associate { it.groupValues[1] to it.groupValues[2] }
         val skipped = setOf("SettingsBackupPage.kt", "SettingsLocalSyncPage.kt", "SettingsHomePage.kt", "SettingsMetadataPage.kt")
         val pages = File("src/main/java/tv/own/owntv/mobile/ui/screens/settings").listFiles { f ->
@@ -144,7 +144,7 @@ class SettingsSearchCoverageTest {
         assertTrue("no settings pages found", pages.size > 15)
         val missing = pages.flatMap { f ->
             val text = f.readText()
-            val titles = Regex("""(?<![a-z])title = stringResource\(R\.string\.([a-z_0-9]+)""").findAll(text).map { it.groupValues[1] } +
+            val titles = Regex("""(?<![a-z])title = stringResource\((?:Core)?R\.string\.([a-z_0-9]+)""").findAll(text).map { it.groupValues[1] } +
                 Regex("""quickToggle\("([a-z_]+)"\)""").findAll(text).mapNotNull { quickTitle[it.groupValues[1]] }
             titles.filterNot { it.endsWith("_description") || it in notSettings || it in indexed }
                 .map { "${f.name}: $it" }.toList()

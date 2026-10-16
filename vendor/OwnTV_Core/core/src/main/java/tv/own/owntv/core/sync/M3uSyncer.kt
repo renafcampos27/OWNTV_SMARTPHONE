@@ -89,14 +89,14 @@ internal class M3uSyncer(
             var channelHashes: Map<String, StoredRow>? = null
             var movieHashes: Map<String, StoredRow>? = null
             var seriesHashes: Map<String, StoredRow>? = null
-            suspend fun channelHashLookup() = channelHashes ?: loadHashLookup("M3U live", s.id) {
-                channelDao.contentHashesForSource(it)
+            suspend fun channelHashLookup() = channelHashes ?: loadHashLookup("M3U live", s.id) { afterId, limit ->
+                channelDao.contentHashesPage(s.id, afterId, limit)
             }.also { channelHashes = it }
-            suspend fun movieHashLookup() = movieHashes ?: loadHashLookup("M3U movies", s.id) {
-                movieDao.contentHashesForSource(it)
+            suspend fun movieHashLookup() = movieHashes ?: loadHashLookup("M3U movies", s.id) { afterId, limit ->
+                movieDao.contentHashesPage(s.id, afterId, limit)
             }.also { movieHashes = it }
-            suspend fun seriesHashLookup() = seriesHashes ?: loadHashLookup("M3U series", s.id) {
-                seriesDao.contentHashesForSource(it)
+            suspend fun seriesHashLookup() = seriesHashes ?: loadHashLookup("M3U series", s.id) { afterId, limit ->
+                seriesDao.contentHashesPage(s.id, afterId, limit)
             }.also { seriesHashes = it }
 
             // Stable-key bookkeeping: occurrence counters make in-playlist duplicate keys unique and
@@ -511,12 +511,12 @@ internal class M3uSyncer(
     private suspend fun loadHashLookup(
         label: String,
         sourceId: Long,
-        load: suspend (Long) -> List<tv.own.owntv.core.database.entity.ContentHashProjection>,
+        load: suspend (Long, Int) -> List<tv.own.owntv.core.database.entity.ContentHashProjection>,
     ): Map<String, StoredRow> {
         val start = SystemClock.elapsedRealtime()
-        return load(sourceId).associateBy({ it.remoteId }, { StoredRow(it.id, it.contentHash, it.sortOrder) }).also {
-            Log.d(TAG, "$label hash map loaded sourceId=$sourceId size=${it.size} ms=${SystemClock.elapsedRealtime() - start}")
-        }
+        val rows = loadPagedHashLookup(load)
+        Log.d(TAG, "$label hash map loaded sourceId=$sourceId size=${rows.size} ms=${SystemClock.elapsedRealtime() - start}")
+        return rows
     }
 
     private data class PendingM3uChannel(

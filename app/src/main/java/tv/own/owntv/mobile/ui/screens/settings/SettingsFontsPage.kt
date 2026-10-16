@@ -13,7 +13,7 @@ import tv.own.owntv.core.theme.FontCustomization
 import tv.own.owntv.core.theme.PopupFontScale
 import tv.own.owntv.core.theme.PopupSizeScale
 import tv.own.owntv.core.theme.UiFontScale
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 

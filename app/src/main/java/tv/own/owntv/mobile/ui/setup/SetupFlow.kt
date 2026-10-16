@@ -49,7 +49,7 @@ import tv.own.owntv.core.sync.primaryText
 import tv.own.owntv.core.sync.remainderText
 import tv.own.owntv.core.sync.summaryText
 import tv.own.owntv.core.sync.warningText
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
@@ -91,6 +91,7 @@ fun SetupFlow(
     val vm: SetupViewModel = koinViewModel()
     val state by vm.state.collectAsStateWithLifecycle()
     val progress by vm.progress.collectAsStateWithLifecycle()
+    val profileCreation by vm.profileCreation.collectAsStateWithLifecycle()
     // No way to cancel means there is nothing behind this flow, which is exactly what a first run is.
     val firstRun = onCancel == null
     var step by rememberSaveable(firstRun) {
@@ -196,12 +197,13 @@ fun SetupFlow(
             Step.CREATE_PROFILE -> ProfileEditorSheet(
                 initial = null,
                 takenNames = emptySet(),
-                onConfirm = { name, avatar, kids, pin ->
+                onConfirm = { name, avatar, kids, pin, _ ->
                     vm.createProfile(name.ifBlank { defaultProfileName }, avatar, kids, pin) {
                         step = Step.ADD_CONTENT
                     }
                 },
                 onDismiss = { step = Step.CHOICE },
+                operation = profileCreation,
             )
             Step.ADD_CONTENT -> AddContentStep(
                 hasExisting = existing.isNotEmpty(),

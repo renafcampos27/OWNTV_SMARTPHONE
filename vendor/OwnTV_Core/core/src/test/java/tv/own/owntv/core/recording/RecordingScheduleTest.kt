@@ -11,6 +11,17 @@ import tv.own.owntv.core.model.RecordingStatus
 /** Pre-roll and post-roll arithmetic, and which recordings get in each other's way (D10). */
 class RecordingScheduleTest {
 
+    @Test fun manualWindowsCoverOvernightLateStartExpiredAndOverflow() {
+        val day = 86_400_000L
+        assertEquals(100L..200L, RecordingSchedule.manualWindow(100, 200, 50))
+        assertEquals(150L..200L, RecordingSchedule.manualWindow(100, 200, 150))
+        assertEquals(100L..(day + 90), RecordingSchedule.manualWindow(100, 90, 50))
+        assertNull(RecordingSchedule.manualWindow(100, 200, 200))
+        assertNull(RecordingSchedule.manualWindow(100, day + 101, 50))
+        assertNull(RecordingSchedule.manualWindow(-1, 200, 50))
+        assertNull(RecordingSchedule.manualWindow(Long.MAX_VALUE, Long.MAX_VALUE, 50))
+    }
+
     private val minute = 60_000L
     /** 2026-09-12 21:00 and 22:00 as plain numbers — the arithmetic has no opinion about calendars. */
     private val nine = 1_757_710_800_000L

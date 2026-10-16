@@ -179,6 +179,7 @@ fun MobileNavHost(
         ) { entry ->
             SearchScreen(
                 initialQuery = entry.arguments?.getString(ARG_QUERY).orEmpty(),
+                onOpenProgrammePlayer = { navController.navigate(PLAYER_ROUTE) },
                 onOpenChannel = { channelId ->
                     navController.navigate(channelRoute(MobileDestination.LIVE, channelId, false))
                 },
@@ -211,18 +212,6 @@ fun MobileNavHost(
                 CompositionLocalProvider(LocalNavAnimatedScope provides this) {
                     MoreLeafPage(
                         leaf = leaf,
-                        // A channel or a title opened from Favourites lands on the screen it has
-                        // under its own tab — the same convention the Guide uses for its channels.
-                        onOpenChannel = { channelId, openCatchup ->
-                            navController.navigate(
-                                channelRoute(MobileDestination.LIVE, channelId, openCatchup),
-                            )
-                        },
-                        onOpenItem = { tab, id ->
-                            navController.navigate(
-                                detailRoute(MobileDestination.LIBRARY.route, tab, id),
-                            )
-                        },
                         onOpenPlayer = { navController.navigate(PLAYER_ROUTE) },
                     )
                 }

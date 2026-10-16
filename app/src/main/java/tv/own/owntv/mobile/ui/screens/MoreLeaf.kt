@@ -2,14 +2,13 @@ package tv.own.owntv.mobile.ui.screens
 
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileIcons
 
 /**
  * A page that hangs off the More tab.
  *
- * These are the things that were never settings — a profile manager, two lists of your own data, a
- * place that talks to another device, a log, and a page of facts. Each is a route of its own, and
+ * These are the things that were never settings — a profile manager, recordings, backup, a log and a page of facts. Each is a route of its own, and
  * **deliberately not a `settings/...` route**: an item that leaves Settings leaves, so the settings
  * search can no longer find it and a result can never point somewhere the row is not.
  *
@@ -24,15 +23,12 @@ enum class MoreLeaf(
 ) {
     RECORDINGS("recordings", R.string.recording_title, null, MobileIcons.Download),
     PROFILES("profiles", R.string.profiles_title, null, MobileIcons.People),
-    FAVORITES("favorites", R.string.content_category_favorites, null, MobileIcons.Favorite),
-    HISTORY("history", R.string.content_category_history, null, MobileIcons.History),
     BACKUP(
         "backup",
         R.string.settings_backup_title,
         R.string.settings_backup_restore_description,
         MobileIcons.Save,
     ),
-    LOCAL_SYNC("localsync", R.string.local_sync_title, R.string.local_sync_description, MobileIcons.Sync),
     ERROR_LOG(
         "errorlog",
         R.string.settings_playback_error_log,

@@ -42,20 +42,20 @@ class HttpClient(private val client: OkHttpClient) {
 
         val coroutineContext = currentCoroutineContext()
         val startedAt = SystemClock.elapsedRealtime()
-        val safeUrl = redact(url)
+        val safeUrl = diagnosticOrigin(url)
         val attempts = maxAttempts.coerceAtLeast(1)
         var attempt = 1
         while (attempt <= attempts) {
             coroutineContext.ensureActive()
             val call = client.newCall(request)
             var responseReceived = false
-            Log.d(TAG, "GET start url=$safeUrl ua=${ua.take(48)} attempt=$attempt/$attempts")
+            Log.d(TAG, "GET start url=$safeUrl customUa=${userAgent?.isNotBlank() == true} attempt=$attempt/$attempts")
             try {
                 return@withContext cancelBlockingCallWithCoroutine(call::cancel) {
                     call.execute().use { response ->
                         responseReceived = true
                         val headersAt = SystemClock.elapsedRealtime()
-                        if (!response.isSuccessful) throw HttpStatusException(response.code, "HTTP ${response.code} for ${redact(url)}")
+                        if (!response.isSuccessful) throw HttpStatusException(response.code, "HTTP ${response.code} for $safeUrl")
                         val body = response.body
                         val totalBytes = body.contentLength().takeIf { it >= 0 }
                         // Info, not debug, and deliberately so: release builds strip Log.d, and this one
@@ -65,14 +65,14 @@ class HttpClient(private val client: OkHttpClient) {
                         Log.i(
                             TAG,
                             "GET headers url=$safeUrl code=${response.code} contentLength=${totalBytes ?: -1} " +
-                                "contentEncoding=${response.header("Content-Encoding").orEmpty()} " +
+                                "contentEncoding=${diagnosticEncoding(response.header("Content-Encoding"))} " +
                                 // The one that actually answers the question. OkHttp adds
                                 // `Accept-Encoding: gzip` on its own when the caller sets none, and then
                                 // *strips* Content-Encoding from the user-facing response after
                                 // decompressing — so the field above reads empty whether gzip happened
                                 // or not. The network response still carries the wire value.
-                                "wireEncoding=${response.networkResponse?.header("Content-Encoding").orEmpty()} " +
-                                "transferEncoding=${response.header("Transfer-Encoding").orEmpty()} " +
+                                "wireEncoding=${diagnosticEncoding(response.networkResponse?.header("Content-Encoding"))} " +
+                                "transferEncoding=${diagnosticEncoding(response.header("Transfer-Encoding"))} " +
                                 "headersMs=${headersAt - startedAt}",
                         )
                         onProgress?.invoke(0, totalBytes)
@@ -93,8 +93,7 @@ class HttpClient(private val client: OkHttpClient) {
                 Log.w(
                     TAG,
                     "GET failed url=$safeUrl attempt=$attempt/$attempts totalMs=${SystemClock.elapsedRealtime() - startedAt} " +
-                        "message=${e.message}${if (retrying) " retrying" else ""}",
-                    e,
+                        diagnosticFailure(e, retrying),
                 )
                 if (!retrying) throw e
             }
@@ -103,10 +102,6 @@ class HttpClient(private val client: OkHttpClient) {
         }
         throw IOException("GET failed for $safeUrl")
     }
-
-    /** Mask credentials in a URL before it appears in an error/log — Xtream embeds user/pass in the query. */
-    private fun redact(url: String): String =
-        url.replace(Regex("(?i)(username|password|user|pass|token)=[^&]*"), "$1=***")
 
     /** Convenience for small responses (e.g. Xtream category lists). */
     suspend fun getText(
@@ -138,6 +133,26 @@ class HttpClient(private val client: OkHttpClient) {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
         private const val RETRY_DELAY_MS = 750L
         private const val MAX_RETRY_DELAY_MS = 3_000L
+
+        /** Catalog diagnostics need only the origin, never paths, queries or userinfo. */
+        internal fun diagnosticOrigin(url: String): String = runCatching {
+            val parsed = java.net.URI(url)
+            val scheme = parsed.scheme?.lowercase(java.util.Locale.ROOT)
+            val host = parsed.host?.takeIf { it.isNotBlank() }
+            if (scheme !in setOf("http", "https") || host == null) "invalid-url"
+            else "$scheme://$host${if (parsed.port >= 0) ":${parsed.port}" else ""}"
+        }.getOrDefault("invalid-url")
+
+        /** Messages and causes may contain signed URLs; keep only controlled diagnostic fields. */
+        internal fun diagnosticFailure(error: IOException, retrying: Boolean): String =
+            "type=${error.javaClass.simpleName} status=${(error as? HttpStatusException)?.code ?: 0} retrying=$retrying"
+
+        internal fun diagnosticEncoding(value: String?): String {
+            if (value.isNullOrBlank()) return ""
+            val tokens = value.split(',').map { it.trim().lowercase(java.util.Locale.ROOT) }
+            return if (tokens.all { it in setOf("gzip", "deflate", "br", "zstd", "identity", "chunked", "compress") })
+                tokens.joinToString(",") else "other"
+        }
 
         /** Mask credentials for display (info overlay / logs): query params AND Xtream `/type/user/pass/`
          *  path segments, which is where live URLs embed them. */

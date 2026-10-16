@@ -621,7 +621,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         }
     }
 
-    /** Called by [tv.own.owntv.core.backup.BackupManager] only after an export has actually landed. */
+    /** Recorded only after the final backup destination has been written successfully. */
     suspend fun recordBackup(at: Long, bytes: Long, encrypted: Boolean, path: String) {
         context.dataStore.edit {
             it[Keys.LAST_BACKUP_AT] = at
@@ -1114,7 +1114,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
 
     /** How a browse section's lists are ordered. RATING (highest provider rating first) applies to
      *  Movies/Series only; Live/EPG never select it. */
-    enum class SortMode { PLAYLIST, ALPHA, RATING, DATE_ADDED }
+    enum class SortMode { PLAYLIST, ALPHA, RATING, DATE_ADDED, CUSTOM }
 
     /** All three browse sections (Live/Movies/Series) default to the playlist/provider's own order — the
      *  natural grouping a user expects right after a sync. A–Z is one tap away (toggleSort). */
@@ -1416,9 +1416,13 @@ class SettingsRepository(private val context: Context, private val localeStore: 
      *  always was in a release build. On: the same trace is written to Logcat and to a bounded file, and
      *  it rides along with an exported report — the only way a normal user can produce a live trace at
      *  all, since a release build's diagnostics were previously compile-time off (F18). */
-    val channelPlaybackConfigs: Flow<List<ChannelPlaybackConfig>> = prefsFlow {
-        ChannelPlaybackConfig.includeLegacy(ChannelPlaybackConfig.decode(it[Keys.CHANNEL_PLAYBACK_CONFIGS]), ManualTsChannel.decode(it[Keys.LIVE_MANUAL_TS_CHANNELS]))
-    }
+    val channelPlaybackConfigs: Flow<List<ChannelPlaybackConfig>> = context.dataStore.data
+        .map { it[Keys.CHANNEL_PLAYBACK_CONFIGS] to it[Keys.LIVE_MANUAL_TS_CHANNELS] }
+        .distinctUntilChanged()
+        .map { (configs, legacy) ->
+            ChannelPlaybackConfig.includeLegacy(ChannelPlaybackConfig.decode(configs), ManualTsChannel.decode(legacy))
+        }
+        .distinctUntilChanged()
 
     suspend fun setChannelPlaybackConfig(channel: ManualTsChannel, options: ChannelPlaybackOptions) {
         context.dataStore.edit { prefs ->
@@ -2765,8 +2769,11 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         Keys.CINEMATIC_DETAILS_MOVIES, Keys.CINEMATIC_DETAILS_SERIES,
         Keys.GUIDE_WIDTH_CHANNELS, Keys.GUIDE_WIDTH_EPG,
         Keys.POPUP_FONT_SIZE_PCT, Keys.POPUP_SIZE_PCT, Keys.VOD_GRID_COLUMNS, Keys.GUIDE_DENSITY_PCT,
-        Keys.GESTURE_SENSITIVITY_PCT, Keys.AFR_PAUSE_SECS)
-    private val backupBoolKeys = listOf(Keys.AUDIO_PASSTHROUGH, Keys.NIGHT_MODE, Keys.VOLUME_LEVELLING,
+        Keys.GESTURE_SENSITIVITY_PCT, Keys.AFR_PAUSE_SECS, Keys.MULTIVIEW_TILES,
+        Keys.RECORDING_PRE_ROLL_MINUTES, Keys.RECORDING_POST_ROLL_MINUTES)
+    private val backupBoolKeys = listOf(Keys.MULTIVIEW_ENABLED, Keys.MULTIVIEW_WARNING_ACCEPTED,
+        Keys.RECORDING_RESERVE_CONNECTION, Keys.RECORD_WHAT_IM_WATCHING, Keys.RECORDING_OVER_MOBILE_DATA,
+        Keys.AUDIO_PASSTHROUGH, Keys.NIGHT_MODE, Keys.VOLUME_LEVELLING,
         Keys.SOFTWARE_AUDIO,
         Keys.GUIDE_REPLAY_ONLY,
         Keys.UI_DIAGNOSTICS,
@@ -2807,8 +2814,50 @@ class SettingsRepository(private val context: Context, private val localeStore: 
     private fun isPortableCategoryKey(value: String): Boolean =
         value == "ALL" || value == "FAV" || value == "HIST" || value.startsWith("CUSTOM:")
 
+    // Snapshot removal excludes paths/permissions and device acknowledgements. Legacy exports remain merge-only.
+    private val snapshotPortableKeys get() = buildSet<String> {
+        addAll(backupStringKeys.map { it.name }); addAll(backupIntKeys.map { it.name })
+        addAll(backupBoolKeys.map { it.name }); addAll(backupFloatKeys.map { it.name })
+        addAll(backupStringSetKeys.map { it.name })
+        removeAll(setOf(Keys.DOWNLOAD_ROOT.name, Keys.BG_IMAGE_PATH.name,
+            Keys.AUTO_FRAME_RATE_PROMPTED.name, Keys.MULTIVIEW_WARNING_ACCEPTED.name))
+    }
+
     suspend fun exportSettings(): org.json.JSONObject {
         val p = context.dataStore.data.first()
+        // Explicit effective playback/recording defaults survive changes to future build defaults.
+        val effective = mapOf<String, Any>(
+            Keys.HW_DECODING.name to (p[Keys.HW_DECODING] ?: true),
+            Keys.SOFTWARE_AUDIO.name to (p[Keys.SOFTWARE_AUDIO] ?: false),
+            Keys.HDR_ENABLED.name to (p[Keys.HDR_ENABLED] ?: true),
+            Keys.LIVE_ENGINE.name to (p[Keys.LIVE_ENGINE]?.let { runCatching { tv.own.owntv.core.player.EnginePreference.valueOf(it) }.getOrNull() }
+                ?: tv.own.owntv.core.player.EnginePreference.EXO_FIRST).name,
+            Keys.SURROUND_MODE.name to SurroundMode.of(p[Keys.SURROUND_MODE], p[Keys.SURROUND_SOUND]).name,
+            Keys.GUIDE_REPLAY_ONLY.name to (p[Keys.GUIDE_REPLAY_ONLY] ?: true),
+            Keys.EPG_OFFSET_MIN.name to (p[Keys.EPG_OFFSET_MIN] ?: 0),
+            Keys.CATCHUP_REQUEST_SHIFT_MIN.name to (p[Keys.CATCHUP_REQUEST_SHIFT_MIN] ?: 0).coerceIn(catchupOffsetRangeMinutes),
+            Keys.CATCHUP_OFFSET_MIN.name to (p[Keys.CATCHUP_OFFSET_MIN] ?: 0),
+            Keys.CATCHUP_TZ.name to (p[Keys.CATCHUP_TZ]?.let { runCatching { CatchupTimezone.valueOf(it) }.getOrNull() } ?: CatchupTimezone.DEVICE).name,
+            Keys.CATCHUP_PLAYER.name to (p[Keys.CATCHUP_PLAYER]?.let { runCatching { CatchupPlayer.valueOf(it) }.getOrNull() } ?: CatchupPlayer.INTERNAL).name,
+            Keys.LIVE_LATENCY_MODE.name to effectiveLegacyLatencyMode(p),
+            Keys.LIVE_LATENCY_CUSTOM_SECS.name to LiveBuffer.clampCustom(p[Keys.LIVE_LATENCY_CUSTOM_SECS] ?: LiveBuffer.CUSTOM_DEFAULT),
+            Keys.LIVE_PREROLL_SECS.name to (p[Keys.LIVE_PREROLL_SECS] ?: LiveBuffer.PREROLL_OFF).coerceIn(0, 30),
+            Keys.LIVE_TUNE_TIMEOUT_SECS.name to (p[Keys.LIVE_TUNE_TIMEOUT_SECS] ?: tv.own.owntv.core.player.PlaybackDefaults.LIVE_TUNE_BUDGET_SECS).coerceIn(0, 60),
+            Keys.MULTIVIEW_ENABLED.name to (p[Keys.MULTIVIEW_ENABLED] ?: false),
+            Keys.MULTIVIEW_TILES.name to (p[Keys.MULTIVIEW_TILES] ?: DEFAULT_MULTIVIEW_TILES).coerceIn(MIN_MULTIVIEW_TILES, MAX_MULTIVIEW_TILES),
+            Keys.RECORDING_RESERVE_CONNECTION.name to (p[Keys.RECORDING_RESERVE_CONNECTION] ?: true),
+            Keys.RECORDING_PRE_ROLL_MINUTES.name to (p[Keys.RECORDING_PRE_ROLL_MINUTES] ?: RecordingSchedule.DEFAULT_PRE_ROLL_MINUTES).coerceIn(0, RecordingSchedule.MAX_ROLL_MINUTES),
+            Keys.RECORDING_POST_ROLL_MINUTES.name to (p[Keys.RECORDING_POST_ROLL_MINUTES] ?: RecordingSchedule.DEFAULT_POST_ROLL_MINUTES).coerceIn(0, RecordingSchedule.MAX_ROLL_MINUTES),
+            Keys.RECORD_WHAT_IM_WATCHING.name to (p[Keys.RECORD_WHAT_IM_WATCHING] ?: false),
+            Keys.RECORDING_OVER_MOBILE_DATA.name to (p[Keys.RECORDING_OVER_MOBILE_DATA] ?: true),
+            Keys.LIVE_PREVIEW.name to (p[Keys.LIVE_PREVIEW] ?: true),
+            Keys.LIVE_PREVIEW_AUDIO.name to (p[Keys.LIVE_PREVIEW_AUDIO] ?: false),
+            Keys.UI_DIAGNOSTICS.name to (p[Keys.UI_DIAGNOSTICS] ?: false),
+            Keys.BACKGROUND_PLAYBACK.name to (p[Keys.BACKGROUND_PLAYBACK] ?: true),
+            Keys.DATA_SAVER.name to (p[Keys.DATA_SAVER] ?: false),
+            Keys.DOWNLOADS_WIFI_ONLY.name to (p[Keys.DOWNLOADS_WIFI_ONLY] ?: false),
+            Keys.AUDIO_ON_SCREEN_OFF.name to (p[Keys.AUDIO_ON_SCREEN_OFF] ?: true),
+            Keys.AUDIO_ON_MOBILE_DATA.name to (p[Keys.AUDIO_ON_MOBILE_DATA] ?: false))
         return org.json.JSONObject().apply {
             backupStringKeys.forEach { k -> p[k]?.let { put(k.name, it) } }
             backupLastCategoryKeys.forEach { k -> p[k]?.takeIf(::isPortableCategoryKey)?.let { put(k.name, it) } }
@@ -2825,16 +2874,23 @@ class SettingsRepository(private val context: Context, private val localeStore: 
             // solate, explicitly serialised field rather than pretending it is a DataStore key. `""` means
             // follow system (see docs/internationalization.md 0b, "Backup interaction").
             put(UI_LANGUAGE_KEY, localeStore.currentTag.value)
+            effective.forEach { (key, value) -> put(key, value) }
+            tv.own.owntv.core.backup.PortableSettingsSnapshot.write(this, snapshotPortableKeys)
+            validateSettingsBackup(this)
         }
     }
 
     /** Pure validation; backup transport calls this before changing any selected section. */
     fun validateSettingsBackup(o: org.json.JSONObject) {
+        tv.own.owntv.core.backup.PortableSettingsSnapshot.validate(o, snapshotPortableKeys)
         tv.own.owntv.core.backup.SettingsBackupValidation.validate(o,
             (backupStringKeys + backupLastCategoryKeys).map { it.name }.toSet(),
             backupIntKeys.map { it.name }.toSet(), backupBoolKeys.map { it.name }.toSet(),
             backupFloatKeys.map { it.name }.toSet(), backupStringSetKeys.map { it.name }.toSet(),
             mapOf(
+                Keys.MULTIVIEW_TILES.name to MIN_MULTIVIEW_TILES.toLong()..MAX_MULTIVIEW_TILES.toLong(),
+                Keys.RECORDING_PRE_ROLL_MINUTES.name to 0L..RecordingSchedule.MAX_ROLL_MINUTES.toLong(),
+                Keys.RECORDING_POST_ROLL_MINUTES.name to 0L..RecordingSchedule.MAX_ROLL_MINUTES.toLong(),
                 Keys.INTERNAL_MEDIA_QUOTA.name to 1L..32L,
                 Keys.EXTERNAL_MEDIA_QUOTA.name to 1L..256L,
                 Keys.LIVE_LATENCY_CUSTOM_SECS.name to 1L..60L,
@@ -2845,7 +2901,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
                 Keys.PROXY_PORT.name to 0L..65535L, Keys.DNS_PORT.name to 0L..65535L,
                 Keys.DEFAULT_VOLUME.name to 0L..150L,
                 Keys.GLASS_ALPHA.name to 0L..100L, Keys.GLASS_BLUR.name to 0L..100L,
-                Keys.GLASS_HIGHLIGHT.name to 0L..100L, Keys.SUB_BG_OPACITY.name to 0L..100L,
+                Keys.GLASS_HIGHLIGHT.name to 0L..100L, Keys.SUB_BG_OPACITY.name to SubtitleStyle.OPACITY_DEFAULT.toLong()..SubtitleStyle.OPACITY_MAX.toLong(),
             ))
     }
 
@@ -2857,11 +2913,18 @@ class SettingsRepository(private val context: Context, private val localeStore: 
     fun carriesDeviceSettings(o: org.json.JSONObject) = deviceSpecificSettings.any { o.has(it) }
 
     suspend fun importSettings(o: org.json.JSONObject, keepDeviceSettings: Boolean = false): SettingsImportResult {
+        validateSettingsBackup(o)
+        val unset = tv.own.owntv.core.backup.PortableSettingsSnapshot.unsetKeys(o, snapshotPortableKeys)
+            .filterNot { keepDeviceSettings && it in deviceSpecificSettings }.toSet()
         val filtered = if (keepDeviceSettings) org.json.JSONObject(o.toString()).apply {
             deviceSpecificSettings.forEach(::remove)
         } else o
-        validateSettingsBackup(filtered)
         context.dataStore.edit { prefs ->
+            backupStringKeys.forEach { if (it.name in unset) prefs.remove(it) }
+            backupStringSetKeys.forEach { if (it.name in unset) prefs.remove(it) }
+            backupIntKeys.forEach { if (it.name in unset) prefs.remove(it) }
+            backupBoolKeys.forEach { if (it.name in unset) prefs.remove(it) }
+            backupFloatKeys.forEach { if (it.name in unset) prefs.remove(it) }
             LiveReservePreferences.materialize(prefs, effectiveLegacyLatencyMode(prefs))
             backupStringKeys.forEach { k -> if (filtered.has(k.name)) prefs[k] = filtered.getString(k.name) }
             // Guarded on read as well as on write: a file written by another build (or edited by hand)

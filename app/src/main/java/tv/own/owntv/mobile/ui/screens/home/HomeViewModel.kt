@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -31,10 +30,7 @@ import tv.own.owntv.core.home.HomeFeedReader
 import tv.own.owntv.core.model.HomeLiveRowMode
 import tv.own.owntv.core.model.HomeRow
 import tv.own.owntv.core.model.MediaType
-import tv.own.owntv.core.network.ConnectivityObserver
 import tv.own.owntv.core.settings.SettingsRepository
-import tv.own.owntv.core.weather.WeatherInfo
-import tv.own.owntv.core.weather.WeatherRepository
 import tv.own.owntv.mobile.ui.screens.ContentActions
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 
@@ -56,8 +52,6 @@ class HomeViewModel(
     private val movieDao: MovieDao,
     private val seriesDao: SeriesDao,
     private val metadata: MetadataRepository,
-    weatherRepository: WeatherRepository,
-    connectivity: ConnectivityObserver,
 ) : ViewModel() {
 
     private val profileId: StateFlow<Long> = settings.activeProfileId
@@ -89,17 +83,6 @@ class HomeViewModel(
     fun refresh() {
         reloads.tryEmit(Unit)
     }
-
-    /** The weather chip, when the setting is on and there is a network to ask over. */
-    val weather: StateFlow<WeatherInfo?> =
-        combine(connectivity.isOnline, settings.weatherEnabled, settings.weatherLocation) { online, enabled, location ->
-            Triple(online, enabled, location)
-        }.flatMapLatest { (online, enabled, location) ->
-            if (!online || !enabled) flowOf<WeatherInfo?>(null) else flow { emit(weatherRepository.get(location)) }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-
-    val fahrenheit: StateFlow<Boolean> = settings.weatherFahrenheit
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     /** Switch a live row between logo cards and what-is-on-now. Stored where the TV app reads it. */
     fun toggleLiveMode(row: HomeRow) {

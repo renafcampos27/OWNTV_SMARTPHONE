@@ -19,6 +19,18 @@ class HlsCaptureReliabilityTest {
         HlsSegmentTransfer.copy(ByteArrayInputStream(bytes), it, bytes.size.toLong())
     }
 
+    @Test fun `transfer hash matches disk and survives journal restore`() {
+        val session = session()
+        val bytes = ByteArray(300_000) { (it % 251).toByte() }
+        val scratch = File(session.directory, "hashed-download")
+        val hash = HlsSegmentTransfer.copy(ByteArrayInputStream(bytes), scratch, bytes.size.toLong())
+        assertEquals(HlsCaptureSession.sha256(scratch), hash)
+        assertTrue(session.commit(segment(21), scratch, hash))
+        val restored = HlsCaptureSession(session.directory)
+        assertEquals(hash, restored.entries.single().hash)
+        assertEquals(bytes.size.toLong(), restored.capturedBytes)
+    }
+
     @Test fun `failed body leaves no eligible segment and checkpoint remains unchanged`() {
         val session = session()
         val scratch = File(session.directory, "download")

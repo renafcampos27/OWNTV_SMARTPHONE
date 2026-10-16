@@ -37,7 +37,7 @@ internal object PlaybackDatabaseBackup {
         val key = input.textOrNull("k") ?: return null
         val keySource = key.substringBefore(':').toLongOrNull()
         val oldSource = keySource ?: input.optLong("src", -1)
-        val newSource = sources[oldSource] ?: oldSource
+        val newSource = if (oldSource < 0) oldSource else sources[oldSource] ?: return null
         if (newSource >= 0 && newSource !in deviceSources) return null
         val type = input.textOrNull("type")?.takeIf { it in setOf("LIVE", "MOVIE", "EPISODE") } ?: return null
         if (keySource != null && key.substringAfter(':').substringBefore(':') != type) return null

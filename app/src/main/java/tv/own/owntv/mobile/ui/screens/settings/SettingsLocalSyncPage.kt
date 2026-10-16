@@ -40,7 +40,7 @@ import tv.own.owntv.core.companion.CompanionServerState
 import tv.own.owntv.core.sync.local.SyncDirection
 import tv.own.owntv.core.sync.local.SyncFailure
 import tv.own.owntv.core.sync.local.shortCodes
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileTextField
 import tv.own.owntv.mobile.ui.components.SettingRow

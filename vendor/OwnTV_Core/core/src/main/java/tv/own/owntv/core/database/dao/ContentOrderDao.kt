@@ -27,6 +27,9 @@ interface ContentOrderDao {
     @Query("SELECT DISTINCT contextKey FROM content_order WHERE profileId = :profileId AND mediaType = :type")
     fun observeContextKeys(profileId: Long, type: MediaType): Flow<List<String>>
 
+    @Query("SELECT itemId FROM content_order WHERE profileId = :profileId AND mediaType = :type AND contextKey = :contextKey ORDER BY position, itemId")
+    suspend fun orderedIds(profileId: Long, type: MediaType, contextKey: String): List<Long>
+
     /** Replaces a context's entire order in one transaction (commit point of a Move). */
     @Transaction
     suspend fun replaceContext(profileId: Long, type: MediaType, contextKey: String, rows: List<ContentOrderEntity>) {

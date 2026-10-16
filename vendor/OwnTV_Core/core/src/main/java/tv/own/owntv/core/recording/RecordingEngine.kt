@@ -304,18 +304,24 @@ class RecordingEngine(
             recordingDao.updateFailures(id, RecordingFailure.NONE, null, clock())
             var failure = RecordingFailure.NONE
             var attempt = 0
+            val rawProgress = RecordingRawProgress(maxOf(row.bytes, target.length()))
             try {
                 while (currentCoroutineContext().isActive && !RecordingRules.shouldStop(clock(), row.stopMs)) {
                     attempt++
+                    var retryAfterMs: Long? = null
                     val reason = try {
-                        attemptRecord(row.copy(startedAt = startedAt), target, onProgress)
+                        attemptRecord(row.copy(startedAt = startedAt), target, rawProgress, onProgress)
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
+                    } catch (error: RecordingHttpFailure) {
+                        retryAfterMs = error.retryAfterMs
+                        RecordingFailure.STREAM_UNAVAILABLE
                     } catch (error: MediaStorageBudget.Refused) {
                         storageFailure(error)
                     } catch (_: UnsupportedHls) {
                         RecordingFailure.UNSUPPORTED_FORMAT
                     } catch (e: Exception) {
+                        currentCoroutineContext().ensureActive()
                         android.util.Log.w(TAG, "recording attempt $attempt failed id=$id kind=${e.javaClass.simpleName}")
                         storageBudget.classifyWriteFailure(e, target)?.let(::storageFailure) ?: RecordingFailure.NETWORK
                     }
@@ -329,7 +335,7 @@ class RecordingEngine(
                     if (reason == RecordingFailure.NO_SPACE || reason == RecordingFailure.ENCRYPTED ||
                         reason == RecordingFailure.DRM_PROTECTED || reason == RecordingFailure.UNSUPPORTED_FORMAT ||
                         reason == RecordingFailure.QUOTA_REACHED || reason == RecordingFailure.STORAGE_UNAVAILABLE ||
-                        reason == RecordingFailure.FILE_LIMIT
+                        reason == RecordingFailure.FILE_LIMIT || reason == RecordingFailure.ARCHIVE_CHANGED
                     ) {
                         failure = reason
                         break
@@ -343,14 +349,20 @@ class RecordingEngine(
                         break
                     }
                     failure = reason
+                    if (!rawProgress.mayRetry(RecordingSchedule.isCatchUp(row), target.length(),
+                            hlsSessions.containsKey(id) || dashSessions.containsKey(id))) break
                     if (RecordingRules.shouldStop(clock(), row.stopMs)) break
-                    delay(RecordingRules.retryDelayMs(attempt))
+                    if (!RecordingAttemptPolicy.awaitRetry(retryAfterMs ?: RecordingRules.retryDelayMs(attempt),
+                            row.stopMs, clock)) break
                 }
             } finally {
                 // Also the path a cancellation takes — a recording stopped by hand, or by the drain
                 // loop's overrun backstop, still has its bytes written down and its file kept. A DASH
                 // recording's two halves are put together here, before the size is read, so the row
                 // records the finished file rather than an empty one.
+                // Finalization deliberately survives capture cancellation to keep recoverable data.
+                // Read that state before entering NonCancellable, where isActive would be true.
+                val captureInterrupted = !currentCoroutineContext().isActive
                 withContext(NonCancellable + Dispatchers.IO) {
                     val captureFailure = failure
                     val (hls, paused) = synchronized(admissionLock) {
@@ -374,8 +386,9 @@ class RecordingEngine(
                     if (dashResult != null && !dashResult.succeeded) failure = dashResult.failure
                     val finished = hlsResult?.movedTo ?: dashResult?.movedTo ?: target
                     val retainedBytes = maxOf(hlsResult?.bytes ?: finished.length(), if (hlsResult?.succeeded == false) hls.capturedBytes + hls.initFile.length() else 0,
-                        if (dashResult?.succeeded == false) dashBytes else 0)
-                    val incomplete = failure != RecordingFailure.NONE || hls?.incomplete == true ||
+                        if (dashResult?.succeeded == false) dashBytes else 0,
+                        if (hls == null && dashResult == null) rawProgress.confirmedBytes else 0)
+                    val incomplete = captureInterrupted || failure != RecordingFailure.NONE || hls?.incomplete == true ||
                         (clock() < row.stopMs && !RecordingSchedule.isCatchUp(row)) ||
                         (hls != null && HlsCaptureCompleteness.missingWindow(hls.capturedDurationMs,
                             hls.entries.maxOfOrNull { it.durationMs } ?: 6_000L,
@@ -425,6 +438,7 @@ class RecordingEngine(
     private suspend fun attemptRecord(
         row: RecordingEntity,
         target: MediaTarget,
+        rawProgress: RecordingRawProgress,
         onProgress: (RecordingProgress) -> Unit,
     ): RecordingFailure {
         // #115 — a channel whose playlist declares a licence can never be written down: the CDM
@@ -445,14 +459,13 @@ class RecordingEngine(
         return cancelBlockingCallWithCoroutine(call::cancel) {
         call.execute().use { response ->
             if (!response.isSuccessful) {
-                return@cancelBlockingCallWithCoroutine if (response.code == RecordingRules.SESSION_LIMIT_CODE) {
+                if (response.code == RecordingRules.SESSION_LIMIT_CODE) {
                     // The provider itself says the account is already streaming. The budget thought
                     // there was room — a stale or absent maxConnections — so this is the backstop,
                     // and it is a refusal rather than a fault.
-                    RecordingFailure.NO_CONNECTION
-                } else {
-                    RecordingFailure.STREAM_UNAVAILABLE
+                    return@cancelBlockingCallWithCoroutine RecordingFailure.NO_CONNECTION
                 }
+                throw RecordingAttemptPolicy.httpFailure(response, clock())
             }
             // An HLS channel is a list of segments, not a body of video. Peek at enough of it to tell
             // — the content type is unreliable and the `.m3u8` in the URL disappears behind a
@@ -476,22 +489,27 @@ class RecordingEngine(
                 response.close()
                 return@cancelBlockingCallWithCoroutine recordDash(row, target, finalUrl, agent, headers, onProgress)
             }
-            return@cancelBlockingCallWithCoroutine recordRaw(row, target, response, onProgress)
+            if (!RecordingAttemptPolicy.acceptsRawStatus(response.code)) {
+                return@cancelBlockingCallWithCoroutine if (RecordingSchedule.isCatchUp(row))
+                    RecordingFailure.ARCHIVE_CHANGED else RecordingFailure.UNSUPPORTED_FORMAT
+            }
+            return@cancelBlockingCallWithCoroutine recordRaw(row, target, response, rawProgress, onProgress)
         }
         }
     }
 
     private suspend fun recordRaw(
         row: RecordingEntity, target: MediaTarget, response: okhttp3.Response,
+        rawProgress: RecordingRawProgress,
         onProgress: (RecordingProgress) -> Unit,
     ): RecordingFailure {
-            // Always append: a reconnect continues the same file from wherever the stream is now.
-            // There is no Range to resume with and nothing to rewind to.
+            // Live reconnects append from now. RAW archives stop after a partial attempt instead:
+            // they have no verified Range resume, so a second body would duplicate the prefix.
             response.body.byteStream().use { input ->
                 target.openOutput(append = true).use { out ->
                     val buffer = ByteArray(BUFFER_BYTES)
                     var lastTick = 0L
-                    var written = target.length()
+                    var written = maxOf(target.length(), rawProgress.confirmedBytes)
                     while (true) {
                         if (!currentCoroutineContext().isActive) return RecordingFailure.NONE
                         if (RecordingRules.shouldStop(clock(), row.stopMs)) return RecordingFailure.NONE
@@ -512,13 +530,17 @@ class RecordingEngine(
                             }
                         }
                         storageLeases[row.id]?.reserve(written + read)
+                        // Mark before calling the provider: write() can accept a prefix then throw,
+                        // and SAF's length query need not expose those bytes yet.
+                        rawProgress.beforeWrite(read)
                         out.write(buffer, 0, read)
+                        rawProgress.afterWrite(read)
                         written += read
                         storageLeases[row.id]?.commit(written)
                         val now = clock()
                         if (now - lastTick > PROGRESS_INTERVAL_MS) {
                             lastTick = now
-                            val bytes = target.length()
+                            val bytes = maxOf(target.length(), rawProgress.confirmedBytes)
                             recordingDao.updateProgress(
                                 id = row.id,
                                 status = RecordingStatus.RECORDING,
@@ -546,10 +568,8 @@ class RecordingEngine(
      * identified by their **media sequence number**, not by their URL, so a signature that changes
      * between polls does not make an old segment look new.
      *
-     * **Encrypted playlists are refused, not attempted** (§1.5). Writing `#EXT-X-KEY`-protected
-     * segments out unchanged produces a file of exactly the right size that will not play, and a
-     * recording the user only discovers is worthless when they sit down to watch it is worse than
-     * one that said no at the start.
+     * AES-128 MPEG-TS is decrypted before durable commit. Sample encryption, DRM, encrypted maps
+     * and encrypted byte ranges remain refused; no encrypted bytes are published to local readers.
      */
     private suspend fun recordHls(
         row: RecordingEntity, target: MediaTarget, playlistUrl: String,
@@ -570,15 +590,14 @@ class RecordingEngine(
             var snapshot = loadHlsPlaylist(playlistUrl, userAgent, headers, session)
             val playlist = snapshot.playlist
             session.playback.configureTarget(playlist.targetDurationSecs)
-            if (playlist.isEncrypted) return RecordingFailure.ENCRYPTED
+            if (playlist.hasUnsupportedEncryption) return RecordingFailure.ENCRYPTED
             if (playlist.invalid || playlist.isMaster) return RecordingFailure.UNSUPPORTED_FORMAT
             if (!verifiedResume) {
                 val segment = ArchiveResumePolicy.validatedTail(session, row, playlist) ?: return RecordingFailure.ARCHIVE_CHANGED
                 val tail = session.entries.last()
-                val tailUrl = absoluteUrl(snapshot.url, segment.uri) ?: return RecordingFailure.UNSUPPORTED_FORMAT
                 val proof = File(session.directory, "resume.download")
                 try {
-                    if (!downloadHls(tailUrl, userAgent, headers, segment.range, proof)) return RecordingFailure.STREAM_UNAVAILABLE
+                    if (downloadHlsMedia(snapshot, segment, userAgent, headers, proof) == null) return RecordingFailure.STREAM_UNAVAILABLE
                     if (!ArchiveResumePolicy.proofMatches(tail, proof)) return RecordingFailure.ARCHIVE_CHANGED
                 } finally { proof.delete() }
                 verifiedResume = true
@@ -613,7 +632,7 @@ class RecordingEngine(
                     segmentOf = { fresh, sequence -> fresh.playlist.segments.firstOrNull { it.sequence == sequence } },
                     refresh = {
                         loadHlsPlaylist(playlistUrl, userAgent, headers, session).also {
-                            if (it.playlist.isEncrypted) return RecordingFailure.ENCRYPTED
+                            if (it.playlist.hasUnsupportedEncryption) return RecordingFailure.ENCRYPTED
                         }
                     },
                     capture = captureSegment@{ fresh, current ->
@@ -629,25 +648,24 @@ class RecordingEngine(
                         if (map != null && map != lastInit) {
                             val initUrl = absoluteUrl(snapshot.url, map.uri) ?: return RecordingFailure.UNSUPPORTED_FORMAT
                             val initScratch = File(session.directory, "init.download")
-                            if (!downloadHls(initUrl, userAgent, headers, map.range, initScratch)) return@captureSegment false
+                            val initHash = downloadHls(initUrl, userAgent, headers, map.range, initScratch) ?: return@captureSegment false
                             if (!HlsSegmentTransfer.hasMp4Box(initScratch, "moov")) {
                                 initScratch.delete(); return RecordingFailure.UNSUPPORTED_FORMAT
                             }
-                            if (session.initHash != null && session.initHash != HlsCaptureSession.sha256(initScratch)) {
+                            if (session.initHash != null && session.initHash != initHash) {
                                 initScratch.delete(); return RecordingFailure.UNSUPPORTED_FORMAT
                             }
-                            session.commitInit(initScratch)
+                            session.commitInit(initScratch, initHash)
                             updateHlsCapture(row, target, session, onProgress)
                             lastInit = map
                         }
                         if (!hlsHasSpace(row.id, session, target)) return RecordingFailure.NO_SPACE
-                        val segmentUrl = absoluteUrl(snapshot.url, current.uri) ?: return RecordingFailure.UNSUPPORTED_FORMAT
                         val scratch = File(session.directory, "segment.download")
-                        if (!downloadHls(segmentUrl, userAgent, headers, current.range, scratch)) return@captureSegment false
+                        val segmentHash = downloadHlsMedia(snapshot, current, userAgent, headers, scratch) ?: return@captureSegment false
                         val supported = if (container == "fmp4") HlsSegmentTransfer.hasMp4Box(scratch, "moof")
                             && HlsSegmentTransfer.hasMp4Box(scratch, "mdat") else HlsSegmentTransfer.isTransportStream(scratch)
                         if (!supported) { scratch.delete(); return RecordingFailure.UNSUPPORTED_FORMAT }
-                        session.commit(current, scratch)
+                        session.commit(current, scratch, segmentHash)
                         updateHlsCapture(row, target, session, onProgress)
                         true
                     },
@@ -674,7 +692,7 @@ class RecordingEngine(
         var url = initialUrl
         repeat(3) { depth ->
             val snapshot = recordingHttp(request(url, agent, headers)) { response ->
-                if (!response.isSuccessful) throw java.io.IOException("HLS playlist HTTP ${response.code}")
+                if (!response.isSuccessful) throw RecordingAttemptPolicy.httpFailure(response, clock())
                 val text = response.body.byteStream().use { input ->
                     val out = java.io.ByteArrayOutputStream()
                     val buffer = ByteArray(8192)
@@ -690,7 +708,7 @@ class RecordingEngine(
                 HlsSnapshot(response.request.url.toString(), HlsMediaPlaylist.parse(text))
             }
             if (snapshot.playlist.invalid) throw UnsupportedHls()
-            if (snapshot.playlist.isEncrypted || !snapshot.playlist.isMaster) return snapshot
+            if (snapshot.playlist.hasUnsupportedEncryption || !snapshot.playlist.isMaster) return snapshot
             val fixed = session.variantIdentity?.split('/')?.getOrNull(depth)
             val selected = HlsRecordingPlan.selectVariant(snapshot.playlist, fixed) ?: throw UnsupportedHls()
             val identities = session.variantIdentity?.split('/')?.toMutableList() ?: mutableListOf()
@@ -704,25 +722,59 @@ class RecordingEngine(
 
     private suspend fun downloadHls(
         url: String, agent: String, headers: Map<String, String>, range: HlsMediaPlaylist.ByteRange?, file: File,
-    ): Boolean {
+        cipher: javax.crypto.Cipher? = null,
+    ): String? {
         val req = request(url, agent, headers).newBuilder().apply { if (range != null) header("Range", range.header) }.build()
         return try {
             recordingHttp(req) { response ->
-                if (!response.isSuccessful) return@recordingHttp false
+                if (!response.isSuccessful) throw RecordingAttemptPolicy.httpFailure(response, clock())
+                val expectedBytes = range?.length ?: response.body.contentLength().takeIf { it >= 0 }
+                if (expectedBytes != null && expectedBytes !in 1..HlsSegmentTransfer.MAX_SEGMENT_BYTES) return@recordingHttp null
                 if (range != null && !HlsRangeValidation.accepts(response.code, response.header("Content-Range"), range)) {
-                    return@recordingHttp false // Never append a complete resource in place of a range.
+                    return@recordingHttp null // Never append a complete resource in place of a range.
                 }
                 val context = currentCoroutineContext()
                 response.body.byteStream().use { input ->
-                    HlsSegmentTransfer.copy(input, file, range?.length ?: response.body.contentLength().takeIf { it >= 0 }) {
+                    HlsSegmentTransfer.copy(input, file, expectedBytes, cipher = cipher) {
                         context.ensureActive()
                     }
                 }
-                true
             }
         } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
         catch (error: MediaStorageBudget.Refused) { file.delete(); throw error }
-        catch (_: Exception) { file.delete(); false }
+        catch (error: RecordingHttpFailure) { file.delete(); throw error }
+        catch (_: Exception) { file.delete(); currentCoroutineContext().ensureActive(); null }
+    }
+
+    /** Refetch for each segment and retry: a provider may rotate key bytes while retaining the URI. */
+    private suspend fun downloadHlsMedia(
+        snapshot: HlsSnapshot, segment: HlsMediaPlaylist.Segment, agent: String,
+        headers: Map<String, String>, file: File,
+    ): String? {
+        val url = absoluteUrl(snapshot.url, segment.uri) ?: return null
+        val keySpec = segment.key ?: return downloadHls(url, agent, headers, segment.range, file)
+        if (!keySpec.method.equals("AES-128", true) || segment.range != null || segment.init != null) return null
+        val keyUrl = absoluteUrl(snapshot.url, keySpec.uri) ?: return null
+        val key = try {
+            recordingHttp(request(keyUrl, agent, headers)) { response ->
+                if (!response.isSuccessful) throw RecordingAttemptPolicy.httpFailure(response, clock())
+                response.body.byteStream().use { input ->
+                    val bytes = ByteArray(HlsAes.KEY_BYTES + 1)
+                    var count = 0
+                    while (count < bytes.size) {
+                        currentCoroutineContext().ensureActive()
+                        val read = input.read(bytes, count, bytes.size - count)
+                        if (read < 0) break
+                        count += read
+                    }
+                    if (count == HlsAes.KEY_BYTES) bytes.copyOf(HlsAes.KEY_BYTES) else null
+                }
+            }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+        catch (error: RecordingHttpFailure) { throw error }
+        catch (_: Exception) { null } ?: return null
+        return try { downloadHls(url, agent, headers, null, file, HlsAes.cipher(key, segment)) }
+        finally { key.fill(0) }
     }
 
     private suspend fun <T> recordingHttp(req: Request, body: suspend (okhttp3.Response) -> T): T {
@@ -747,12 +799,11 @@ class RecordingEngine(
         row: RecordingEntity, target: MediaTarget, session: HlsCaptureSession,
         onProgress: (RecordingProgress) -> Unit,
     ) {
-        recordingDao.updateCapture(row.id, session.capturedDurationMs, session.missingDurationMs,
-            session.gapCount, session.checkpoint(), clock())
         val bytes = session.capturedBytes + session.initFile.length()
         storageLeases[row.id]?.commit(bytes)
-        recordingDao.updateProgress(row.id, RecordingStatus.RECORDING, RecordingFailure.NONE, bytes,
-            target.stored, row.startedAt ?: clock(), null, clock())
+        recordingDao.updateCommittedCapture(row.id, session.capturedDurationMs, session.missingDurationMs,
+            session.gapCount, session.checkpoint(), RecordingStatus.RECORDING, RecordingFailure.NONE, bytes,
+            target.stored, row.startedAt ?: clock(), clock())
         onProgress(RecordingProgress(row.id, row.title, row.channelName, bytes, row.stopMs))
     }
 
@@ -950,8 +1001,8 @@ class RecordingEngine(
                 android.util.Log.w(TAG, "recording stopped, disk reserve reached id=${row.id}")
                 return RecordingFailure.NO_SPACE
             }
-            val text = client.newCall(request(manifestUrl, userAgent, headers)).execute().use { response ->
-                if (!response.isSuccessful) return RecordingFailure.STREAM_UNAVAILABLE
+            val text = recordingHttp(request(manifestUrl, userAgent, headers)) { response ->
+                if (!response.isSuccessful) throw RecordingAttemptPolicy.httpFailure(response, clock())
                 response.body.string()
             }
             val manifest = DashManifest.parse(text) ?: return RecordingFailure.STREAM_UNAVAILABLE
@@ -1074,8 +1125,8 @@ class RecordingEngine(
         // rather than the address we asked for.
         val absolute = absoluteUrl(manifestUrl, url) ?: return false
         return runCatching {
-            client.newCall(request(absolute, userAgent, headers)).execute().use { response ->
-                if (!response.isSuccessful) return@use false
+            recordingHttp(request(absolute, userAgent, headers)) { response ->
+                if (!response.isSuccessful) throw RecordingAttemptPolicy.httpFailure(response, clock())
                 // Opened per segment rather than held open, exactly as recordHls does: a recording
                 // that is killed mid-programme keeps every byte already flushed.
                 val out = track.temp?.let { java.io.FileOutputStream(it, true) } ?: target.openOutput(append = true)
@@ -1098,7 +1149,8 @@ class RecordingEngine(
                 true
             }
         }.getOrElse { error ->
-            if (error is kotlinx.coroutines.CancellationException || error is MediaStorageBudget.Refused) throw error
+            currentCoroutineContext().ensureActive()
+            if (error is kotlinx.coroutines.CancellationException || error is MediaStorageBudget.Refused || error is RecordingHttpFailure) throw error
             android.util.Log.w(TAG, "segment failed id=${row.id} rep=${track.id}: ${error.message}")
             false
         }
@@ -1121,6 +1173,7 @@ class RecordingEngine(
         if (!session.needsMux) return null
         val temps = session.tracks.mapNotNull { it.temp }
         val result = try { withContext(Dispatchers.IO) { muxInto(id, target, temps) } }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
             catch (error: MediaStorageBudget.Refused) { MuxResult(false, null, storageFailure(error)) }
             catch (error: Exception) { MuxResult(false, null,
                 storageBudget.classifyWriteFailure(error, target)?.let(::storageFailure) ?: RecordingFailure.UNKNOWN) }
@@ -1141,6 +1194,7 @@ class RecordingEngine(
      * the cache and copied in; that path keeps the name it was given.
      */
     private suspend fun muxInto(id: Long, target: MediaTarget, temps: List<File>): MuxResult {
+        currentCoroutineContext().ensureActive()
         val reserve = try { storageBudget.reserveFloor(target) }
             catch (error: MediaStorageBudget.Refused) { return MuxResult(false, null, storageFailure(error)) }
         val required = temps.sumOf { it.length() } * if (target is MediaTarget.Document) 2L else 1L
@@ -1148,11 +1202,13 @@ class RecordingEngine(
             return MuxResult(false, null, RecordingFailure.NO_SPACE)
         if (target is MediaTarget.Path) {
             val muxed = File(target.file.parentFile, RecordingRules.muxedNameOf(target.file.name))
-            if (!DashRemux.mux(temps, muxed)) {
+            val muxContext = currentCoroutineContext()
+            if (!DashRemux.mux(temps, muxed, { muxContext.ensureActive() }, { target.usableSpace() > reserve })) {
                 android.util.Log.w(TAG, "dash mux produced nothing id=$id")
                 muxed.delete()
                 return MuxResult(succeeded = false, movedTo = null)
             }
+            currentCoroutineContext().ensureActive()
             try { storageLeases[id]?.reserve(muxed.length()) }
             catch (error: MediaStorageBudget.Refused) { muxed.delete(); return MuxResult(false, null, storageFailure(error)) }
             storageLeases[id]?.commit(muxed.length())
@@ -1163,18 +1219,18 @@ class RecordingEngine(
         }
         val scratch = storageBudget.spool(target, "$TEMP_PREFIX$id$MUXED_SUFFIX")
         return try {
-            if (!DashRemux.mux(temps, scratch)) {
+            val muxContext = currentCoroutineContext()
+            if (!DashRemux.mux(temps, scratch, { muxContext.ensureActive() }, { (scratch.parentFile?.usableSpace ?: 0L) > reserve })) {
                 android.util.Log.w(TAG, "dash mux produced nothing id=$id")
                 return MuxResult(succeeded = false, movedTo = null)
             }
             storageLeases[id]?.reserve(scratch.length(), scratch.length())
-            scratch.inputStream().use { input ->
-                target.openOutput(append = false).use { out -> input.copyTo(out, BUFFER_BYTES) }
-            }
+            RecordingStoredCopy.copy(scratch, { target.openOutput(append = false) }, target::length) { muxContext.ensureActive() }
             storageLeases[id]?.commit(target.length())
             android.util.Log.i(TAG, "dash recording muxed id=$id bytes=${scratch.length()}")
             MuxResult(succeeded = true, movedTo = null)
-        } catch (error: MediaStorageBudget.Refused) { MuxResult(false, null, storageFailure(error)) }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+        catch (error: MediaStorageBudget.Refused) { MuxResult(false, null, storageFailure(error)) }
         catch (e: Exception) {
             android.util.Log.w(TAG, "dash mux could not be stored id=$id: ${e.message}")
             MuxResult(succeeded = false, movedTo = null)

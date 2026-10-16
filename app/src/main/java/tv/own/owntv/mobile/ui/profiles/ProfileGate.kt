@@ -33,8 +33,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.own.owntv.core.database.entity.ProfileEntity
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileIcons
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
@@ -60,6 +61,7 @@ fun ProfileGate(
     var pinFor by remember { mutableStateOf<ProfileEntity?>(null) }
     var addProfile by remember { mutableStateOf(false) }
     val fallbackName = stringResource(R.string.profiles_default_name)
+    val operation by vm.mutation.collectAsStateWithLifecycle()
 
     fun enter(profile: ProfileEntity) = vm.switchTo(profile) { onEntered(profile) }
 
@@ -88,7 +90,7 @@ fun ProfileGate(
                     onClick = { if (profile.pinHash == null) enter(profile) else pinFor = profile },
                 )
             }
-            item(key = "add") { AddProfileTile(onClick = { addProfile = true }) }
+            item(key = "add") { AddProfileTile(onClick = { if (!operation.busy) { vm.clearMutationError(); addProfile = true } }) }
         }
     }
 
@@ -105,10 +107,11 @@ fun ProfileGate(
         ProfileEditorSheet(
             initial = null,
             takenNames = profiles.map { it.name.lowercase() }.toSet(),
-            onConfirm = { name, avatarId, isKids, pin ->
-                vm.create(name, avatarId, isKids, pin, fallbackName)
+            onConfirm = { name, avatarId, isKids, pin, _ ->
+                vm.create(name, avatarId, isKids, pin, fallbackName) { addProfile = false }
             },
-            onDismiss = { addProfile = false },
+            onDismiss = { vm.clearMutationError(); addProfile = false },
+            operation = operation,
         )
     }
 }

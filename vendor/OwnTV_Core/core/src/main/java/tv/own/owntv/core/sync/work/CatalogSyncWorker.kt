@@ -31,11 +31,13 @@ class CatalogSyncWorker(
     private val connectivity: ConnectivityObserver,
     private val epgRepository: tv.own.owntv.core.repository.EpgRepository,
     private val settings: SettingsRepository,
+    private val autoRefreshGate: tv.own.owntv.core.sync.AutoRefreshGate,
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
         val sourceId = inputData.getLong(KEY_SOURCE_ID, -1L)
         val reason = inputData.getString(KEY_REASON) ?: "unknown"
+        if (reason == tv.own.owntv.core.sync.AutoRefresh.REASON && !autoRefreshGate.awaitIdle()) return Result.retry()
         val baseItemCount = inputData.getInt(KEY_BASE_ITEM_COUNT, 0)
         if (sourceId < 0) return Result.failure()
 

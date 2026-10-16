@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_profile_current_pin">PIN atual deste perfil</string>
+    <string name="own_profile_current_pin_hint">Necessário para remover ou alterar a proteção, ou apagar um perfil protegido.</string>
+    <string name="own_profile_protection_changed">O perfil ou a sua proteção mudou. Fecha esta janela e tenta novamente.</string>
+    <string name="own_profile_cannot_delete">Não foi possível apagar o perfil. Tem de permanecer pelo menos um perfil.</string>
+    <string name="own_profile_operation_failed">Não foi possível guardar a alteração. Tenta novamente.</string>
+</resources>

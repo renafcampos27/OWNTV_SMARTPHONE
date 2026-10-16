@@ -31,7 +31,7 @@ interface ProfileDao {
 
     /** Point a profile at a picture of its own, or null for the drawn tile. Used by restore. */
     @Query("UPDATE profiles SET avatarPath = :path WHERE id = :id")
-    suspend fun setAvatarPath(id: Long, path: String?)
+    suspend fun setAvatarPath(id: Long, path: String?): Int
 
     @Query("SELECT COUNT(*) FROM profiles")
     suspend fun count(): Int
@@ -41,6 +41,14 @@ interface ProfileDao {
 
     @Update
     suspend fun update(profile: ProfileEntity)
+
+    /** Compare protection atomically: a grant for an old PIN/parental state never overwrites a new one. */
+    @Query("UPDATE profiles SET name = :name, avatarId = :avatarId, isKids = :isKids, pinHash = :pinHash WHERE id = :id AND pinHash IS :expectedPinHash AND isKids = :expectedKids")
+    suspend fun updateAuthorized(id: Long, expectedPinHash: String?, expectedKids: Boolean,
+        name: String, avatarId: Int, isKids: Boolean, pinHash: String?): Int
+
+    @Query("DELETE FROM profiles WHERE id = :id AND pinHash IS :expectedPinHash AND isKids = :expectedKids AND (SELECT COUNT(*) FROM profiles) > 1")
+    suspend fun deleteAuthorized(id: Long, expectedPinHash: String?, expectedKids: Boolean): Int
 
     @Delete
     suspend fun delete(profile: ProfileEntity)

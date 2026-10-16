@@ -7,6 +7,11 @@ import tv.own.owntv.core.database.entity.RecordingEntity
 import tv.own.owntv.core.model.RecordingStatus
 
 class RecordingReconciliationTest {
+    @Test fun manualTimerCannotBeRewrittenByAnUpdatedGuide() {
+        assertFalse(RecordingReconciliation.canAdjust(row().copy(epgChannelId = null), now))
+        assertNull(RecordingReconciliation.move(row().copy(epgChannelId = null), programme(), now))
+        assertNull(RecordingProgrammeMatcher.find(row().copy(epgChannelId = null), listOf(programme()), "guide", setOf(4)))
+    }
     private val minute = 60_000L
     private val now = 1_000_000_000L
     private val start = now + 12 * 3_600_000L

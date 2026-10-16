@@ -4,8 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import tv.own.owntv.core.model.ContentMenu
 import tv.own.owntv.core.model.MediaType
-import tv.own.owntv.mobile.R
-
+import tv.own.owntv.core.R
 /** The item a long press was made on, wherever it was made. */
 data class ContentTarget(val type: MediaType, val id: Long, val title: String)
 

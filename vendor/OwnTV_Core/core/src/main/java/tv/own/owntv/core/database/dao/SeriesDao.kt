@@ -69,6 +69,9 @@ interface SeriesDao {
     @Query("SELECT remoteId, id, contentHash, sortOrder FROM series WHERE sourceId = :sourceId AND remoteId IS NOT NULL")
     suspend fun contentHashesForSource(sourceId: Long): List<ContentHashProjection>
 
+    @Query("SELECT remoteId, id, contentHash, sortOrder FROM series WHERE sourceId = :sourceId AND remoteId IS NOT NULL AND id > :afterId ORDER BY id LIMIT :limit")
+    suspend fun contentHashesPage(sourceId: Long, afterId: Long, limit: Int): List<ContentHashProjection>
+
     /**
      * Write only the position of a row whose content did not change (plan A2).
      *

@@ -60,7 +60,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tv.own.owntv.core.theme.GlassConfig
 import tv.own.owntv.core.theme.GlassSurface
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.ChannelLogoImage
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.theme.LocalAnimations

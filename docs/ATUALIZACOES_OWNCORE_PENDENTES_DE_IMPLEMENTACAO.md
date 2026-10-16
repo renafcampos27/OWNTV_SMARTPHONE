@@ -1,14 +1,14 @@
 # Atualizações OwnCore pendentes de implementação
 
-Última atualização: 04/10/2026.
+Última atualização: 10/10/2026.
 
 ## Regra para futuras análises
 
 Sempre que se analisar uma nova versão do OwnTV Core, consultar este ficheiro juntamente com o código da nova versão e o código atual do projeto personalizado. Comparar cada pendência, registar o resultado e atualizar o seu estado. Uma nova publicação não autoriza automaticamente a implementação das pendências.
 
-## Pendente — lote 2: recuperação de diferidos sem imagem
+## Implementado — lote 2: recuperação de diferidos sem imagem
 
-**Estado:** adiado por decisão do utilizador. Não implementar agora. Reavaliar e voltar a discutir com o utilizador quando sair uma nova versão do Core.
+**Estado:** autorizado após a análise do Core 1.0.65 e implementado seletivamente no Core privado da Mobile em 09–10/10/2026. Mantém diagnóstico correto, tentativa limitada e respeito pelo motor exclusivo. Validação física continua necessária; consultar IMPLEMENTACAO_LIBMPV_2026_10_2_CORE_1_0_65_2026_10_10.md.
 
 **Origem:** análise do OwnTV Core 1.0.62, ramo de recuperação de arquivos/diferidos sem vídeo referido como #229, em `player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt`.
 
@@ -42,6 +42,8 @@ Preservar nas futuras integrações: HLS estrito e exceções autorizadas por ca
 
 ## Documentos de referência
 
+- **11/10/2026 — Core 1.0.66/libmpv 2026.10.3:** três fases integradas seletivamente no Core privado da Mobile. Não tratar estas alterações como pendentes de código; testes físicos continuam necessários. Ver [relatório](IMPLEMENTACAO_CORE_1_0_66_LIBMPV_2026_10_3_2026_10_11.md). Reconexão DASH, retry 458 de TS e partilha com TV mantêm-se condicionais; H.264 continua por canal.
+
 - [Análise crítica do Core 1.0.62](ANALISE_CORE_1.0.62_COUNCIL_2026-10-03.md).
 - [Implementação dos lotes 3, 4 e 5](IMPLEMENTACAO_CORE_LOTES_3_4_5_2026-10-03.md).
 
@@ -50,3 +52,6 @@ Preservar nas futuras integrações: HLS estrito e exceções autorizadas por ca
 | Data | Decisão |
 |---|---|
 | 04/10/2026 | Utilizador adiou o lote 2 para futura discussão quando existir uma nova versão do Core e pediu este registo para acompanhar as próximas análises. |
+| 09/10/2026 | Reavaliado Core 1.0.65 com libmpv 2026.10.2 e council. O lote 2 continua pendente, sem implementação. Há alterações novas de codec, hardware e recuperação de arquivos que devem ser adaptadas seletivamente, preservando motor exclusivo e identidade da reprodução. Consultar ANALISE_LIBMPV_2026_10_2_CORE_1_0_65_COUNCIL_2026_10_09.md. |
+
+| 10/10/2026 | Após autorização para implementar todas as recomendações, lote 2 integrado na Mobile: erro de diferido sem imagem, recuperação finita e fallback apenas quando permitido. TV e Core externo preservados. |

@@ -38,7 +38,7 @@ import tv.own.owntv.core.database.entity.SeriesEntity
 import tv.own.owntv.core.metadata.CastMember
 import tv.own.owntv.core.metadata.MetadataCast
 import tv.own.owntv.core.metadata.MetadataImages
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import java.text.NumberFormat

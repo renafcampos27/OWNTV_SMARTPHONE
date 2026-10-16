@@ -1,0 +1,7 @@
+<resources>
+    <string name="own_export_request_lost">The export request could not be restored. Start the export again.</string>
+    <string name="own_export_cancel_pending">Cancel pending export</string>
+    <string name="own_export_password_recovery">To finish the protected backup, enter the password you want to use again. Passwords are not saved when Android recreates the app.</string>
+    <string name="own_recording_delete_confirm">Delete “%1$s” and its recording file? This cannot be undone.</string>
+    <string name="own_recording_delete_active">Stop and delete “%1$s”, including the recorded file? This cannot be undone.</string>
+</resources>

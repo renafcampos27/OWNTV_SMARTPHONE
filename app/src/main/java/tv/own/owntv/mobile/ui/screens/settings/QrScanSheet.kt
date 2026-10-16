@@ -36,7 +36,7 @@ import com.google.zxing.PlanarYUVLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import java.util.concurrent.Executors
 import tv.own.owntv.core.companion.CompanionLink
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 

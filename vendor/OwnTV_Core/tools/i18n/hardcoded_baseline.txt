@@ -85,6 +85,7 @@
 1	core/src/main/java/tv/own/owntv/core/database/OwnTVDatabase.kt	liveLatencyMode
 1	core/src/main/java/tv/own/owntv/core/database/OwnTVDatabase.kt	playback_prefs
 1	core/src/main/java/tv/own/owntv/core/database/OwnTVDatabase.kt	preferHls
+1	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	SELECT * FROM channels WHERE sourceId = :sourceId AND name IN (:names)
 1	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	SELECT COUNT(*) FROM channels WHERE sourceId IN (:sourceIds) AND catchup = 1
 1	core/src/main/java/tv/own/owntv/core/database/dao/CustomCategoryDao.kt	(:type = 'LIVE' AND itemId IN (SELECT id FROM channels WHERE sourceId IN (:sourceIds))) OR
 1	core/src/main/java/tv/own/owntv/core/database/dao/CustomCategoryDao.kt	(:type = 'LIVE' AND itemId NOT IN (SELECT id FROM channels)) OR
@@ -145,6 +146,9 @@
 1	core/src/main/java/tv/own/owntv/core/database/dao/EpgDao.kt	SELECT EXISTS(SELECT 1 FROM epg_programmes WHERE epgChannelId = :key AND stopMs > :from AND startMs < :to)
 1	core/src/main/java/tv/own/owntv/core/database/dao/PlaybackPrefsDao.kt	SELECT COUNT(*) FROM playback_prefs WHERE audioDelayMs IS NOT NULL
 1	core/src/main/java/tv/own/owntv/core/database/dao/PlaybackPrefsDao.kt	UPDATE playback_prefs SET audioDelayMs = NULL
+1	core/src/main/java/tv/own/owntv/core/database/dao/RecordingDao.kt	UPDATE recordings SET capturedDurationMs = :capturedDurationMs, missingDurationMs = :missingDurationMs,
+1	core/src/main/java/tv/own/owntv/core/database/dao/RecordingDao.kt	filePath = :filePath, startedAt = :startedAt, endedAt = NULL, updatedAt = :timestamp WHERE id = :id
+1	core/src/main/java/tv/own/owntv/core/database/dao/RecordingDao.kt	gapCount = :gapCount, hlsCheckpoint = :hlsCheckpoint, status = :status, failure = :failure, bytes = :bytes,
 1	core/src/main/java/tv/own/owntv/core/database/dao/SourceDao.kt	UPDATE sources SET liveEnginePreference = :preference WHERE id = :id
 1	core/src/main/java/tv/own/owntv/core/database/dao/SourceDao.kt	UPDATE sources SET liveLatencyMode = :mode, liveLatencyCustomSecs = :customSecs WHERE id = :id
 1	core/src/main/java/tv/own/owntv/core/database/dao/SourceDao.kt	UPDATE sources SET preferHls = :preferHls WHERE id = :id

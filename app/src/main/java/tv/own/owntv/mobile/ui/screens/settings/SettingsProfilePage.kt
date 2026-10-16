@@ -16,15 +16,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.database.entity.ProfileEntity
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileIcons
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.profiles.ProfileAvatar
 import tv.own.owntv.mobile.ui.profiles.ProfileEditorSheet
+import tv.own.owntv.mobile.ui.profiles.ProfileDeleteSheet
 import tv.own.owntv.mobile.ui.profiles.ProfileGateSession
 import tv.own.owntv.mobile.ui.profiles.ProfilePinSheet
 import tv.own.owntv.mobile.ui.profiles.ProfilesViewModel
-import tv.own.owntv.mobile.ui.screens.settings.customize.ConfirmDialog
 
 /** The picture is the size of a list row's icon, so the rows keep the page's rhythm. */
 private val ROW_AVATAR_SIZE = 36.dp
@@ -43,6 +43,7 @@ fun SettingsProfilePage(
     val profiles by vm.profiles.collectAsStateWithLifecycle()
     val activeId by vm.activeProfileId.collectAsStateWithLifecycle()
     val fallbackName = stringResource(R.string.profiles_default_name)
+    val operation by vm.mutation.collectAsStateWithLifecycle()
 
     var editing by remember { mutableStateOf<ProfileEntity?>(null) }
     var adding by remember { mutableStateOf(false) }
@@ -73,13 +74,15 @@ fun SettingsProfilePage(
                         )
                     },
                     onClick = {
+                        if (operation.busy) return@MobileListRow
+                        vm.clearMutationError()
                         when {
                             profile.id == activeId -> editing = profile
                             profile.pinHash != null -> pinFor = profile
                             else -> switchTo(profile)
                         }
                     },
-                    onLongClick = { editing = profile },
+                    onLongClick = { if (!operation.busy) { vm.clearMutationError(); editing = profile } },
                     selected = profile.id == activeId,
                     trailing = if (profile.id == activeId) {
                         {
@@ -97,7 +100,7 @@ fun SettingsProfilePage(
             MobileListRow(
                 title = stringResource(R.string.profiles_add_button),
                 leading = { Icon(MobileIcons.Add, contentDescription = null) },
-                onClick = { adding = true },
+                onClick = { if (!operation.busy) { vm.clearMutationError(); adding = true } },
             )
         }
     }
@@ -117,33 +120,35 @@ fun SettingsProfilePage(
         ProfileEditorSheet(
             initial = null,
             takenNames = list.map { it.name.lowercase() }.toSet(),
-            onConfirm = { name, avatarId, isKids, pin -> vm.create(name, avatarId, isKids, pin, fallbackName) },
-            onDismiss = { adding = false },
+            onConfirm = { name, avatarId, isKids, pin, _ -> vm.create(name, avatarId, isKids, pin, fallbackName) { adding = false } },
+            onDismiss = { vm.clearMutationError(); adding = false },
+            operation = operation,
         )
     }
     editing?.let { profile ->
+        val current = list.firstOrNull { it.id == profile.id } ?: profile
         ProfileEditorSheet(
-            initial = profile,
+            initial = current,
             takenNames = list.filter { it.id != profile.id }.map { it.name.lowercase() }.toSet(),
-            onConfirm = { name, avatarId, isKids, pin -> vm.edit(profile, name, avatarId, isKids, pin) },
-            onDismiss = { editing = null },
-            customPath = profile.avatarPath.orEmpty(),
+            onConfirm = { name, avatarId, isKids, pin, currentPin -> vm.edit(profile, name, avatarId, isKids, pin, currentPin) { editing = null } },
+            onDismiss = { vm.clearMutationError(); editing = null },
+            customPath = current.avatarPath.orEmpty(),
             onPickPicture = { uri -> vm.setPicture(profile, uri) },
             onClearPicture = { vm.clearPicture(profile) },
             extraAction = if (list.size > 1) {
-                { deleting = profile }
+                { vm.clearMutationError(); deleting = current }
             } else {
                 null
             },
+            operation = operation,
         )
     }
     deleting?.let { profile ->
-        ConfirmDialog(
-            title = stringResource(R.string.profiles_delete_title, profile.name),
-            message = stringResource(R.string.profiles_delete_message),
-            confirmLabel = stringResource(R.string.common_delete),
-            onConfirm = { vm.delete(profile); deleting = null; editing = null },
-            onDismiss = { deleting = null },
+        ProfileDeleteSheet(
+            profile = list.firstOrNull { it.id == profile.id } ?: profile,
+            operation = operation,
+            onConfirm = { currentPin -> vm.delete(profile, currentPin) { deleting = null; editing = null } },
+            onDismiss = { vm.clearMutationError(); deleting = null },
         )
     }
 }

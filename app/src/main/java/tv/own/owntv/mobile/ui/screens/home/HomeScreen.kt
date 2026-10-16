@@ -38,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -62,8 +61,7 @@ import tv.own.owntv.core.launcher.LauncherWatchNextType
 import tv.own.owntv.core.model.HomeRow
 import tv.own.owntv.core.model.HomeTrendingStyle
 import tv.own.owntv.core.model.MediaType
-import tv.own.owntv.core.weather.WeatherInfo
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.core.home.TrendingHomeItem
 import tv.own.owntv.mobile.ui.components.ContentActionsMenu
 import tv.own.owntv.mobile.ui.components.ContentTarget
@@ -97,8 +95,6 @@ fun HomeScreen(
     vm: HomeViewModel = koinViewModel(),
 ) {
     val feed by vm.feed.collectAsStateWithLifecycle()
-    val weather by vm.weather.collectAsStateWithLifecycle()
-    val fahrenheit by vm.fahrenheit.collectAsStateWithLifecycle()
     val favoriteChannels by vm.favoriteChannels.collectAsStateWithLifecycle()
     val favoriteMovies by vm.favoriteMovies.collectAsStateWithLifecycle()
     val favoriteSeries by vm.favoriteSeries.collectAsStateWithLifecycle()
@@ -151,9 +147,7 @@ fun HomeScreen(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = MobileDimens.GapLarge),
     ) {
-        weather?.let { info ->
-            item("weather") { WeatherChip(info = info, fahrenheit = fahrenheit) }
-        }
+
         rows.forEach { row ->
             item(row.name) {
                 when (row) {
@@ -678,55 +672,6 @@ private fun ChannelLogo(channel: ChannelEntity, size: androidx.compose.ui.unit.D
     }
 }
 
-/** Temperature, place and sky, in the unit the user chose. */
-@Composable
-private fun WeatherChip(info: WeatherInfo, fahrenheit: Boolean) {
-    val temperature = if (fahrenheit) {
-        stringResource(R.string.common_weather_fahrenheit, (info.temperatureC * 9 / 5 + 32).toInt())
-    } else {
-        stringResource(R.string.common_weather_celsius, info.temperatureC.toInt())
-    }
-    val text =
-        if (info.city.isNotBlank()) stringResource(R.string.common_weather_city, temperature, info.city)
-        else temperature
-    Row(
-        modifier = Modifier.padding(
-            horizontal = MobileDimens.ScreenPaddingH,
-            vertical = MobileDimens.GapSmall,
-        ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = info.conditionIcon(),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(WeatherIconSize),
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = MobileDimens.GapSmall),
-        )
-    }
-}
-
-/**
- * The WMO code, drawn with Material's own icons rather than the television's canvas artwork. Read
- * off the code and not [WeatherInfo.symbolKey], whose keys name the TV's drawings.
- */
-private fun WeatherInfo.conditionIcon(): ImageVector = when {
-    weatherCode <= 2 && isDay -> MobileIcons.WbSunny
-    weatherCode <= 2 -> MobileIcons.DarkMode
-    weatherCode in 51..57 -> MobileIcons.Grain
-    weatherCode in 61..67 || weatherCode in 80..82 -> MobileIcons.WaterDrop
-    weatherCode in 71..77 || weatherCode in 85..86 -> MobileIcons.AcUnit
-    weatherCode in 95..99 -> MobileIcons.Bolt
-    else -> MobileIcons.Cloud
-}
-
 /**
  * Home with nothing on it: a headline and a line saying what would fill it.
  *
@@ -776,7 +721,6 @@ private val HeroBadgeSize = 20.dp
 private val ChannelCardWidth = 96.dp
 private val ChannelLogoSize = 56.dp
 private val OnNowCardWidth = 240.dp
-private val WeatherIconSize = 18.dp
 
 /** Wide enough to be the card Home is built around, and no wider. */
 private val HeroCardMaxWidth = 560.dp

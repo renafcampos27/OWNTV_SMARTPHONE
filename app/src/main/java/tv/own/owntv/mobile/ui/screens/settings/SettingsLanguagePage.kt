@@ -39,7 +39,7 @@ import tv.own.owntv.core.companion.CompanionLink
 import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.i18n.SupportedLocale
 import tv.own.owntv.core.i18n.SupportedLocales
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle

@@ -38,7 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.mobile.ui.screens.live.DirectTune
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileSlider
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
@@ -78,18 +78,18 @@ fun PlayerSheetHost(
     onDismiss: () -> Unit,
     /** When the programme on air ends, for the sleep timer's "End of programme"; null offers no such row. */
     programmeEndMs: Long? = null,
+    recordingChapters: List<tv.own.owntv.core.recording.RecordingChapterPoint> = emptyList(),
 ) {
     when (sheet) {
+        PlayerSheet.CHAPTERS -> RecordingChapterSheet(recordingChapters, player, onDismiss)
         PlayerSheet.VOLUME -> VolumeSheet(player, onDismiss)
         PlayerSheet.BRIGHTNESS -> BrightnessSheet(brightness, onBrightness, onDismiss)
         PlayerSheet.SUBTITLES -> SubtitleSheet(
             player = player,
             canAddSubtitles = canAddSubtitles,
-            onSearch = { onOpenSheet(PlayerSheet.SUBTITLE_SEARCH) },
             onPickLocalSubtitle = onPickLocalSubtitle,
             onDismiss = onDismiss,
         )
-        PlayerSheet.SUBTITLE_SEARCH -> SubtitleSearchSheet(onDismiss)
         PlayerSheet.AUDIO -> AudioSheet(player, onDismiss)
         PlayerSheet.ASPECT -> AspectSheet(player, onDismiss)
         PlayerSheet.QUALITY -> QualitySheet(player, onDismiss)
@@ -98,6 +98,31 @@ fun PlayerSheetHost(
         PlayerSheet.CHANNELS -> ChannelSheet(channels, onTuneToNumber, onPickChannel, onDismiss)
         PlayerSheet.CATCHUP -> catchup?.let { CatchupSheet(it, onDismiss) } ?: onDismiss()
         PlayerSheet.SLEEP_TIMER -> SleepTimerSheet(programmeEndMs = programmeEndMs, onDismiss = onDismiss)
+    }
+}
+
+/** Chapter selection uses the same local seek operation as the timeline, without reopening streams. */
+@Composable
+private fun RecordingChapterSheet(chapters: List<tv.own.owntv.core.recording.RecordingChapterPoint>,
+    player: PlaybackEngine, onDismiss: () -> Unit) {
+    MobileBottomSheet(onDismissRequest = onDismiss,
+        title = stringResource(tv.own.owntv.mobile.R.string.own_recording_chapters)) {
+        Text(stringResource(tv.own.owntv.mobile.R.string.own_recording_chapters_note),
+            modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH),
+            style = MaterialTheme.typography.bodySmall)
+        LazyColumn(Modifier.heightIn(max = sheetListHeight())) {
+            items(chapters, key = { it.positionMs }) { chapter ->
+                MobileListRow(title = chapter.title,
+                    subtitle = android.text.format.DateUtils.formatElapsedTime(chapter.positionMs / 1000),
+                    onClick = {
+                        val duration = player.duration.value
+                        if (duration > 0 && !player.buffering.value) {
+                            player.seekBy(chapter.positionMs.coerceIn(0, (duration - 1).coerceAtLeast(0)) - player.position.value)
+                            onDismiss()
+                        }
+                    })
+            }
+        }
     }
 }
 
@@ -172,7 +197,6 @@ private fun SliderRow(value: Float, label: String, onChange: (Float) -> Unit) {
 private fun SubtitleSheet(
     player: PlaybackEngine,
     canAddSubtitles: Boolean,
-    onSearch: () -> Unit,
     onPickLocalSubtitle: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -197,7 +221,6 @@ private fun SubtitleSheet(
             }
             if (canAddSubtitles) {
                 SectionLabel(stringResource(R.string.player_add_subtitles))
-                MobileListRow(title = stringResource(R.string.player_search_subtitles), onClick = onSearch)
                 MobileListRow(
                     title = stringResource(R.string.player_select_local_subtitle),
                     onClick = { onPickLocalSubtitle(); onDismiss() },

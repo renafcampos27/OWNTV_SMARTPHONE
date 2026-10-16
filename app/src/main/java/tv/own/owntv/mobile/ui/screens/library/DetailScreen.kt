@@ -48,7 +48,7 @@ import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.database.entity.EpisodeEntity
 import tv.own.owntv.core.database.entity.MetadataCacheEntity
 import tv.own.owntv.core.model.ContentMenu
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.ContentMenuSheet
 import tv.own.owntv.mobile.ui.components.DownloadActionButton
 import tv.own.owntv.mobile.ui.components.downloadActionFor

@@ -139,6 +139,14 @@ interface EpgDao {
     @Query("SELECT description FROM epg_programmes WHERE id = :programmeId LIMIT 1")
     suspend fun programmeDescription(programmeId: Long): String?
 
+    @Query("SELECT id, sourceId, epgChannelId, startMs, stopMs, title, NULL AS description, 0 AS contentHash, categories, year, rating, lengthMin, episode " +
+        "FROM epg_programmes WHERE stopMs > :from AND startMs < :to AND title LIKE :pattern ESCAPE '\\' " +
+        "AND (epgChannelId IN (SELECT LOWER(TRIM(epgChannelId)) FROM channels WHERE sourceId IN (:sourceIds)) " +
+        "OR epgChannelId IN (:matchedKeys)) ORDER BY startMs, id LIMIT :limit OFFSET :offset")
+    suspend fun searchProgrammeTitles(pattern: String, from: Long, to: Long, sourceIds: List<Long>,
+        matchedKeys: List<String>, limit: Int, offset: Int): List<EpgProgrammeEntity>
+
+
     /**
      * One guide row's programmes, loaded lazily when the row scrolls into view. [epgKey] must be the
      * normalized (trim+lowercase) id — programmes are stored normalized, so this hits the

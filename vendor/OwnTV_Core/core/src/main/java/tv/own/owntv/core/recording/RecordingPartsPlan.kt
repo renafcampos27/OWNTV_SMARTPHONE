@@ -12,13 +12,13 @@ internal object RecordingPartsPlan {
     data class Part(val name: String, val bytes: Long, val durationMs: Long, val discontinuity: Boolean)
     data class Index(val identity: String, val container: String, val initBytes: Long, val parts: List<Part>) {
         val bytes: Long get() = initBytes + parts.sumOf { it.bytes }
-        fun playlist(): String = buildString {
+        fun playlist(portable: Boolean = false): String = buildString {
             val target = (parts.maxOf { it.durationMs } + 999) / 1000
             append("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-TARGETDURATION:$target\n#EXT-X-MEDIA-SEQUENCE:0\n")
-            if (container == "fmp4") append("#EXT-X-MAP:URI=\"-1.mp4\"\n")
+            if (container == "fmp4") append("#EXT-X-MAP:URI=\"${if (portable) "init.mp4" else "-1.mp4"}\"\n")
             parts.forEachIndexed { index, part ->
                 if (part.discontinuity) append("#EXT-X-DISCONTINUITY\n")
-                append("#EXTINF:${String.format(Locale.ROOT, "%.3f", part.durationMs / 1000.0)},\n$index.${if (container == "fmp4") "m4s" else "ts"}\n")
+                append("#EXTINF:${String.format(Locale.ROOT, "%.3f", part.durationMs / 1000.0)},\n${if (portable) part.name else "$index.${if (container == "fmp4") "m4s" else "ts"}"}\n")
             }
             append("#EXT-X-ENDLIST\n")
         }

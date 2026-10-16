@@ -41,7 +41,7 @@ import tv.own.owntv.core.sync.displayText
 import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.core.setup.displayText
 import tv.own.owntv.core.util.classifySyncFailure
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.glassSurface
 

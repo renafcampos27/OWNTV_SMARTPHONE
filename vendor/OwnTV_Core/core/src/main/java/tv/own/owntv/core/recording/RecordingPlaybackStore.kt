@@ -3,7 +3,6 @@ package tv.own.owntv.core.recording
 import java.io.Closeable
 import java.io.File
 import java.io.FileInputStream
-import java.util.Locale
 import java.util.concurrent.Executors
 import tv.own.owntv.core.timeshift.LocalSegmentStore
 import tv.own.owntv.core.timeshift.LocalTimeshiftServer
@@ -14,6 +13,24 @@ internal class RecordingPlaybackStore(
     private val onIdle: (RecordingPlaybackStore) -> Unit = {},
 ) {
     private val entries = mutableListOf<HlsCaptureSession.Entry>()
+    private val fragments = mutableListOf<String>()
+    private var maxSegmentSeconds = 1L
+    private var revision = 0L
+    private data class CachedPlaylist(val revision: Long, val text: String)
+    private var cachedPlaylist: CachedPlaylist? = null
+    private data class PlaylistSnapshot(
+        val revision: Long,
+        val target: Long,
+        val fragmentedMp4: Boolean,
+        val hasInit: Boolean,
+        val ended: Boolean,
+        val fragments: List<String>,
+    )
+
+    private fun changed() {
+        revision++
+        cachedPlaylist = null
+    }
     private var container: String? = null
     private var hasInit = false
     private var targetDuration = 0L
@@ -28,13 +45,25 @@ internal class RecordingPlaybackStore(
         val seconds = (entry.durationMs + 999) / 1000
         if (targetDuration > 0 && seconds > targetDuration) { finish(); return }
         if (entries.lastOrNull()?.sequence?.let { entry.sequence <= it } == true) return
+        val previous = entries.lastOrNull()
+        val discontinuity = previous != null &&
+            (entry.sequence != previous.sequence + 1 || entry.discontinuity != previous.discontinuity)
+        // Milliseconds already have exact three-digit precision; format once per committed segment.
+        fragments += buildString {
+            if (discontinuity) append("#EXT-X-DISCONTINUITY\n")
+            append("#EXTINF:${entry.durationMs / 1000}.${(entry.durationMs % 1000).toString().padStart(3, '0')},\n")
+        }
         container = format
         hasInit = init
         entries += entry
+        maxSegmentSeconds = maxOf(maxSegmentSeconds, seconds)
+        changed()
     }
     @Synchronized fun configureTarget(seconds: Double) {
-        if (targetDuration == 0L) targetDuration = maxOf(kotlin.math.ceil(seconds).toLong(),
-            entries.maxOfOrNull { (it.durationMs + 999) / 1000 } ?: 1L)
+        if (targetDuration == 0L) {
+            targetDuration = maxOf(kotlin.math.ceil(seconds).toLong(), maxSegmentSeconds)
+            changed()
+        }
     }
     @Synchronized fun hasViewers() = viewers > 0 || readers > 0
     @Synchronized fun canOpen() = !retired && !ended && entries.isNotEmpty() &&
@@ -48,8 +77,15 @@ internal class RecordingPlaybackStore(
             if (!closed) { closed = true; viewers--; cleanupIfIdle() }
         } }
     }
-    @Synchronized fun finish() { ended = true; cleanupIfIdle() }
-    @Synchronized fun discard() { retired = true; ended = true; cleanupIfIdle(async = false) }
+    @Synchronized fun finish() {
+        if (!ended) { ended = true; changed() }
+        cleanupIfIdle()
+    }
+    @Synchronized fun discard() {
+        retired = true
+        if (!ended) { ended = true; changed() }
+        cleanupIfIdle(async = false)
+    }
     private fun cleanupIfIdle(async: Boolean = true) {
         if (!ended || viewers != 0 || readers != 0) return
         onIdle(this)
@@ -62,22 +98,29 @@ internal class RecordingPlaybackStore(
             if (async) cleanup.execute(remove) else remove.run()
         }
     }
-    @Synchronized fun playlist(): String {
-        check(entries.isNotEmpty())
-        val target = targetDuration.takeIf { it > 0 } ?: ((entries.maxOf { it.durationMs } + 999) / 1000).coerceAtLeast(1)
-        return buildString {
-            append("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:EVENT\n")
-            append("#EXT-X-TARGETDURATION:$target\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-START:TIME-OFFSET=0,PRECISE=YES\n")
-            if (container == "fmp4") append("#EXT-X-MAP:URI=\"-1.mp4\"\n")
-            entries.forEachIndexed { index, entry ->
-                val previous = entries.getOrNull(index - 1)
-                if (previous != null && (entry.sequence != previous.sequence + 1 || entry.discontinuity != previous.discontinuity))
-                    append("#EXT-X-DISCONTINUITY\n")
-                append("#EXTINF:${String.format(Locale.ROOT, "%.3f", entry.durationMs / 1000.0)},\n")
-                append("$index.${if (container == "fmp4") "m4s" else "ts"}\n")
-            }
-            if (ended) append("#EXT-X-ENDLIST\n")
+    fun playlist(): String {
+        val snapshot = synchronized(this) {
+            check(entries.isNotEmpty())
+            cachedPlaylist?.takeIf { it.revision == revision }?.let { return it.text }
+            PlaylistSnapshot(revision, targetDuration.takeIf { it > 0 } ?: maxSegmentSeconds,
+                container == "fmp4", hasInit, ended, fragments.toList())
         }
+        // Build outside the file-publication lock: a long EVENT timeline must not block commits/readers.
+        val text = buildString {
+            append("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:EVENT\n")
+            append("#EXT-X-TARGETDURATION:${snapshot.target}\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-START:TIME-OFFSET=0,PRECISE=YES\n")
+            if (snapshot.fragmentedMp4) append("#EXT-X-MAP:URI=\"-1.mp4\"\n")
+            snapshot.fragments.forEachIndexed { index, fragment ->
+                append(fragment)
+                append("$index.${if (snapshot.fragmentedMp4) "m4s" else "ts"}\n")
+            }
+            if (snapshot.ended) append("#EXT-X-ENDLIST\n")
+        }
+        synchronized(this) {
+            // A racing writer may have published a newer revision; never overwrite its cache.
+            if (snapshot.revision == revision) cachedPlaylist = CachedPlaylist(snapshot.revision, text)
+        }
+        return text
     }
     @Synchronized fun open(index: Long): LocalSegmentStore.Reader? {
         if (viewers == 0) return null

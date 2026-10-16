@@ -64,6 +64,16 @@ interface ChannelDao {
     @Query("SELECT * FROM channels WHERE sourceId = :sourceId AND name = :name LIMIT 1")
     suspend fun findByName(sourceId: Long, name: String): ChannelEntity?
 
+    @Query("SELECT * FROM channels WHERE sourceId = :sourceId AND name IN (:names)")
+    suspend fun findByNames(sourceId: Long, names: List<String>): List<ChannelEntity>
+
+    @Query("SELECT * FROM channels WHERE sourceId IN (:sourceIds) AND LOWER(TRIM(epgChannelId)) IN (:epgKeys)")
+    suspend fun byEpgKeys(sourceIds: List<Long>, epgKeys: List<String>): List<ChannelEntity>
+
+    @Query("SELECT * FROM channels WHERE sourceId IN (:sourceIds) AND (remoteId IN (:tails) OR name IN (:tails))")
+    suspend fun byRemoteIdsOrNames(sourceIds: List<Long>, tails: List<String>): List<ChannelEntity>
+
+
     @Query("SELECT * FROM channels WHERE sourceId = :sourceId AND name = :name LIMIT 3")
     suspend fun recordingCandidates(sourceId: Long, name: String): List<ChannelEntity>
 
@@ -168,6 +178,9 @@ interface ChannelDao {
     @Query("SELECT remoteId, id, contentHash, sortOrder FROM channels WHERE sourceId = :sourceId AND remoteId IS NOT NULL")
     suspend fun contentHashesForSource(sourceId: Long): List<ContentHashProjection>
 
+    @Query("SELECT remoteId, id, contentHash, sortOrder FROM channels WHERE sourceId = :sourceId AND remoteId IS NOT NULL AND id > :afterId ORDER BY id LIMIT :limit")
+    suspend fun contentHashesPage(sourceId: Long, afterId: Long, limit: Int): List<ContentHashProjection>
+
     /**
      * Write only the position of a row whose content did not change (plan A2).
      *
@@ -232,10 +245,10 @@ interface ChannelDao {
     @Query("SELECT * FROM channels WHERE categoryId = :categoryId ORDER BY sortOrder ASC, name ASC")
     fun pagingByCategory(categoryId: Long): PagingSource<Int, ChannelEntity>
 
-    @Query("SELECT * FROM channels WHERE categoryId = :categoryId ORDER BY name ASC")
+    @Query("SELECT * FROM channels WHERE categoryId = :categoryId ORDER BY name COLLATE NOCASE ASC, id ASC")
     fun pagingByCategoryAlpha(categoryId: Long): PagingSource<Int, ChannelEntity>
 
-    @Query("SELECT * FROM channels WHERE sourceId IN (:sourceIds) ORDER BY name ASC")
+    @Query("SELECT * FROM channels WHERE sourceId IN (:sourceIds) ORDER BY name COLLATE NOCASE ASC, id ASC")
     fun pagingAll(sourceIds: List<Long>): PagingSource<Int, ChannelEntity>
 
     @Query("SELECT * FROM channels WHERE sourceId IN (:sourceIds) ORDER BY sourceId ASC, sortOrder ASC, name ASC")
@@ -245,11 +258,17 @@ interface ChannelDao {
     //     rows as ALL, so it needs no sync work and stays correct after every re-sync. Deliberately
     //     independent of the guide: `catchup` comes from the playlist, so these lists are populated
     //     even for a user with no EPG at all (who is exactly the person looking for them).
-    @Query("SELECT * FROM channels WHERE sourceId IN (:sourceIds) AND catchup = 1 ORDER BY name ASC")
+    @Query("SELECT * FROM channels WHERE sourceId IN (:sourceIds) AND catchup = 1 ORDER BY name COLLATE NOCASE ASC, id ASC")
     fun pagingCatchup(sourceIds: List<Long>): PagingSource<Int, ChannelEntity>
 
     @Query("SELECT * FROM channels WHERE sourceId IN (:sourceIds) AND catchup = 1 ORDER BY sourceId ASC, sortOrder ASC, name ASC")
     fun pagingCatchupOriginal(sourceIds: List<Long>): PagingSource<Int, ChannelEntity>
+
+    @Query("SELECT c.* FROM channels c LEFT JOIN content_order o ON o.itemId = c.id AND o.profileId = :profileId AND o.mediaType = 'LIVE' AND o.contextKey = :contextKey WHERE c.sourceId IN (:sourceIds) AND (:catchupOnly = 0 OR c.catchup = 1) ORDER BY (CASE WHEN o.position IS NULL THEN 1 ELSE 0 END), o.position, c.sourceId, c.sortOrder, c.name COLLATE NOCASE, c.id")
+    fun pagingAllManual(sourceIds: List<Long>, profileId: Long, contextKey: String, catchupOnly: Boolean): PagingSource<Int, ChannelEntity>
+
+    @Query("SELECT c.* FROM channels c LEFT JOIN content_order o ON o.itemId = c.id AND o.profileId = :profileId AND o.mediaType = 'LIVE' AND o.contextKey = :contextKey WHERE c.sourceId IN (:sourceIds) AND (:catchupOnly = 0 OR c.catchup = 1) ORDER BY (CASE WHEN o.position IS NULL THEN 1 ELSE 0 END), o.position, c.sourceId, c.sortOrder, c.name COLLATE NOCASE, c.id LIMIT :limit")
+    suspend fun snapshotAllManual(sourceIds: List<Long>, profileId: Long, contextKey: String, catchupOnly: Boolean, limit: Int): List<ChannelEntity>
 
     // --- Manual order (Move) — LEFT JOIN content_order; items with a row come first in their saved
     //     position, the rest fall back to provider/playlist order. ---

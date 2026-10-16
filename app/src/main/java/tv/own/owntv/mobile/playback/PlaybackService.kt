@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.playback
 
+import tv.own.owntv.core.R as CoreR
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -62,9 +64,11 @@ class PlaybackService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    /** Artwork is fetched over the network, so it is kept against the URL it came from. */
-    private var artUrl: String? = null
-    private var art: Bitmap? = null
+    private val artwork by lazy {
+        NotificationArtwork<Shown, Bitmap>(scope, ::loadArt) { shown, bitmap ->
+            notify(build(shown, bitmap))
+        }
+    }
     private var lastChannelName: String? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -97,8 +101,7 @@ class PlaybackService : Service() {
             }
             .distinctUntilChanged()
             .onEach { shown ->
-                loadArt(shown.meta.logoUrl)
-                notify(build(shown))
+                artwork.update(shown, shown.meta.logoUrl)
             }
             .launchIn(scope)
     }
@@ -138,6 +141,7 @@ class PlaybackService : Service() {
     }
 
     override fun onDestroy() {
+        artwork.close()
         scope.cancel()
         super.onDestroy()
     }
@@ -146,17 +150,17 @@ class PlaybackService : Service() {
      *  notification follows. */
     private fun localized(): Context = AppLocale.wrap(this, localeStore.currentTag.value)
 
-    private fun build(shown: Shown): Notification {
+    private fun build(shown: Shown, art: Bitmap? = null): Notification {
         val (meta, playing, audioOnly, castingTo) = shown
         val ctx = localized()
         ensureChannel(ctx)
         val builder = Notification.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.owntv_notification)
-            .setContentTitle(meta.title ?: ctx.getString(R.string.app_name))
+            .setSmallIcon(CoreR.drawable.owntv_notification)
+            .setContentTitle(meta.title ?: ctx.getString(CoreR.string.app_name))
             // Where it is playing beats what is on next: the second line is the one place outside the
             // app that can say the sound is coming out of another room.
             .setContentText(
-                castingTo?.let { ctx.getString(R.string.player_cast_playing_on, it) } ?: meta.subtitle.orEmpty(),
+                castingTo?.let { ctx.getString(CoreR.string.player_cast_playing_on, it) } ?: meta.subtitle.orEmpty(),
             )
             // Tapping the notification means "show me what I am listening to", so it opens the player
             // rather than wherever the app happened to be left — and after the PiP window was closed
@@ -179,21 +183,21 @@ class PlaybackService : Service() {
             .addAction(
                 action(
                     android.R.drawable.ic_media_rew,
-                    ctx.getString(R.string.player_skip_back),
+                    ctx.getString(CoreR.string.player_skip_back),
                     ACTION_BACK,
                 ),
             )
             .addAction(
                 action(
                     if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
-                    ctx.getString(R.string.settings_remote_action_play_pause),
+                    ctx.getString(CoreR.string.settings_remote_action_play_pause),
                     ACTION_TOGGLE,
                 ),
             )
             .addAction(
                 action(
                     android.R.drawable.ic_media_ff,
-                    ctx.getString(R.string.player_skip_forward),
+                    ctx.getString(CoreR.string.player_skip_forward),
                     ACTION_FORWARD,
                 ),
             )
@@ -204,7 +208,7 @@ class PlaybackService : Service() {
             builder.addAction(
                 action(
                     R.drawable.ic_audio_only,
-                    ctx.getString(R.string.player_tool_audio_only),
+                    ctx.getString(CoreR.string.player_tool_audio_only),
                     ACTION_AUDIO_ONLY,
                 ),
             )
@@ -212,7 +216,7 @@ class PlaybackService : Service() {
         builder.addAction(
             action(
                 android.R.drawable.ic_menu_close_clear_cancel,
-                ctx.getString(R.string.content_close),
+                ctx.getString(CoreR.string.content_close),
                 ACTION_STOP,
             ),
         )
@@ -254,22 +258,16 @@ class PlaybackService : Service() {
         }
     }
 
-    private suspend fun loadArt(url: String?) {
-        if (url == artUrl) return
-        artUrl = url
-        art = if (url.isNullOrBlank()) {
-            null
-        } else {
-            val result = runCatching {
-                SingletonImageLoader.get(this).execute(ImageRequest.Builder(this).data(url).size(ART_SIZE_PX).build())
-            }.getOrNull()
-            (result as? SuccessResult)?.image?.toBitmap()
-        }
+    private suspend fun loadArt(url: String): Bitmap? {
+        val result = SingletonImageLoader.get(this).execute(
+            ImageRequest.Builder(this).data(url).size(ART_SIZE_PX).build(),
+        )
+        return (result as? SuccessResult)?.image?.toBitmap()
     }
 
     private fun ensureChannel(localized: Context) {
         val manager = getSystemService(NotificationManager::class.java) ?: return
-        val name = localized.getString(R.string.settings_playback_group)
+        val name = localized.getString(CoreR.string.settings_playback_group)
         // Re-created when the app's language changes, so the channel is never left in the old one.
         if (name == lastChannelName) return
         manager.createNotificationChannel(

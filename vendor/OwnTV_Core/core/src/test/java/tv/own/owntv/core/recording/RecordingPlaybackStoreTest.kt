@@ -19,6 +19,90 @@ class RecordingPlaybackStoreTest {
         session.commit(HlsMediaPlaylist.Segment("https://provider.invalid/private?token=secret", 6.0, seq, discontinuity = dc), scratch)
     }
 
+    private fun entry(sequence: Long, durationMs: Long = 6_000, dc: Long = 0) =
+        HlsCaptureSession.Entry(sequence, durationMs, "segment-$sequence.bin", "a".repeat(64), 4, dc)
+
+    @Test fun unchangedRevisionReusesImmutablePlaylistAndCommitInvalidatesIt() {
+        val store = RecordingPlaybackStore(temporary.newFolder())
+        store.configureTarget(6.0)
+        store.publish(entry(10, 5_007), "ts", false)
+        val first = store.playlist()
+        assertSame(first, store.playlist())
+        assertTrue(first.contains("#EXTINF:5.007,"))
+        store.publish(entry(11), "ts", false)
+        val next = store.playlist()
+        assertNotSame(first, next)
+        assertSame(next, store.playlist())
+        assertFalse(first.contains("1.ts"))
+        assertTrue(next.contains("0.ts") && next.contains("1.ts"))
+        store.publish(entry(11), "ts", false)
+        assertSame(next, store.playlist())
+        store.finish()
+        val ended = store.playlist()
+        assertTrue(ended.contains("#EXT-X-ENDLIST"))
+        assertSame(ended, store.playlist())
+        store.finish()
+        assertSame(ended, store.playlist())
+        store.discard()
+    }
+
+    @Test fun configuringTargetInvalidatesAlreadyBuiltPlaylistWithoutLosingHistory() {
+        val store = RecordingPlaybackStore(temporary.newFolder())
+        store.publish(entry(1, 1_001), "ts", false)
+        val initial = store.playlist()
+        assertTrue(initial.contains("#EXT-X-TARGETDURATION:2"))
+        store.configureTarget(6.0)
+        val configured = store.playlist()
+        assertNotSame(initial, configured)
+        assertTrue(configured.contains("#EXT-X-TARGETDURATION:6"))
+        assertTrue(configured.contains("#EXTINF:1.001,"))
+        store.discard()
+    }
+
+    @Test fun longTimelinePreservesEverySegmentAndDiscontinuity() {
+        val store = RecordingPlaybackStore(temporary.newFolder())
+        store.configureTarget(6.0)
+        (0L until 2_000).forEach { store.publish(entry(it, dc = if (it < 1_000) 0 else 1), "ts", false) }
+        val playlist = store.playlist()
+        assertEquals(2_000, Regex("#EXTINF:").findAll(playlist).count())
+        assertEquals(1, Regex("#EXT-X-DISCONTINUITY").findAll(playlist).count())
+        assertTrue(playlist.contains("\n0.ts\n")); assertTrue(playlist.contains("\n1999.ts\n"))
+        assertSame(playlist, store.playlist())
+        store.discard()
+    }
+
+    @Test fun concurrentRequestsAndCommitsProduceConsistentSnapshotsAndFinalRevision() {
+        val store = RecordingPlaybackStore(temporary.newFolder())
+        store.configureTarget(6.0)
+        store.publish(entry(0), "ts", false)
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(4)
+        val start = java.util.concurrent.CountDownLatch(1)
+        try {
+            val writer = pool.submit {
+                start.await()
+                (1L..400L).forEach { store.publish(entry(it), "ts", false) }
+                store.finish()
+            }
+            val readers = (1..3).map { pool.submit {
+                start.await()
+                repeat(200) {
+                    val text = store.playlist()
+                    val media = text.lineSequence().filter { it.endsWith(".ts") }.toList()
+                    assertTrue(media.isNotEmpty())
+                    assertEquals(media.indices.map { "$it.ts" }, media)
+                    assertEquals(media.size, Regex("#EXTINF:").findAll(text).count())
+                }
+            } }
+            start.countDown()
+            writer.get(10, java.util.concurrent.TimeUnit.SECONDS)
+            readers.forEach { it.get(10, java.util.concurrent.TimeUnit.SECONDS) }
+            val complete = store.playlist()
+            assertEquals(401, Regex("#EXTINF:").findAll(complete).count())
+            assertTrue(complete.contains("#EXT-X-ENDLIST"))
+            assertSame(complete, store.playlist())
+        } finally { pool.shutdownNow(); store.discard() }
+    }
+
     @Test fun onlyCommittedSegmentsArePublishedAndTimelineGrowsFromTheStart() {
         val session = capture()
         File(session.directory, "segment.download").writeBytes(byteArrayOf(1))

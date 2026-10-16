@@ -38,7 +38,7 @@ import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.epg.GuideCandidate
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.model.ContentMenu
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.ContentMenuSheet
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton

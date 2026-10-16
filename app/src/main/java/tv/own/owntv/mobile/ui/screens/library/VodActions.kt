@@ -33,7 +33,7 @@ import tv.own.owntv.core.database.entity.MovieEntity
 import tv.own.owntv.core.database.entity.SeriesEntity
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.model.ContentMenu
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.ContentMenuSheet
 import tv.own.owntv.mobile.ui.components.downloadActionFor
 import tv.own.owntv.mobile.ui.components.icon

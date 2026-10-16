@@ -86,6 +86,8 @@ object BackupContainer {
         val subtitles: Map<String, ByteArray> = emptyMap(),
         /** Profile pictures, keyed by their container entry name (see [AVATAR_DIR]). */
         val avatars: Map<String, ByteArray> = emptyMap(),
+        /** Export-only sources, streamed from disk using their complete container entry names. */
+        val fileAssets: Map<String, File> = emptyMap(),
     )
 
     /** What a file on disk turns out to be. */
@@ -123,106 +125,170 @@ object BackupContainer {
         }
     }
 
-    /** Serializes [payload] into container bytes, encrypting the whole thing when [passphrase] is set. */
-    fun pack(payload: Payload, passphrase: String?): ByteArray {
-        val zip = ByteArrayOutputStream().also { out ->
-            ZipOutputStream(out).use { zos ->
-                zos.putNextEntry(ZipEntry(JSON_ENTRY))
-                zos.write(payload.json.toByteArray(Charsets.UTF_8))
-                zos.closeEntry()
-                payload.wallpaper?.let { asset ->
-                    zos.putNextEntry(ZipEntry(WALLPAPER_DIR + asset.name))
-                    zos.write(asset.bytes)
-                    zos.closeEntry()
+    /** Compatibility helper; production exports use writeTo to avoid whole-archive copies. */
+    fun pack(payload: Payload, passphrase: String?): ByteArray = ByteArrayOutputStream().also {
+        writeTo(it, payload, passphrase)
+    }.toByteArray()
+
+    /** The caller owns output (including its final fsync/atomic promotion). */
+    fun writeTo(output: java.io.OutputStream, payload: Payload, passphrase: String?,
+        checkCancelled: () -> Unit = {}) {
+        val destination = object : java.io.FilterOutputStream(output) {
+            override fun close() { flush() }
+        }
+        val pass = passphrase?.takeIf { it.isNotBlank() }
+        val stream = if (pass == null) destination else {
+            val salt = BackupCrypto.newSalt()
+            val key = BackupCrypto.deriveKey(pass.toCharArray(), salt, BackupCrypto.ITERATIONS)
+            val header = BackupCrypto.cryptoBlock(salt).put("scheme", CONTAINER_SCHEME)
+                .toString().toByteArray(Charsets.UTF_8)
+            destination.write(MAGIC); destination.write(intToBytes(header.size)); destination.write(header)
+            BackupCrypto.encryptingStream(key, destination)
+        }
+        ZipOutputStream(stream).use { zip ->
+            val names = HashSet<String>()
+            var total = 0L
+            fun put(name: String, length: Long, input: () -> java.io.InputStream) {
+                validateName(name)
+                require(names.add(name) && names.size <= MAX_ENTRIES)
+                require(length in 0..(if (name == JSON_ENTRY) MAX_JSON_BYTES else MAX_ASSET_BYTES))
+                total += length
+                require(total <= MAX_EXPANDED_BYTES)
+                zip.putNextEntry(ZipEntry(name))
+                var copied = 0L
+                input().use { source ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        checkCancelled()
+                        val count = source.read(buffer)
+                        if (count < 0) break
+                        copied += count
+                        require(copied <= length)
+                        zip.write(buffer, 0, count)
+                    }
                 }
-                payload.subtitles.forEach { (name, bytes) ->
-                    zos.putNextEntry(ZipEntry(SUBTITLE_DIR + name))
-                    zos.write(bytes)
-                    zos.closeEntry()
-                }
-                payload.avatars.forEach { (name, bytes) ->
-                    zos.putNextEntry(ZipEntry(AVATAR_DIR + name))
-                    zos.write(bytes)
-                    zos.closeEntry()
-                }
+                require(copied == length)
+                zip.closeEntry()
             }
-        }.toByteArray()
-
-        val pass = passphrase?.takeIf { it.isNotBlank() } ?: return zip
-        val salt = BackupCrypto.newSalt()
-        val key = BackupCrypto.deriveKey(pass.toCharArray(), salt, BackupCrypto.ITERATIONS)
-        val header = BackupCrypto.cryptoBlock(salt).put("scheme", CONTAINER_SCHEME).toString().toByteArray(Charsets.UTF_8)
-        return ByteArrayOutputStream().also { out ->
-            out.write(MAGIC)
-            out.write(intToBytes(header.size))
-            out.write(header)
-            out.write(BackupCrypto.encryptBytes(key, zip))
-        }.toByteArray()
+            val json = payload.json.toByteArray(Charsets.UTF_8)
+            put(JSON_ENTRY, json.size.toLong()) { json.inputStream() }
+            payload.wallpaper?.let { put(WALLPAPER_DIR + it.name, it.bytes.size.toLong()) { it.bytes.inputStream() } }
+            payload.subtitles.forEach { (name, bytes) -> put(SUBTITLE_DIR + name, bytes.size.toLong()) { bytes.inputStream() } }
+            payload.avatars.forEach { (name, bytes) -> put(AVATAR_DIR + name, bytes.size.toLong()) { bytes.inputStream() } }
+            payload.fileAssets.forEach { (name, file) ->
+                require(file.isFile)
+                val length = file.length()
+                put(name, length) { file.inputStream() }
+                require(file.length() == length)
+            }
+        }
     }
 
-    /**
-     * Reads [file] in whatever format it is. [passphrase] is only consulted for an encrypted
-     * container; a wrong or missing one throws [BackupManager.WrongPasswordException] before anything
-     * is parsed, so a bad password can never half-apply a restore.
-     */
-    fun open(file: File, passphrase: String? = null): Payload = when (probe(file)) {
-        Kind.LEGACY_JSON -> Payload(json = file.readText(), wallpaper = null)
-        Kind.CONTAINER -> unzip(file.readBytes())
-        Kind.ENCRYPTED_CONTAINER -> unzip(decryptContainer(file.readBytes(), passphrase))
-        Kind.UNKNOWN -> error("Not an OwnTV backup file")
+    /** Inspection validates the archive but never retains wallpaper/subtitle/avatar bytes. */
+    fun open(file: File, passphrase: String? = null, includeAssets: Boolean = true,
+        temporaryDirectory: File = requireNotNull(file.absoluteFile.parentFile)): Payload {
+        require(file.length() in 1..MAX_CONTAINER_BYTES) { "Backup exceeds size limit" }
+        return when (probe(file)) {
+            Kind.LEGACY_JSON -> Payload(file.inputStream().use { readLimited(it, MAX_JSON_BYTES) }.toString(Charsets.UTF_8), null)
+            Kind.CONTAINER -> file.inputStream().use { unzip(it, includeAssets) }
+            Kind.ENCRYPTED_CONTAINER -> {
+                val pass = passphrase?.takeIf { it.isNotBlank() } ?: throw BackupManager.WrongPasswordException()
+                val staleBefore = System.currentTimeMillis() - 24L * 60 * 60 * 1000
+                temporaryDirectory.listFiles()?.forEach {
+                    if (it.isFile && it.name.startsWith("own-backup-") && it.name.endsWith(".zip") && it.lastModified() < staleBefore) it.delete()
+                }
+                val scratch = File.createTempFile("own-backup-", ".zip", temporaryDirectory)
+                try {
+                    file.inputStream().use { raw ->
+                        val input = java.io.DataInputStream(raw)
+                        val magic = ByteArray(MAGIC.size); input.readFully(magic)
+                        require(magic.contentEquals(MAGIC))
+                        val length = input.readInt()
+                        require(length in 1..MAX_HEADER_BYTES) { "Corrupt backup header" }
+                        val bytes = ByteArray(length); input.readFully(bytes)
+                        val header = JSONObject(bytes.toString(Charsets.UTF_8))
+                        require(header.optInt("iterations", BackupCrypto.ITERATIONS) in 1..2_000_000)
+                        val key = BackupCrypto.deriveKey(pass, header) ?: error("Corrupt backup header")
+                        scratch.outputStream().use { out ->
+                            try { BackupCrypto.decryptTo(key, input, out, MAX_CONTAINER_BYTES) }
+                            catch (_: javax.crypto.AEADBadTagException) { throw BackupManager.WrongPasswordException() }
+                        }
+                    }
+                    // The complete ciphertext was authenticated before any ZIP/JSON is parsed.
+                    scratch.inputStream().use { unzip(it, includeAssets) }
+                } finally { scratch.delete() }
+            }
+            Kind.UNKNOWN -> error("Not an OwnTV backup file")
+        }
     }
 
-    private fun decryptContainer(bytes: ByteArray, passphrase: String?): ByteArray {
-        val pass = passphrase?.takeIf { it.isNotBlank() } ?: throw BackupManager.WrongPasswordException()
-        require(bytes.size > MAGIC.size + 4) { "Truncated backup file" }
-        val headerLen = bytesToInt(bytes, MAGIC.size)
-        val headerEnd = MAGIC.size + 4 + headerLen
-        require(headerLen in 1..MAX_HEADER_BYTES && headerEnd <= bytes.size) { "Corrupt backup header" }
-        val header = JSONObject(String(bytes, MAGIC.size + 4, headerLen, Charsets.UTF_8))
-        val key = BackupCrypto.deriveKey(pass, header) ?: throw BackupManager.WrongPasswordException()
-        // GCM authenticates: a wrong passphrase fails here rather than yielding garbage.
-        return runCatching { BackupCrypto.decryptBytes(key, bytes.copyOfRange(headerEnd, bytes.size)) }
-            .getOrElse { throw BackupManager.WrongPasswordException() }
+    private fun validateName(name: String) {
+        require(name.isNotEmpty() && !name.startsWith('/') && !name.contains('\\') &&
+            name.split('/').none { it == ".." || it == "." }) { "Invalid backup entry" }
     }
 
-    private fun unzip(bytes: ByteArray): Payload {
+    private fun readLimited(input: java.io.InputStream, limit: Long): ByteArray {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(64 * 1024)
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            require(output.size().toLong() + count <= limit) { "Backup entry exceeds size limit" }
+            output.write(buffer, 0, count)
+        }
+        return output.toByteArray()
+    }
+
+    private fun unzip(input: java.io.InputStream, includeAssets: Boolean): Payload {
         var json: String? = null
         var wallpaper: Asset? = null
         val subtitles = LinkedHashMap<String, ByteArray>()
         val avatars = LinkedHashMap<String, ByteArray>()
-        ZipInputStream(bytes.inputStream()).use { zis ->
+        val names = HashSet<String>()
+        var total = 0L
+        ZipInputStream(input).use { zip ->
+            val buffer = ByteArray(64 * 1024)
             while (true) {
-                val entry = zis.nextEntry ?: break
+                val entry = zip.nextEntry ?: break
                 val name = entry.name
-                when {
-                    name == JSON_ENTRY -> json = zis.readBytes().toString(Charsets.UTF_8)
-                    // Zip-slip guard: the name is only ever used as a leaf filename, never joined to a
-                    // path, but reject traversal outright so a hand-made container can't get creative.
-                    name.startsWith(WALLPAPER_DIR) && !entry.isDirectory && !name.contains("..") ->
-                        wallpaper = Asset(File(name).name, zis.readBytes())
-                    name.startsWith(SUBTITLE_DIR) && !entry.isDirectory && !name.contains("..") ->
-                        subtitles[File(name).name] = zis.readBytes()
-                    name.startsWith(AVATAR_DIR) && !entry.isDirectory && !name.contains("..") ->
-                        avatars[File(name).name] = zis.readBytes()
+                validateName(name)
+                require(names.add(name) && names.size <= MAX_ENTRIES) { "Duplicate or excessive backup entries" }
+                val asset = !entry.isDirectory && listOf(WALLPAPER_DIR, SUBTITLE_DIR, AVATAR_DIR).any {
+                    name.startsWith(it) && '/' !in name.removePrefix(it)
                 }
-                zis.closeEntry()
+                val retain = name == JSON_ENTRY || includeAssets && asset
+                val bytes = if (retain) ByteArrayOutputStream() else null
+                var entryBytes = 0L
+                val limit = if (name == JSON_ENTRY) MAX_JSON_BYTES else MAX_ASSET_BYTES
+                while (true) {
+                    val count = zip.read(buffer)
+                    if (count < 0) break
+                    entryBytes += count; total += count
+                    require(entryBytes <= limit && total <= MAX_EXPANDED_BYTES) { "Backup entry exceeds size limit" }
+                    bytes?.write(buffer, 0, count)
+                }
+                val value = bytes?.toByteArray()
+                when {
+                    name == JSON_ENTRY -> json = requireNotNull(value).toString(Charsets.UTF_8)
+                    value != null && name.startsWith(WALLPAPER_DIR) -> wallpaper = Asset(File(name).name, value)
+                    value != null && name.startsWith(SUBTITLE_DIR) -> subtitles[File(name).name] = value
+                    value != null && name.startsWith(AVATAR_DIR) -> avatars[File(name).name] = value
+                }
+                zip.closeEntry()
             }
         }
-        return Payload(
-            json = json ?: error("Not an OwnTV backup file"),
-            wallpaper = wallpaper,
-            subtitles = subtitles,
-            avatars = avatars,
-        )
+        return Payload(json ?: error("Not an OwnTV backup file"), wallpaper, subtitles, avatars)
     }
+
+    internal const val MAX_JSON_BYTES = 32L * 1024 * 1024
+    internal const val MAX_ASSET_BYTES = 16L * 1024 * 1024
+    internal const val MAX_EXPANDED_BYTES = 64L * 1024 * 1024
+    internal const val MAX_CONTAINER_BYTES = 80L * 1024 * 1024
+    private const val MAX_ENTRIES = 4_096
 
     private fun intToBytes(v: Int) = byteArrayOf(
         (v ushr 24).toByte(), (v ushr 16).toByte(), (v ushr 8).toByte(), v.toByte(),
     )
-
-    private fun bytesToInt(b: ByteArray, at: Int) =
-        (b[at].toInt() and 0xFF shl 24) or (b[at + 1].toInt() and 0xFF shl 16) or
-            (b[at + 2].toInt() and 0xFF shl 8) or (b[at + 3].toInt() and 0xFF)
 
     /** Sanity bound so a corrupt length field can't make us allocate wildly. */
     private const val MAX_HEADER_BYTES = 8 * 1024

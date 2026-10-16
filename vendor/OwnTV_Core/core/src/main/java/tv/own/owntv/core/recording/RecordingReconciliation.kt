@@ -8,6 +8,7 @@ import tv.own.owntv.core.model.RecordingStatus
 object RecordingReconciliation {
     fun canAdjust(recording: RecordingEntity, nowMs: Long): Boolean =
         recording.status == RecordingStatus.SCHEDULED && recording.recoveryAttempt == 0 &&
+            recording.epgChannelId != null &&
             recording.bytes == 0L && recording.startedAt == null && recording.startMs > nowMs &&
             recording.programmeStopMs > recording.programmeStartMs &&
             // An archive/recovery fetch has a playback window different from its original airing.

@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +51,7 @@ import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.EpgProgrammeEntity
 import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.settings.SettingsRepository
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileSlider
 import tv.own.owntv.mobile.ui.components.BrowseCategorySheet
 import tv.own.owntv.mobile.ui.components.FilterChipRow
@@ -87,10 +88,11 @@ fun GuideScreen(
     val categories by vm.categories.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
     val channels = vm.channels.collectAsLazyPagingItems()
-    val favorites by vm.favoriteIds.collectAsStateWithLifecycle()
     val query by vm.query.collectAsStateWithLifecycle()
     val day by vm.day.collectAsStateWithLifecycle()
     val guideDays by vm.guideDays.collectAsStateWithLifecycle()
+    val clockMs by rememberClockTick()
+    LaunchedEffect(clockMs) { vm.refreshClock(clockMs) }
     val window by vm.window.collectAsStateWithLifecycle()
     val storedMode by vm.viewMode.collectAsStateWithLifecycle()
     val density by vm.densityPct.collectAsStateWithLifecycle()
@@ -104,7 +106,7 @@ fun GuideScreen(
     // Nothing has been chosen yet: a grid needs width, so a portrait phone opens on the "on now" list.
     val wide = LocalConfiguration.current.screenWidthDp >= WIDE_DP
     val chosenMode = storedMode ?: if (wide) SettingsRepository.GuideView.GRID else SettingsRepository.GuideView.ON_NOW
-    val mode = if (day < 0 && chosenMode == SettingsRepository.GuideView.ON_NOW) SettingsRepository.GuideView.TIMELINE else chosenMode
+    val mode = if (day != 0 && chosenMode == SettingsRepository.GuideView.ON_NOW) SettingsRepository.GuideView.TIMELINE else chosenMode
 
     val listState = rememberLazyListState()
     listState.ObeyScrollToTop(route = "guide", scrollToTop = scrollToTop)
@@ -135,7 +137,7 @@ fun GuideScreen(
                 Icon(MobileIcons.Tune, stringResource(R.string.content_epg_title))
             }
         }
-        DayStrip(selected = day, days = guideDays, onSelect = vm::selectDay)
+        DayStrip(selected = day, days = guideDays, atMs = clockMs, onSelect = vm::selectDay)
 
         if (matching) {
             MatchingBanner()
@@ -244,13 +246,15 @@ fun GuideScreen(
 
 /** Today first, then the week the guide usually holds. A day with nothing in it shows as empty. */
 @Composable
-private fun DayStrip(selected: Int, days: Int, onSelect: (Int) -> Unit) {
+private fun DayStrip(selected: Int, days: Int, atMs: Long, onSelect: (Int) -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
     val offsets = remember(days) { listOf(0) + (-1 downTo -tv.own.owntv.core.live.MAX_CATCHUP_DAYS).toList() + (1 until days).toList() }
-    val labels = remember(locale, offsets) {
+    val today = GuideTimePolicy.window(-1, atMs).end
+    val zone = java.util.TimeZone.getDefault()
+    val labels = remember(locale, offsets, today, zone.id) {
         val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, "EEEdMMM")
         val format = SimpleDateFormat(pattern, locale)
-        val cal = Calendar.getInstance()
+        val cal = Calendar.getInstance(zone).apply { timeInMillis = atMs }
         offsets.map { offset ->
             val day = (cal.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, offset) }
             format.format(day.time)
@@ -281,15 +285,18 @@ private fun OnNowList(
     // opened, and then stood still: an hour later the bars were where they had been and the titles
     // were the programmes that had already finished.
     val nowMs by rememberClockTick()
+    DisposableEffect(vm) { onDispose { vm.cancelOnNowLoad() } }
 
     // A new match clears what was read, so the rows on screen have to ask for it again — and so does
     // the clock moving on, which is what makes a finished programme give way to the one after it.
     LaunchedEffect(listState, channels, revision, nowMs) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.map { it.index } }
-            .distinctUntilChanged()
-            .collect { indices ->
-                vm.loadOnNow(indices.mapNotNull { channels.itemSnapshotList.getOrNull(it) })
+        snapshotFlow {
+            listState.layoutInfo.visibleItemsInfo.mapNotNull {
+                channels.itemSnapshotList.getOrNull(it.index)
             }
+        }
+            .distinctUntilChanged()
+            .collect(vm::loadOnNow)
     }
 
     val times = rememberGuideTimeFormat()
@@ -383,7 +390,7 @@ internal fun ChannelLogo(channel: ChannelEntity) {
  * is megabytes of text, and only the one that was tapped is ever read.
  */
 @Composable
-private fun ProgrammeSheet(
+internal fun ProgrammeSheet(
     channel: ChannelEntity,
     programme: EpgProgrammeEntity,
     isFavorite: Boolean,
@@ -429,6 +436,7 @@ private fun ProgrammeSheet(
                 ),
             )
         }
+        ArchiveCoverageText(channel, programme)
         HorizontalDivider()
         if (vm.canCatchup(channel, programme)) {
             MobileListRow(
@@ -440,6 +448,14 @@ private fun ProgrammeSheet(
         // promises something it cannot do.
         if (vm.canRecord(channel, programme)) {
             val recordingRows by vm.recordingRows.collectAsStateWithLifecycle()
+            val forecast by produceState<tv.own.owntv.core.recording.RecordingSpaceForecast?>(
+                null, channel.id, programme.startMs, programme.stopMs, recordingRows,
+            ) {
+                value = try { vm.spaceForecast(channel, programme) }
+                catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                catch (_: Exception) { null }
+            }
+            forecast?.let { tv.own.owntv.mobile.ui.screens.recordings.RecordingForecastText(it) }
             val existing = remember(recordingRows, channel.id, programme.startMs) {
                 vm.recordingFor(channel, programme)
             }
@@ -497,6 +513,23 @@ private fun ProgrammeSheet(
         }
 
     }
+}
+
+@Composable
+private fun ArchiveCoverageText(channel: ChannelEntity, programme: EpgProgrammeEntity) {
+    val state = tv.own.owntv.core.epg.CatchupAvailability.state(channel.catchup, channel.catchupDays,
+        programme.startMs, System.currentTimeMillis())
+    val message = when (state) {
+        tv.own.owntv.core.epg.CatchupAvailability.State.NO_ARCHIVE -> tv.own.owntv.mobile.R.string.own_archive_none
+        tv.own.owntv.core.epg.CatchupAvailability.State.FUTURE -> tv.own.owntv.mobile.R.string.own_archive_future
+        tv.own.owntv.core.epg.CatchupAvailability.State.OUTSIDE_LIMIT -> tv.own.owntv.mobile.R.string.own_archive_limit
+        tv.own.owntv.core.epg.CatchupAvailability.State.OUTSIDE_DECLARED -> tv.own.owntv.mobile.R.string.own_archive_outside
+        tv.own.owntv.core.epg.CatchupAvailability.State.DECLARED -> tv.own.owntv.mobile.R.string.own_archive_declared
+        tv.own.owntv.core.epg.CatchupAvailability.State.UNKNOWN_WINDOW -> tv.own.owntv.mobile.R.string.own_archive_unknown
+    }
+    Text(stringResource(message, channel.catchupDays),
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapSmall))
 }
 
 /** Which of the three shapes the guide takes, and — for the grid — how much time a screen holds. */

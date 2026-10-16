@@ -39,4 +39,4 @@ class MobileMotion(level: AnimationLevel) {
 }
 
 /** The app's motion, read once at the theme rather than by every control that animates. */
-val LocalMobileMotion = staticCompositionLocalOf { MobileMotion(AnimationLevel.FULL) }
+val LocalMobileMotion = staticCompositionLocalOf { MobileMotion(AnimationLevel.OFF) }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_updates_check">Check for updates</string>
+    <string name="own_updates_check_description">Look for a new version of this customised Mobile app.</string>
+    <string name="own_updates_auto">Check automatically at startup</string>
+    <string name="own_updates_auto_description">Check after opening the app. Download and installation always require your confirmation.</string>
+    <string name="own_updates_no_release">No public release is available. The repository may be private or have no published release.</string>
+</resources>

@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.screens.live
 
+import tv.own.owntv.core.R as CoreR
+
 import android.content.Context
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -451,9 +453,36 @@ class LiveTuner(
     /** The programme a replay is showing, so ending a cast can start the same one again rather than
      *  dropping the user at the live edge. Null whenever a replay is not what is playing. */
     private var lastCatchup: EpgProgrammeEntity? = null
+    private var archiveContinuationJob: Job? = null
+    private var requestRevision = 0L
+
+    private fun invalidateArchiveContinuation() {
+        requestRevision++
+        archiveContinuationJob?.cancel()
+        archiveContinuationJob = null
+    }
 
     init {
-        scope.launch { player.archiveEnded.collect { continueAfterCatchup() } }
+        scope.launch {
+            player.archiveEndedGeneration.collect { generation ->
+                if (generation == player.playbackGeneration) continueAfterCatchup()
+            }
+        }
+        scope.launch {
+            player.archiveStalled.collect { generation ->
+                if (generation != player.playbackGeneration || !_replaying.value || casting() || !player.playbackRequested.value) return@collect
+                val programme = lastCatchup ?: return@collect
+                val now = System.currentTimeMillis()
+                if (programme.startMs <= now && now < programme.stopMs) {
+                    val playbackRevision = player.playbackRequestRevision.value
+                    val ch = _channel.value ?: return@collect
+                    invalidateArchiveContinuation()
+                    live.launch { open(ch, generation, playbackRevision) }
+                } else {
+                    player.reportArchiveStall(generation)
+                }
+            }
+        }
     }
 
     /**
@@ -469,13 +498,23 @@ class LiveTuner(
         if (!_replaying.value) return
         val ch = _channel.value ?: return
         val ended = lastCatchup ?: return
-        scope.launch {
+        archiveContinuationJob?.cancel()
+        val revision = requestRevision
+        val generation = player.playbackGeneration
+        val playbackRevision = player.playbackRequestRevision.value
+        val profileId = ctx.value.profileId
+        archiveContinuationJob = scope.launch {
             val next = epgReader.programmeAfter(
                 ch, ended.stopMs, custom.value, settings.epgOffsetMinutes.first(), ctx.value.sourceIds,
             )
+            currentCoroutineContext().ensureActive()
+            if (revision != requestRevision || generation != player.playbackGeneration ||
+                playbackRevision != player.playbackRequestRevision.value || !player.playbackRequested.value ||
+                profileId != ctx.value.profileId || _channel.value?.id != ch.id || lastCatchup != ended ||
+                !_replaying.value || casting()) return@launch
             when (CatchupContinue.decide(next?.startMs, next?.stopMs, System.currentTimeMillis())) {
                 is CatchupContinue.Next.Programme -> next?.let { playCatchup(it, ch) }
-                CatchupContinue.Next.Live -> live.launch { open(ch) }
+                CatchupContinue.Next.Live -> live.launch { open(ch, generation, playbackRevision) }
                 CatchupContinue.Next.Stop -> Unit
             }
         }
@@ -487,6 +526,7 @@ class LiveTuner(
         // re-opening the channel you are already watching tore the stream down and rebuilt it —
         // a reconnection and a second of black for a screen you had just come back to.
         if (loadedId == channelId && hasStream && currentEngine.error.value == null) return
+        invalidateArchiveContinuation()
         loadedId = channelId
         stepSelectionId = null
         // One tune in flight: a newer pick, or a catch-up, cancels this one wherever it has got to.
@@ -508,12 +548,14 @@ class LiveTuner(
      * engine the pool had never built. Nothing should be started that is about to be stopped.
      */
     fun selectWithoutPlaying(channel: ChannelEntity) {
+        invalidateArchiveContinuation()
         loadedId = channel.id
         _channel.value = custom.value.itemNames[CustomizeKeys.channel(channel)]
             ?.let { channel.copy(name = it) } ?: channel
     }
 
     fun switchTo(channel: ChannelEntity) {
+        invalidateArchiveContinuation()
         if (channel.id == loadedId && hasStream && currentEngine.error.value == null) return
         loadedId = channel.id
         live.launch { channelDao.getById(channel.id)?.let { openWithRecovery(it) } }
@@ -615,7 +657,8 @@ class LiveTuner(
      * name over the old channel's picture; now the screen stays as it was, and the tapped row can be
      * tapped again.
      */
-    private suspend fun open(channel: ChannelEntity) {
+    private suspend fun open(channel: ChannelEntity, expectedArchiveGeneration: Int? = null, expectedPlaybackRevision: Long? = null) {
+        val revision = requestRevision
         guideLoadJob?.cancel()
         loadedId = channel.id
         val showing = _channel.value
@@ -633,6 +676,10 @@ class LiveTuner(
         }
 
         currentCoroutineContext().ensureActive()
+        if (revision != requestRevision || pid != ctx.value.profileId) return
+        if (expectedArchiveGeneration != null &&
+            (player.playbackGeneration != expectedArchiveGeneration || player.playbackRequestRevision.value != expectedPlaybackRevision ||
+                !player.playbackRequested.value || !_replaying.value || _channel.value?.id != channel.id)) return
         timeshift.clear() // a new channel is never still rewound into the old one's archive
         _replaying.value = false
         lastCatchup = null
@@ -877,13 +924,9 @@ class LiveTuner(
      * a connection and the provider a session. Omitted, it is the channel already playing.
      */
     fun playCatchup(programme: EpgProgrammeEntity, on: ChannelEntity? = null) {
+        invalidateArchiveContinuation()
         val channel = on ?: _channel.value ?: return
-        if (channel.id != loadedId) {
-            loadedId = channel.id
-            _channel.value = channel
-            _nowNext.value = null
-            _timelineProgrammes.value = emptyList()
-        }
+        val revision = requestRevision
         // The controller's one tune job: a live tune of this channel still resolving is cancelled here
         // instead of starting over the replay a moment later (the Guide's race), and a later pick
         // cancels this in turn.
@@ -898,6 +941,14 @@ class LiveTuner(
                 return@launch
             }
             val source = withContext(Dispatchers.IO) { sourceDao.getById(channel.sourceId) }
+            currentCoroutineContext().ensureActive()
+            if (revision != requestRevision || pid != ctx.value.profileId) return@launch
+            if (channel.id != loadedId) {
+                loadedId = channel.id
+                _channel.value = channel
+                _nowNext.value = null
+                _timelineProgrammes.value = emptyList()
+            }
             // isArchive: providers cut archive segments mid-GOP, and the engine needs to tolerate it.
             _replaying.value = true
             lastCatchup = programme
@@ -960,7 +1011,7 @@ class LiveTuner(
     private fun catchupUnavailable() {
         android.widget.Toast.makeText(
             context,
-            context.getString(R.string.content_epg_catchup_unavailable),
+            context.getString(CoreR.string.content_epg_catchup_unavailable),
             android.widget.Toast.LENGTH_SHORT,
         ).show()
     }
@@ -1041,6 +1092,7 @@ class LiveTuner(
 
     /** Back to the real-time edge, off the archive stream. */
     fun goToLive() {
+        invalidateArchiveContinuation()
         timeshift.clear()
         _channel.value?.let { ch -> live.launch { open(ch) } }
     }
@@ -1050,6 +1102,10 @@ class LiveTuner(
      * False when no archive URL can be built, or the user reached live while it was being resolved.
      */
     private suspend fun loadArchiveStream(ch: ChannelEntity, startMs: Long, offsetSec: Int): Boolean {
+        val revision = requestRevision
+        val generation = player.playbackGeneration
+        val playbackRevision = player.playbackRequestRevision.value
+        val profileId = ctx.value.profileId
         val (url, source) = withContext(Dispatchers.IO) {
             val source = sourceDao.getById(ch.sourceId) ?: return@withContext null
             val tz = settings.resolveCatchupTimeZone()
@@ -1061,6 +1117,10 @@ class LiveTuner(
             return false
         }
         if (timeshift.offsetSec.value == null) return false // user jumped back to live meanwhile
+        currentCoroutineContext().ensureActive()
+        if (revision != requestRevision || generation != player.playbackGeneration ||
+            playbackRevision != player.playbackRequestRevision.value || profileId != ctx.value.profileId ||
+            _channel.value?.id != ch.id || !currentEngine.playbackRequested.value || casting()) return false
         // The rewind plays out of the archive on mpv, so the live ExoPlayer engine stops first. This
         // is the one that cost two connections and made two sounds: drag the bar back ten minutes and
         // the live stream went on playing behind the archive. A live tune still in flight is cancelled
@@ -1082,6 +1142,7 @@ class LiveTuner(
 
     /** Stop playing altogether — the mini player's swipe-down, and nothing else. */
     fun stop() {
+        invalidateArchiveContinuation()
         guideLoadJob?.cancel()
         recoveryOpenedId = null
         timeshift.clear()
@@ -1106,6 +1167,7 @@ class LiveTuner(
      * at the edge, which is where the phone was too — so the number is only there for the interface.
      */
     override fun releaseToCast(): Long {
+        invalidateArchiveContinuation()
         timeshift.clear()
         val position = currentEngine.position.value
         session.attach(null)

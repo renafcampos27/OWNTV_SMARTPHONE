@@ -1,0 +1,6 @@
+<resources>
+    <string name="media_file_missing">Ficheiro não encontrado</string>
+    <string name="media_storage_offline">Armazenamento desligado ou indisponível</string>
+    <string name="media_read_permission">Sem permissão para ler este ficheiro</string>
+    <string name="media_file_unreadable">Ficheiro indisponível ou incompleto</string>
+</resources>

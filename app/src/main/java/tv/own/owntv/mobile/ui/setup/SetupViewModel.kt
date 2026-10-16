@@ -14,7 +14,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.setup.SourceImporter
 import tv.own.owntv.core.sync.SyncScopeChoice
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import java.io.File
 
 /**
@@ -42,6 +42,8 @@ class SetupViewModel(
     val progress = importer.progress
 
     private var importJob: Job? = null
+    private val _profileCreation = kotlinx.coroutines.flow.MutableStateFlow(tv.own.owntv.mobile.ui.profiles.ProfileMutationState())
+    val profileCreation: kotlinx.coroutines.flow.StateFlow<tv.own.owntv.mobile.ui.profiles.ProfileMutationState> = _profileCreation
 
     fun startXtream(
         name: String,
@@ -156,9 +158,23 @@ class SetupViewModel(
      * whichever ran first is the profile the content lands on.
      */
     fun createProfile(name: String, avatarId: Int, isKids: Boolean, pin: String?, onCreated: () -> Unit) {
+        if (_profileCreation.value.busy) return
+        _profileCreation.value = tv.own.owntv.mobile.ui.profiles.ProfileMutationState(busy = true)
         appScope.launch {
-            importer.createProfile(name, avatarId, isKids, pin)
-            onMain(onCreated)
+            var succeeded = false
+            try {
+                importer.createProfile(name, avatarId, isKids, pin)
+                succeeded = true
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _profileCreation.value = tv.own.owntv.mobile.ui.profiles.ProfileMutationState(
+                    error = tv.own.owntv.mobile.ui.profiles.ProfileMutationError.FAILED,
+                )
+            } finally {
+                if (_profileCreation.value.busy) _profileCreation.value = tv.own.owntv.mobile.ui.profiles.ProfileMutationState()
+            }
+            if (succeeded) onMain(onCreated)
         }
     }
 

@@ -43,7 +43,7 @@ class PlaybackDatabaseBackupTest {
     }
     @Test fun `delay and timeout are bounded and empty exceptions ignored`() {
         val json = PlaybackDatabaseBackup.encode(PlaybackQuirkEntity("4:LIVE:x", 4, "LIVE", audioDelayMs = 99999))
-        assertEquals(5000, PlaybackDatabaseBackup.decode(json, emptyMap(), setOf(4L))!!.audioDelayMs)
+        assertEquals(5000, PlaybackDatabaseBackup.decode(json, mapOf(4L to 4L), setOf(4L))!!.audioDelayMs)
         assertEquals(60, PlaybackDatabaseBackup.readSource(JSONObject().put("liveTuneTimeoutSecs", 9999), source, unseal).liveTuneTimeoutSecs)
         assertNull(PlaybackDatabaseBackup.decode(JSONObject().put("k", "4:LIVE:x").put("type", "LIVE"), emptyMap(), setOf(4L)))
     }

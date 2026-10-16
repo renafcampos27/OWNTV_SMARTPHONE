@@ -49,7 +49,7 @@ import androidx.paging.compose.itemKey
 import kotlinx.coroutines.launch
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.EpgProgrammeEntity
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.MobileDimens

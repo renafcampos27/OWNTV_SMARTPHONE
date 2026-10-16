@@ -1,0 +1,47 @@
+<resources>
+    <string name="own_common_settings">Utilização habitual</string>
+    <string name="own_advanced_settings">Opções avançadas</string>
+    <string name="own_advanced_hint">Motor, rede e compatibilidade. As configurações existentes continuam ativas.</string>
+    <string name="own_loading_channels">A procurar canais…</string>
+    <string name="own_empty_channels">Nenhum canal corresponde à pesquisa.</string>
+    <string name="own_channel_load_error">Não foi possível carregar os canais. Tente novamente.</string>
+    <string name="own_retry">Tentar novamente</string>
+    <string name="own_customized_only">Apenas canais personalizados</string>
+    <string name="own_no_playlists">Nenhuma lista de canais disponível. Adicione uma lista nas definições.</string>
+    <string name="own_customized_badge">Configuração própria</string>
+    <string name="own_inherited_value">Herdar — %1$s (%2$s)</string>
+    <string name="own_global_origin">Geral</string>
+    <string name="own_playlist_origin">Lista</string>
+    <string name="own_engine_default">Predefinição do motor</string>
+    <string name="own_unsaved_title">Alterações não guardadas</string>
+    <string name="own_unsaved_note">Guardar as alterações deste canal ou descartá-las?</string>
+    <string name="own_discard">Descartar</string>
+    <string name="own_number_hint">Entre %1$d e %2$d %3$s</string>
+    <string name="own_backup_scope">Inclui fontes, listas e as configurações selecionadas. As listas de canais são atualizadas após restaurar. Os vídeos, gravações e ficheiros M3U locais não são copiados.</string>
+    <string name="own_backup_credentials_on">As palavras-passe das fontes serão incluídas e protegidas com a palavra-passe do backup.</string>
+    <string name="own_backup_credentials_off">As palavras-passe das fontes serão excluídas. Para as incluir, defina uma palavra-passe de proteção.</string>
+    <string name="own_last_backup">Última cópia concluída: %1$s</string>
+    <string name="own_backup_never">Ainda não foi concluída uma cópia de segurança.</string>
+    <string name="own_backup_summary">Resumo: %1$s; %2$s.</string>
+    <plurals name="own_backup_profiles_selected">
+        <item quantity="one">%d perfil selecionado</item>
+        <item quantity="other">%d perfis selecionados</item>
+    </plurals>
+    <plurals name="own_backup_sections_selected">
+        <item quantity="one">%d secção selecionada</item>
+        <item quantity="other">%d secções selecionadas</item>
+    </plurals>
+    <string name="own_engine_exo">ExoPlayer</string>
+    <string name="own_engine_mpv">mpv</string>
+    <string name="own_format_hls">HLS</string>
+    <string name="own_format_ts">TS</string>
+    <string name="own_unit_ms">ms</string>
+    <string name="own_unit_seconds">s</string>
+    <string name="own_number_unit">%1$d %2$s</string>
+    <string name="own_increase">+</string>
+    <string name="own_decrease">−</string>
+    <string name="own_enabled">Ativado</string>
+    <string name="own_disabled">Desativado</string>
+    <string name="own_channel_save_error">Não foi possível guardar as alterações. Tente novamente.</string>
+    <string name="own_remembered_origin">Guardado no leitor</string>
+</resources>

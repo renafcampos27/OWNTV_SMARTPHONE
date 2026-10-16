@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_profile_current_pin">Current PIN for this profile</string>
+    <string name="own_profile_current_pin_hint">Required to remove or change protection, or delete a protected profile.</string>
+    <string name="own_profile_protection_changed">The profile or its protection changed. Close this window and try again.</string>
+    <string name="own_profile_cannot_delete">The profile could not be deleted. At least one profile must remain.</string>
+    <string name="own_profile_operation_failed">The change could not be saved. Try again.</string>
+</resources>

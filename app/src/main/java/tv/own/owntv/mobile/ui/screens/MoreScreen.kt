@@ -16,18 +16,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import tv.own.owntv.core.database.dao.SourceDao
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.sync.work.CatalogSyncScheduler
 import tv.own.owntv.mobile.BuildConfig
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileGroup
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.nav.MobileDestination
@@ -36,7 +34,7 @@ import tv.own.owntv.mobile.ui.theme.MobileDimens
 /**
  * The hub behind the More tab: everything that is neither content nor a preference.
  *
- * Nine rows in three groups — where you go, your own data, and the app itself. Backup, Local sync,
+ * Six rows in three groups — where you go, your own data, and the app itself. Backup,
  * the error log and About are here rather than in Settings because none of them is a setting: they
  * were in Settings only because Settings was the only door.
  *
@@ -53,12 +51,7 @@ fun MoreScreen(
     onOpenLeaf: (MoreLeaf) -> Unit,
     onDevRoute: (DevRoute) -> Unit,
     modifier: Modifier = Modifier,
-    counts: MoreCountsViewModel = koinViewModel(),
 ) {
-    // The two counts are the whole point of those rows: they say how much there is before you go
-    // and look. Both queries already exist on the DAOs — see [MoreCountsViewModel].
-    val favorites by counts.favorites.collectAsStateWithLifecycle()
-    val history by counts.history.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState()
     listState.ObeyScrollToTop(route = MobileDestination.MORE.route, scrollToTop = scrollToTop)
@@ -88,7 +81,6 @@ fun MoreScreen(
             MobileGroup {
                 
                 
-                // Side by side, because they are the same act aimed at a file and at a device.
                 LeafRow(MoreLeaf.BACKUP, onOpenLeaf)
                 
             }

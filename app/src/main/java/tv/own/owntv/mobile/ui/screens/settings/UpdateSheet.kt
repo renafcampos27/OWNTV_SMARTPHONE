@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.koinInject
 import tv.own.owntv.core.update.UpdateManager
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
@@ -195,7 +195,8 @@ fun UpdateSheet(onDismiss: () -> Unit, checkOnOpen: Boolean = false) {
 @Composable
 private fun updateFailureText(failure: UpdateManager.Failure): String = when (failure) {
     is UpdateManager.Failure.CheckHttp ->
-        stringResource(R.string.update_failed_check_http, failure.code.toString())
+        if (failure.code == 404) stringResource(tv.own.owntv.mobile.R.string.own_updates_no_release)
+        else stringResource(R.string.update_failed_check_http, failure.code.toString())
     UpdateManager.Failure.CheckNetwork -> stringResource(R.string.update_failed_check)
     UpdateManager.Failure.NoCompatibleApk -> stringResource(R.string.update_no_compatible_apk)
     UpdateManager.Failure.InvalidReleaseResponse ->

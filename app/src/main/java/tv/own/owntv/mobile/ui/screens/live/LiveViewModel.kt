@@ -1,5 +1,8 @@
 package tv.own.owntv.mobile.ui.screens.live
 
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.withLock
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
@@ -116,7 +119,7 @@ class LiveViewModel(
     private val epgOffset: StateFlow<Int> = settings.epgOffsetMinutes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    private val sortMode: StateFlow<SettingsRepository.SortMode> = settings.sortLive
+    val sortMode: StateFlow<SettingsRepository.SortMode> = settings.sortLive
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsRepository.SortMode.PLAYLIST)
 
     private val liveCategories = ctx
@@ -232,6 +235,10 @@ class LiveViewModel(
         .map { it.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
+    private data class ListGuideCache(val title: String?, val expiresAtMs: Long)
+    private val listGuideCache = LinkedHashMap<Long, ListGuideCache>()
+    private var listGuideContext: Any? = null
+    private val listGuideMutex = kotlinx.coroutines.sync.Mutex()
     private val _nowPlaying = MutableStateFlow<Map<Long, String>>(emptyMap())
 
     /** "What's on now" for the rows on screen, keyed by channel id. */
@@ -247,7 +254,9 @@ class LiveViewModel(
             // A folder gaining or losing a manual order changes which query is correct, and the
             // cheap one does not observe content_order — so the pager has to be rebuilt.
             .combine(orderedContexts) { args, _ -> args }
-            .flatMapLatest { (key, c, cust, hidden) ->
+            .combine(sortMode) { args, sort -> args to sort }
+            .flatMapLatest { (args, sort) ->
+                val (key, c, cust, hidden) = args
                 if (c.profileId < 0) {
                     flowOf(PagingData.empty())
                 } else {
@@ -265,7 +274,7 @@ class LiveViewModel(
                             profileId = c.profileId,
                             sourceIds = c.liveSourceIds,
                             query = "",
-                            sort = sortMode.value,
+                            sort = sort,
                             channelDao = channelDao,
                             customCategoryDao = customCategoryDao,
                             contextKey = { folderContextKeys.value[it] },
@@ -357,33 +366,36 @@ class LiveViewModel(
     /**
      * Read the guide for the rows the user can see, in one query.
      *
-     * Channels already answered are dropped first, so scrolling one row costs one row's worth of
-     * guide rather than a screenful.
+     * Valid results and short-lived empty answers are cached; obsolete UI requests are cancelled.
      */
 
     fun displayName(channel: ChannelEntity): String = custom.value.itemNames[CustomizeKeys.channel(channel)] ?: channel.name
 
-    private suspend fun visibleVersion(channel: ChannelEntity, cust: SectionCustomizations, includeHidden: Boolean): Boolean {
-        val c = ctx.first { it.profileId >= 0 }
-        return channel.sourceId in c.liveSourceIds &&
-            AdultCategoryClassifier.allows(c.profileId, channel.categoryId, profileDao, categoryDao) &&
-            channel.categoryId?.let { categoryDao.getById(it) }?.let { CustomizeKeys.category(it) !in cust.hiddenCategories } != false &&
-            (includeHidden || CustomizeKeys.channel(channel) !in cust.hiddenItems)
+    private suspend fun versionVisibility(c: ActiveProfileSources, cust: SectionCustomizations, includeHidden: Boolean): (ChannelEntity) -> Boolean {
+        val profile = profileDao.getById(c.profileId)
+        val categories = categoryDao.observe(c.liveSourceIds.ifEmpty { listOf(-1L) }, MediaType.LIVE).first().associateBy { it.id }
+        return { row ->
+            val category = row.categoryId?.let(categories::get)
+            profile != null && row.sourceId in c.liveSourceIds &&
+                (!profile.isKids || !AdultCategoryClassifier.isAdult(category?.name)) &&
+                (category == null || CustomizeKeys.category(category) !in cust.hiddenCategories) &&
+                (includeHidden || CustomizeKeys.channel(row) !in cust.hiddenItems)
+        }
     }
 
     suspend fun channelVersions(channel: ChannelEntity, includeHidden: Boolean = false): List<ChannelEntity> {
         val c = ctx.first { it.profileId >= 0 }
         val cust = customize.observe(c.profileId, MediaType.LIVE).first()
+        val visible = versionVisibility(c, cust, includeHidden)
         val group = ChannelVersionPolicy.groupKey(channel, cust)
         val automatic = channelDao.searchList(ChannelAlternatives.searchTerm(group.substringAfter(':')), listOf(channel.sourceId), 2_000)
-        val manual = cust.channelVersionGroups.filterValues { it == group }.keys.mapNotNull { key ->
-            if (!key.startsWith("${channel.sourceId}:")) null else {
-                val tail = CustomizeKeys.tailOf(key)
-                channelDao.findByRemote(channel.sourceId, tail) ?: channelDao.findByName(channel.sourceId, tail)
-            }
-        }
+        val tails = cust.channelVersionGroups.filterValues { it == group }.keys
+            .filter { it.startsWith("${channel.sourceId}:") }.map(CustomizeKeys::tailOf).distinct()
+        val byRemote = tails.chunked(400).flatMap { channelDao.findByRemoteIds(channel.sourceId, it) }
+        val missing = tails - byRemote.mapNotNull { it.remoteId }.toSet()
+        val manual = byRemote + missing.chunked(400).flatMap { channelDao.findByNames(channel.sourceId, it) }
         val rows = (automatic + manual + channel).distinctBy { it.id }.filter {
-            ChannelVersionPolicy.groupKey(it, cust) == group && visibleVersion(it, cust, includeHidden)
+            ChannelVersionPolicy.groupKey(it, cust) == group && visible(it)
         }
         return ChannelVersionPolicy.ordered(rows, cust, includeHidden)
     }
@@ -392,8 +404,9 @@ class LiveViewModel(
         if (query.isBlank()) return emptyList()
         val c = ctx.first { it.profileId >= 0 }
         val cust = customize.observe(c.profileId, MediaType.LIVE).first()
+        val visible = versionVisibility(c, cust, false)
         return channelDao.searchList(query.trim(), listOf(channel.sourceId), 200).filter {
-            ChannelVersionPolicy.groupKey(it, cust) != ChannelVersionPolicy.groupKey(channel, cust) && visibleVersion(it, cust, false)
+            ChannelVersionPolicy.groupKey(it, cust) != ChannelVersionPolicy.groupKey(channel, cust) && visible(it)
         }
     }
 
@@ -402,7 +415,9 @@ class LiveViewModel(
         if (pid < 0 || owner.sourceId != candidate.sourceId) return
         viewModelScope.launch {
             val cust = customize.observe(pid, MediaType.LIVE).first()
-            if (ctx.value.profileId != pid || !visibleVersion(owner, cust, false) || !visibleVersion(candidate, cust, false)) return@launch
+            val active = ctx.value
+            val visible = versionVisibility(active, cust, false)
+            if (ctx.value.profileId != pid || !visible(owner) || !visible(candidate)) return@launch
             customize.update(pid, MediaType.LIVE) {
                 it.copy(channelVersionGroups = it.channelVersionGroups + (CustomizeKeys.channel(candidate) to ChannelVersionPolicy.groupKey(owner, it)))
             }
@@ -436,13 +451,24 @@ class LiveViewModel(
         }
     }
 
-    fun loadNowPlaying(visible: List<ChannelEntity>) {
-        val missing = visible.filter { it.id !in _nowPlaying.value }
-        if (missing.isEmpty()) return
-        viewModelScope.launch {
-            val found = epgReader.nowPlayingFor(missing, custom.value, epgOffset.value)
-            if (found.isNotEmpty()) _nowPlaying.value = _nowPlaying.value + found
+    suspend fun loadNowPlaying(visible: List<ChannelEntity>) = listGuideMutex.withLock {
+        val context = listOf(ctx.value, custom.value, epgOffset.value, epgReader.cacheRevision)
+        if (context != listGuideContext) { listGuideCache.clear(); listGuideContext = context }
+        val now = System.currentTimeMillis()
+        val missing = visible.distinctBy { it.id }.filter { (listGuideCache[it.id]?.expiresAtMs ?: 0L) <= now }
+        if (missing.isNotEmpty()) {
+            val found = epgReader.nowPlayingEntries(missing, custom.value, epgOffset.value)
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            if (context != listOf(ctx.value, custom.value, epgOffset.value, epgReader.cacheRevision)) return@withLock
+            for (row in missing) {
+                val entry = found[row.id]
+                listGuideCache[row.id] = ListGuideCache(entry?.title, entry?.expiresAtMs ?: (now + 30_000L))
+            }
+            while (listGuideCache.size > 512) listGuideCache.remove(listGuideCache.keys.first())
         }
+        _nowPlaying.value = visible.mapNotNull { row ->
+            listGuideCache[row.id]?.title?.let { row.id to it }
+        }.toMap()
     }
 
     fun toggleFavorite(channel: ChannelEntity) {
@@ -483,7 +509,9 @@ class LiveViewModel(
             // The matched id may have no stored programmes yet — top it up from the cached XMLTV, then
             // drop the channel's stale now/next so the row updates immediately, not after a restart.
             val id = epgChannelId?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
-            if (id != null) runCatching { epgRepository.storeProgrammesForIdsFromCache(setOf(id)) }
+            if (id != null) try { epgRepository.storeProgrammesForIdsFromCache(setOf(id)) }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { /* A later guide refresh can retry this cache fill. */ }
             epgReader.invalidate(channel.id)
             _nowPlaying.value = _nowPlaying.value - channel.id
         }
@@ -550,8 +578,9 @@ class LiveViewModel(
         is LiveKey.Folder -> folderContextKeys.value[key.id]
         is LiveKey.Custom -> key.id
         LiveKey.Favorites -> ContentOrderEntity.FAV_CONTEXT
-        // Catch-up, History and All are computed views: there is no order of their own to change.
-        LiveKey.History, LiveKey.All, LiveKey.Catchup -> null
+        LiveKey.All -> ContentOrderEntity.ALL_CONTEXT
+        LiveKey.Catchup -> ContentOrderEntity.CATCHUP_CONTEXT
+        LiveKey.History -> null
     }
 
     /** The channels of [key] in their current order — what the Move sheet shuffles. */
@@ -564,9 +593,14 @@ class LiveViewModel(
             is LiveKey.Folder -> channelDao.snapshotByCategoryManual(key.id, c.profileId, contextKey, MOVE_LIST_LIMIT)
             is LiveKey.Custom -> customCategoryDao.snapshotChannels(c.profileId, key.id, ids, MOVE_LIST_LIMIT)
             LiveKey.Favorites -> channelDao.snapshotFavoritesManual(c.profileId, contextKey, ids, MOVE_LIST_LIMIT)
+            LiveKey.All -> channelDao.snapshotAllManual(ids, c.profileId, contextKey, false, MOVE_LIST_LIMIT)
+            LiveKey.Catchup -> channelDao.snapshotAllManual(ids, c.profileId, contextKey, true, MOVE_LIST_LIMIT)
             else -> return emptyList()
         }
-        return items.map { ReorderItem(it.id, it.name) }
+        val cust = custom.value
+        val visible = items.filter { tv.own.owntv.core.live.isChannelVisible(it, cust, hiddenCategoryIds.value) }
+        val rows = if (cust.groupChannelVersions) visible.distinctBy { ChannelVersionPolicy.groupKey(it, cust) } else visible
+        return rows.map { ReorderItem(it.id, displayName(it)) }
     }
 
     fun commitMove(contextKey: String, itemIds: List<Long>) {
@@ -576,7 +610,7 @@ class LiveViewModel(
                 profileId = pid,
                 type = MediaType.LIVE,
                 contextKey = contextKey,
-                rows = itemIds.mapIndexed { i, id ->
+                rows = mergeChannelOrder(contentOrderDao.orderedIds(pid, MediaType.LIVE, contextKey), itemIds).mapIndexed { i, id ->
                     ContentOrderEntity(
                         profileId = pid,
                         mediaType = MediaType.LIVE,
@@ -586,6 +620,22 @@ class LiveViewModel(
                     )
                 },
             )
+            settings.setSortLive(SettingsRepository.SortMode.CUSTOM)
+        }
+    }
+
+    fun setSort(mode: SettingsRepository.SortMode) {
+        if (mode !in listOf(SettingsRepository.SortMode.ALPHA, SettingsRepository.SortMode.PLAYLIST, SettingsRepository.SortMode.CUSTOM)) return
+        viewModelScope.launch { settings.setSortLive(mode) }
+    }
+
+    fun restoreOrder(key: LiveKey) {
+        val context = contextKeyOf(key) ?: return
+        val pid = ctx.value.profileId
+        viewModelScope.launch {
+            if (pid < 0 || pid != ctx.value.profileId) return@launch
+            contentOrderDao.clearContext(pid, MediaType.LIVE, context)
+            settings.setSortLive(SettingsRepository.SortMode.PLAYLIST)
         }
     }
 

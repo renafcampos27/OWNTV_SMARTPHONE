@@ -17,8 +17,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -35,7 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import tv.own.owntv.core.database.entity.ProfileEntity
 import tv.own.owntv.core.profile.PROFILE_AVATAR_COUNT
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
@@ -43,6 +45,7 @@ import tv.own.owntv.mobile.ui.components.MobileSwitch
 import tv.own.owntv.mobile.ui.components.MobileTextField
 import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.R as MobileR
 
 /** A PIN is four to six digits — long enough to be a lock, short enough to type one-handed. */
 private const val PIN_MIN = 4
@@ -129,7 +132,7 @@ fun ProfilePinSheet(
 fun ProfileEditorSheet(
     initial: ProfileEntity?,
     takenNames: Set<String>,
-    onConfirm: (name: String, avatarId: Int, isKids: Boolean, pin: String?) -> Unit,
+    onConfirm: (name: String, avatarId: Int, isKids: Boolean, pin: String?, currentPin: String) -> Unit,
     onDismiss: () -> Unit,
     extraAction: (() -> Unit)? = null,
     // A picture of the user's own, which applies immediately rather than on Save — the file is
@@ -138,16 +141,22 @@ fun ProfileEditorSheet(
     customPath: String = "",
     onPickPicture: ((android.net.Uri) -> Unit)? = null,
     onClearPicture: (() -> Unit)? = null,
+    operation: ProfileMutationState = ProfileMutationState(),
 ) {
     var name by remember { mutableStateOf(initial?.name.orEmpty()) }
     var avatarId by remember { mutableIntStateOf(initial?.avatarId ?: -1) }
     var isKids by remember { mutableStateOf(initial?.isKids == true) }
     var pin by remember { mutableStateOf("") }
     var removePin by remember { mutableStateOf(false) }
+    var currentPin by remember { mutableStateOf("") }
+    val busy = operation.busy
+    val changedPin = if (removePin) "" else pin.takeIf { it.isNotBlank() }
+    val needsAuthorization = !initial?.pinHash.isNullOrBlank() && (changedPin != null || initial.isKids && !isKids)
+    LaunchedEffect(operation.error) { if (operation.error != null) currentPin = "" }
     val nameTaken = name.trim().isNotEmpty() && name.trim().lowercase() in takenNames
 
     MobileBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!busy) onDismiss() },
         title = stringResource(if (initial == null) R.string.profiles_new else R.string.profiles_edit),
     ) {
         Column(
@@ -166,6 +175,7 @@ fun ProfileEditorSheet(
                 imeAction = ImeAction.Next,
                 isError = nameTaken,
                 supportingText = if (nameTaken) stringResource(R.string.profiles_name_taken) else null,
+                enabled = !busy,
             )
             Text(
                 text = stringResource(R.string.profiles_avatar),
@@ -186,7 +196,7 @@ fun ProfileEditorSheet(
                         modifier = Modifier
                             .size(AVATAR_PICK_SIZE - 8.dp)
                             .clip(CircleShape)
-                            .clickable {
+                            .clickable(enabled = !busy) {
                                 picker.launch(
                                     androidx.activity.result.PickVisualMediaRequest(
                                         androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
@@ -204,12 +214,14 @@ fun ProfileEditorSheet(
                             )
                         },
                         style = MobileButtonStyle.TEXT,
+                        enabled = !busy,
                     )
                     if (customPath.isNotBlank() && onClearPicture != null) {
                         MobileButton(
                             text = stringResource(R.string.common_clear),
                             onClick = onClearPicture,
                             style = MobileButtonStyle.TEXT,
+                            enabled = !busy,
                         )
                     }
                 }
@@ -233,7 +245,7 @@ fun ProfileEditorSheet(
                                     Modifier
                                 },
                             )
-                            .clickable { avatarId = id }
+                            .clickable(enabled = !busy) { avatarId = id }
                             .padding(4.dp),
                     ) {
                         ProfileAvatar(
@@ -248,6 +260,7 @@ fun ProfileEditorSheet(
                 description = stringResource(R.string.profiles_kids_description),
                 checked = isKids,
                 onToggle = { isKids = it },
+                enabled = !busy,
             )
             if (initial?.pinHash != null) {
                 ToggleRow(
@@ -255,6 +268,7 @@ fun ProfileEditorSheet(
                     description = stringResource(R.string.profiles_no_pin),
                     checked = removePin,
                     onToggle = { removePin = it },
+                    enabled = !busy,
                 )
             }
             if (!removePin) {
@@ -268,23 +282,89 @@ fun ProfileEditorSheet(
                     isPassword = true,
                     keyboardType = KeyboardType.NumberPassword,
                     imeAction = ImeAction.Done,
+                    enabled = !busy,
                 )
             }
+            if (needsAuthorization) {
+                CurrentProfilePinField(currentPin, { currentPin = it }, enabled = !busy)
+            }
+            ProfileMutationErrorText(operation.error)
         }
         SheetButtons(
             confirm = stringResource(if (initial == null) R.string.profiles_create else R.string.profiles_save),
-            confirmEnabled = name.isNotBlank() && !nameTaken &&
-                (removePin || pin.isEmpty() || pin.length >= PIN_MIN),
+            confirmEnabled = !busy && name.isNotBlank() && !nameTaken &&
+                (removePin || pin.isEmpty() || pin.length >= PIN_MIN) &&
+                (!needsAuthorization || currentPin.length in PIN_MIN..PIN_MAX),
             onConfirm = {
-                onConfirm(name.trim(), avatarId, isKids, if (removePin) "" else pin.takeIf { it.isNotBlank() })
-                onDismiss()
+                onConfirm(name.trim(), avatarId, isKids, changedPin, currentPin)
+                currentPin = ""
             },
             onDismiss = onDismiss,
             // Delete stands beside Cancel rather than under the fields, where a thumb reaching for
             // the PIN box would find it.
             destructive = extraAction,
+            busy = busy,
         )
     }
+}
+
+/** Destructive confirmation stays open until authorization and the conditional deletion commit. */
+@Composable
+fun ProfileDeleteSheet(
+    profile: ProfileEntity,
+    operation: ProfileMutationState,
+    onConfirm: (currentPin: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var currentPin by remember(profile.id) { mutableStateOf("") }
+    val needsAuthorization = !profile.pinHash.isNullOrBlank()
+    LaunchedEffect(operation.error) { if (operation.error != null) currentPin = "" }
+    MobileBottomSheet(
+        onDismissRequest = { if (!operation.busy) onDismiss() },
+        title = stringResource(R.string.profiles_delete_title, profile.name),
+    ) {
+        Column(
+            modifier = Modifier.heightIn(max = sheetListHeight()).verticalScroll(rememberScrollState())
+                .imePadding().padding(horizontal = MobileDimens.ScreenPaddingH),
+            verticalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
+        ) {
+            Text(stringResource(R.string.profiles_delete_message))
+            if (needsAuthorization) CurrentProfilePinField(currentPin, { currentPin = it }, !operation.busy)
+            ProfileMutationErrorText(operation.error)
+        }
+        SheetButtons(
+            confirm = stringResource(R.string.common_delete),
+            confirmEnabled = !operation.busy && (!needsAuthorization || currentPin.length in PIN_MIN..PIN_MAX),
+            onConfirm = { onConfirm(currentPin); currentPin = "" },
+            onDismiss = onDismiss,
+            busy = operation.busy,
+        )
+    }
+}
+
+@Composable
+private fun CurrentProfilePinField(pin: String, onChange: (String) -> Unit, enabled: Boolean) {
+    MobileTextField(
+        value = pin,
+        onValueChange = { if (it.length <= PIN_MAX && it.all(Char::isDigit)) onChange(it) },
+        label = stringResource(MobileR.string.own_profile_current_pin),
+        supportingText = stringResource(MobileR.string.own_profile_current_pin_hint),
+        isPassword = true,
+        keyboardType = KeyboardType.NumberPassword,
+        enabled = enabled,
+    )
+}
+
+@Composable
+private fun ProfileMutationErrorText(error: ProfileMutationError?) {
+    if (error == null) return
+    val text = when (error) {
+        ProfileMutationError.WRONG_PIN -> R.string.profiles_wrong_pin
+        ProfileMutationError.PROTECTION_CHANGED -> MobileR.string.own_profile_protection_changed
+        ProfileMutationError.CANNOT_DELETE -> MobileR.string.own_profile_cannot_delete
+        ProfileMutationError.FAILED -> MobileR.string.own_profile_operation_failed
+    }
+    Text(stringResource(text), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
 }
 
 /** A label, a line of explanation and a switch — the whole row is the button. */
@@ -294,12 +374,13 @@ private fun ToggleRow(
     description: String,
     checked: Boolean,
     onToggle: (Boolean) -> Unit,
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             // Flat: a sheet is already a pane of glass, so a second surface inside it only muddies it.
-            .clickable { onToggle(!checked) }
+            .clickable(enabled = enabled) { onToggle(!checked) }
             .padding(vertical = MobileDimens.GapSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -323,6 +404,7 @@ private fun SheetButtons(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     destructive: (() -> Unit)? = null,
+    busy: Boolean = false,
 ) {
     Row(
         modifier = Modifier
@@ -331,17 +413,20 @@ private fun SheetButtons(
         horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (busy) CircularProgressIndicator(Modifier.size(24.dp))
         if (destructive != null) {
             MobileButton(
                 text = stringResource(R.string.common_delete),
                 onClick = destructive,
                 style = MobileButtonStyle.TEXT,
+                enabled = !busy,
             )
         }
         MobileButton(
             text = stringResource(R.string.common_cancel),
             onClick = onDismiss,
             style = MobileButtonStyle.TEXT,
+            enabled = !busy,
         )
         MobileButton(text = confirm, onClick = onConfirm, enabled = confirmEnabled)
     }

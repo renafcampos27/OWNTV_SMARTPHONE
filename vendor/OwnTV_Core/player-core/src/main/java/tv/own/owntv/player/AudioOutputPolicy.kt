@@ -100,10 +100,10 @@ class OwnTVRenderersFactory(
         // Register only the audio extension. Global extension mode can also enable software video.
         super.buildAudioRenderers(context, EXTENSION_RENDERER_MODE_OFF, mediaCodecSelector,
             enableDecoderFallback, audioSink, eventHandler, eventListener, out)
-        val available = androidx.media3.decoder.ffmpeg.FfmpegLibrary.isAvailable()
+        val available = tv.own.owntv.player.ffmpeg.FfmpegLibrary.isAvailable()
         LiveDiagnosticsLog.event("ffmpeg_audio available=$available preferred=$preferFfmpegAudio")
         if (available) {
-            val renderer = androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer(eventHandler, eventListener, audioSink)
+            val renderer = tv.own.owntv.player.ffmpeg.FfmpegAudioRenderer(eventHandler, eventListener, audioSink)
             out.add(if (preferFfmpegAudio) firstAudio else out.size, renderer)
         }
     }
@@ -205,6 +205,12 @@ class AudioWatchdog(
     private var nextOutputId = 0L
     private var currentOutputId: Long? = null
     val hasAdvanced: Boolean get() = advancing
+    /** Output configuration is authoritative; input channel count and decoder names are insufficient. */
+    val isStereoPcmOutput: Boolean get() = outputConfig?.let {
+        androidx.media3.common.util.Util.isEncodingLinearPcm(it.encoding) &&
+            (it.channelConfig == android.media.AudioFormat.CHANNEL_OUT_STEREO ||
+                it.channelConfig == android.media.AudioFormat.CHANNEL_OUT_MONO)
+    } == true
     private fun diagnostic(message: String) = LiveDiagnosticsLog.event("$message ${context()}")
 
     /** Call when a new load starts. */
@@ -373,7 +379,12 @@ class AudioWatchdog(
      * Advance the "playing time since armed" clock and return a failure reason once, or null.
      * [isPlaying] must be the player's real playing state — paused time must not count.
      */
-    fun poll(isPlaying: Boolean): String? {
+    fun poll(isPlaying: Boolean, audioExpected: Boolean = true): String? {
+        if (!audioExpected) {
+            pendingReason = null; fired = false
+            playingSinceArmMs = 0L; lastTickMs = 0L
+            return null
+        }
         pendingReason?.let { pendingReason = null; return it }
         if (!armed || advancing) { lastTickMs = 0L; return null }
         val now = nowMs()

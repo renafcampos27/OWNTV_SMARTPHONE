@@ -2,6 +2,7 @@ package tv.own.owntv.core.content
 
 import androidx.compose.runtime.Immutable
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.ensureActive
 import tv.own.owntv.core.customize.CustomizationStore
 import tv.own.owntv.core.customize.CustomizeKeys
 import tv.own.owntv.core.customize.SectionCustomizations
@@ -22,9 +23,16 @@ data class SearchResults(
     val channels: List<ChannelSearchResult> = emptyList(),
     val movies: List<MovieEntity> = emptyList(),
     val series: List<SeriesEntity> = emptyList(),
+    val programmes: List<ProgrammeSearchResult> = emptyList(),
 ) {
-    val isEmpty: Boolean get() = channels.isEmpty() && movies.isEmpty() && series.isEmpty()
+    val isEmpty: Boolean get() = channels.isEmpty() && movies.isEmpty() && series.isEmpty() && programmes.isEmpty()
 }
+
+@Immutable
+data class ProgrammeSearchResult(
+    val programme: tv.own.owntv.core.database.entity.EpgProgrammeEntity,
+    val channel: tv.own.owntv.core.database.entity.ChannelEntity,
+)
 
 /** The curated lists offered when nothing has been typed yet. */
 enum class SearchIntent {
@@ -48,6 +56,8 @@ class SearchReader(
     private val seriesDao: SeriesDao,
     private val profileDao: ProfileDao,
     private val customize: CustomizationStore,
+    private val epgDao: tv.own.owntv.core.database.dao.EpgDao,
+    private val settings: tv.own.owntv.core.settings.SettingsRepository,
 ) {
 
     /**
@@ -61,6 +71,7 @@ class SearchReader(
         sources: ActiveProfileSources,
         query: String,
         limit: Int = LIMIT,
+        includeProgrammes: Boolean = true,
     ): SearchResults {
         if (profileId < 0 || !sources.hasAny) return SearchResults()
         val fts = ftsQuery(query)
@@ -72,6 +83,7 @@ class SearchReader(
         val hiddenMovieCats = hiddenCategoryIds(sources.movieSourceIds, MediaType.MOVIE, custMovie, isKids)
         val hiddenSeriesCats = hiddenCategoryIds(sources.seriesSourceIds, MediaType.SERIES, custSeries, isKids)
         return SearchResults(
+            programmes = if (includeProgrammes) programmes(query, sources.liveSourceIds, custLive, hiddenLiveCats) else emptyList(),
             channels = if (sources.liveSourceIds.isEmpty()) emptyList() else
                 (
                     if (fts != null) channelDao.searchListDetailedFts(fts, sources.liveSourceIds, limit)
@@ -106,6 +118,44 @@ class SearchReader(
                     }
                     .map { s -> custSeries.itemNames[CustomizeKeys.series(s)]?.let { s.copy(name = it) } ?: s },
         )
+    }
+
+    private suspend fun programmes(query: String, sourceIds: List<Long>, cust: SectionCustomizations,
+        hiddenCats: Set<Long>): List<ProgrammeSearchResult> {
+        if (sourceIds.isEmpty()) return emptyList()
+        val now = System.currentTimeMillis()
+        val horizon = now + 12 * 60 * 60_000L
+        val globalShift = settings.epgOffsetMinutes.first()
+        val matchedKeys = cust.epgMatches.values.map { it.trim().lowercase() }.distinct().take(500)
+        val slack = 24 * 60 * 60_000L
+        val found = mutableListOf<ProgrammeSearchResult>()
+        val seen = mutableSetOf<Triple<String, Long, String>>()
+        val pattern = ProgrammeSearchPolicy.literalPattern(query)
+        var offset = 0
+        // Bounded pages allow hidden results to be skipped without unrelated feeds consuming the cap.
+        while (offset < 2_000 && found.size < 40) {
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            val rows = epgDao.searchProgrammeTitles(pattern, now-slack, horizon+slack, sourceIds, matchedKeys, 200, offset)
+            if (rows.isEmpty()) break
+            val byKey = rows.groupBy { it.epgChannelId }
+            val tails = cust.epgMatches.filterValues { it.trim().lowercase() in byKey }.keys
+                .map { CustomizeKeys.tailOf(it) }.filter { it.isNotEmpty() }.distinct()
+            val candidates = channelDao.byEpgKeys(sourceIds, byKey.keys.toList()) +
+                tails.chunked(200).flatMap { channelDao.byRemoteIdsOrNames(sourceIds, it) }
+            candidates.distinctBy { it.id }.sortedWith(compareBy({sourceIds.indexOf(it.sourceId)}, {it.sortOrder})).forEach { ch ->
+                if (CustomizeKeys.channel(ch) in cust.hiddenItems || ch.categoryId in hiddenCats) return@forEach
+                val key = (cust.epgMatchResolver.epgIdFor(ch) ?: ch.epgChannelId)?.trim()?.lowercase() ?: return@forEach
+                val shift = tv.own.owntv.core.epg.EpgShift.minutesFor(cust, ch, globalShift)
+                val named = cust.itemNames[CustomizeKeys.channel(ch)]?.let { ch.copy(name=it) } ?: ch
+                val programmes = tv.own.owntv.core.epg.EpgShift.apply(tv.own.owntv.core.epg.EpgDedupe.collapse(byKey[key].orEmpty()), shift)
+                programmes.filter { it.stopMs > now && it.startMs < horizon }.forEach { programme ->
+                    if (seen.add(Triple(key, programme.startMs, programme.title))) found += ProgrammeSearchResult(programme, named)
+                }
+            }
+            offset += rows.size
+            if (rows.size < 200) break
+        }
+        return found.sortedWith(compareBy({ it.programme.startMs > now }, { it.programme.startMs })).take(40)
     }
 
     /** One of the curated lists shown before anything is typed. Bounded, and already source-filtered. */
@@ -161,16 +211,13 @@ class SearchReader(
         const val LIMIT = 40
 
         /**
-         * A sanitized FTS4 MATCH expression: each whitespace-separated token is stripped to letters
-         * and digits and turned into a prefix term ("harry pot" → "harry* pot*", implicit AND).
+         * A sanitized FTS4 MATCH expression: punctuation separates words; each word becomes a prefix term ("harry pot" → "harry* pot*", implicit AND).
          * Null when nothing tokenizable remains (symbols-only input) — the caller then falls back to
          * the substring LIKE queries. Prefix terms match word starts rather than mid-word substrings,
          * which is the accepted trade-off for an index-served search over ~220k rows per keystroke.
          */
         fun ftsQuery(query: String): String? {
-            val tokens = query.split(Regex("\\s+"))
-                .map { t -> t.filter { it.isLetterOrDigit() } }
-                .filter { it.isNotEmpty() }
+            val tokens = query.split(Regex("[^\\p{L}\\p{Nd}]+")).filter { it.isNotEmpty() }
             if (tokens.isEmpty()) return null
             return tokens.joinToString(" ") { "$it*" }
         }

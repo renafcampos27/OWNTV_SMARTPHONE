@@ -40,7 +40,7 @@ import tv.own.owntv.core.content.SearchIntent
 import tv.own.owntv.core.database.entity.MovieEntity
 import tv.own.owntv.core.database.entity.SeriesEntity
 import tv.own.owntv.core.model.MediaType
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.ContentActionsMenu
 import tv.own.owntv.mobile.ui.components.ContentTarget
 import tv.own.owntv.mobile.ui.components.MobileListRow
@@ -61,6 +61,7 @@ fun SearchScreen(
     onOpenChannel: (Long) -> Unit,
     onOpenMovie: (Long) -> Unit,
     onOpenSeries: (Long) -> Unit,
+    onOpenProgrammePlayer: () -> Unit,
     modifier: Modifier = Modifier,
     vm: SearchViewModel = koinViewModel(),
 ) {
@@ -84,8 +85,10 @@ fun SearchScreen(
     val showProvider = sources.size > 1
     val listState = rememberLazyListState()
     var menuFor by remember { mutableStateOf<ContentTarget?>(null) }
+    var programmeFor by remember { mutableStateOf<tv.own.owntv.core.content.ProgrammeSearchResult?>(null) }
 
     // The list itself is not a composable scope, so everything it needs from resources is read here.
+    val programmesLabel = stringResource(tv.own.owntv.mobile.R.string.own_programmes_search)
     val channelsLabel = stringResource(R.string.search_channels)
     val moviesLabel = stringResource(R.string.search_movie)
     val seriesLabel = stringResource(R.string.search_series)
@@ -138,6 +141,13 @@ fun SearchScreen(
                 else stringResource(R.string.search_nothing_in_list, intent.label()),
             )
             else -> LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                group(label = programmesLabel,
+                    count = results.programmes.size, items = results.programmes,
+                    key = { "programme_${it.channel.id}_${it.programme.id}" }) { found ->
+                    MobileListRow(title = found.programme.title,
+                        subtitle = found.channel.name + " · " + java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(found.programme.startMs)),
+                        onClick = { vm.rememberQuery(); programmeFor = found })
+                }
                 group(
                     label = channelsLabel,
                     count = results.channels.size,
@@ -193,6 +203,15 @@ fun SearchScreen(
                 }
             }
         }
+    }
+
+    programmeFor?.let { found ->
+        tv.own.owntv.mobile.ui.screens.guide.ProgrammeSheet(
+            channel = found.channel, programme = found.programme, isFavorite = false,
+            vm = koinViewModel<tv.own.owntv.mobile.ui.screens.guide.GuideViewModel>(),
+            onOpenChannel = { onOpenProgrammePlayer() },
+            onDismiss = { programmeFor = null },
+        )
     }
 
     menuFor?.let { target ->

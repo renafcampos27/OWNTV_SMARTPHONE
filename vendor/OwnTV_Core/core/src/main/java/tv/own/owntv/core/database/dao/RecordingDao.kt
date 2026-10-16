@@ -46,6 +46,9 @@ interface RecordingDao {
     @Query("SELECT * FROM recordings WHERE status = 'RECORDING' ORDER BY startMs ASC")
     fun observeRunning(): Flow<List<RecordingEntity>>
 
+    @Query("SELECT EXISTS(SELECT 1 FROM recordings WHERE status = 'RECORDING')")
+    fun observeHasRunning(): Flow<Boolean>
+
     /**
      * The same rows, read once.
      *
@@ -132,6 +135,13 @@ interface RecordingDao {
     )
     suspend fun updateCapture(id: Long, capturedDurationMs: Long, missingDurationMs: Long, gapCount: Int,
         hlsCheckpoint: String?, timestamp: Long)
+
+    @Query("UPDATE recordings SET capturedDurationMs = :capturedDurationMs, missingDurationMs = :missingDurationMs, " +
+        "gapCount = :gapCount, hlsCheckpoint = :hlsCheckpoint, status = :status, failure = :failure, bytes = :bytes, " +
+        "filePath = :filePath, startedAt = :startedAt, endedAt = NULL, updatedAt = :timestamp WHERE id = :id")
+    suspend fun updateCommittedCapture(id: Long, capturedDurationMs: Long, missingDurationMs: Long, gapCount: Int,
+        hlsCheckpoint: String?, status: RecordingStatus, failure: RecordingFailure, bytes: Long,
+        filePath: String?, startedAt: Long?, timestamp: Long)
 
     /** Capture and promotion outcomes survive a restart independently of the aggregate failure. */
     @Query("UPDATE recordings SET captureFailure = :captureFailure, finalizationFailure = :finalizationFailure, updatedAt = :timestamp WHERE id = :id")

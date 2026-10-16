@@ -8,6 +8,23 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MpvNativePolicyTest {
+    @Test fun `native descriptive codec names retain hardware routing`() {
+        mapOf(
+            "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10" to "h264",
+            "H.265 / HEVC (High Efficiency Video Coding)" to "hevc",
+            "MPEG-2 video" to "mpeg2video",
+            "MPEG-4 part 2" to "mpeg4",
+            "SMPTE VC-1" to "vc1",
+            "Google VP9" to "vp9",
+            "On2 VP8" to "vp8",
+            "Alliance for Open Media AV1" to "av1",
+        ).forEach { (description, identifier) ->
+            assertEquals(identifier, OwnTVPlayer.ffmpegCodecName(description))
+            assertEquals(true, OwnTVPlayer.hwdecCovers(description))
+        }
+        assertNull(OwnTVPlayer.hwdecCovers("Unknown vendor codec description"))
+    }
+
     @Test fun `mpeg2 and mpeg4 can enter hardware path`() {
         assertEquals(true, OwnTVPlayer.hwdecCovers("mpeg2video"))
         assertEquals(true, OwnTVPlayer.hwdecCovers("mpeg4 (MPEG-4 part 2)"))

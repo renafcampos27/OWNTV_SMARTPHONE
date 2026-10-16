@@ -41,7 +41,7 @@ import tv.own.owntv.core.settings.PlaylistRefresh
 import tv.own.owntv.core.sync.work.EpgSyncState
 import tv.own.owntv.core.util.classifySyncFailure
 import tv.own.owntv.core.setup.displayText
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.components.MobileButton

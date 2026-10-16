@@ -20,7 +20,7 @@ import tv.own.owntv.core.network.DnsConfig
 import tv.own.owntv.core.network.DohPresets
 import tv.own.owntv.core.network.ProxyConfig
 import org.koin.androidx.compose.koinViewModel
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
 import tv.own.owntv.mobile.ui.components.MobileTextField

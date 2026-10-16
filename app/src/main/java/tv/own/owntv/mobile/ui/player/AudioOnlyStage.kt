@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.player.ScreenOff
 import tv.own.owntv.player.SleepTimer
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet

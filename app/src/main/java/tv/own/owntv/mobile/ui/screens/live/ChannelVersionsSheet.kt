@@ -20,7 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.own.owntv.core.customize.CustomizeKeys
 import tv.own.owntv.core.database.entity.ChannelEntity
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.*
 
 /** Provider identities stay intact; display renames never alter automatic grouping. */

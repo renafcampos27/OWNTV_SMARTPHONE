@@ -40,7 +40,7 @@ import org.junit.runner.RunWith
  * the profile is a union of what was reached, not a script that must match.
  *
  * The number of bottom-bar destinations is **not fixed** — `MainSection.dynamicVisible()` hides Live
- * and Guide when a playlist has no channels, and Movies/Series when their tables are empty — which
+ * and Guide when a playlist has no channels, with the current Live, Guide and More shell — which
  * is the other reason nothing here counts tabs or asserts on what it found.
  */
 @RunWith(AndroidJUnit4::class)
@@ -59,7 +59,7 @@ class BaselineProfileGenerator {
         startActivityAndWait()
         settle()
 
-        // Home first, scrolled for real: the hero card, the row headers and the poster items are the
+        // Live first, scrolled for real: the category strip and the channel rows are the
         // first composition the user ever waits for.
         scrollContent()
 
@@ -123,7 +123,7 @@ class BaselineProfileGenerator {
         const val PACKAGE = "tv.own.owntv.mobile"
 
         /** The bottom bar's full complement. Fewer are drawn when a playlist has less in it. */
-        const val NAV_SLOTS = 5
+        const val NAV_SLOTS = 3
 
         /** Inside the nav island, clear of the gesture area below it. */
         const val NAV_Y = 0.94f

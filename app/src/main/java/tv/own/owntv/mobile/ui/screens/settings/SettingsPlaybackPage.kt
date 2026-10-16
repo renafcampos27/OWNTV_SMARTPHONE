@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import tv.own.owntv.core.R as CoreR
+
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -62,28 +64,28 @@ private enum class ResetTarget(
     @param:StringRes val descriptionRes: Int,
 ) {
     ENGINE_PINS(
-        R.string.settings_reset_player_choices_confirm,
-        R.string.settings_reset_player_choices_confirm_description,
+        CoreR.string.settings_reset_player_choices_confirm,
+        CoreR.string.settings_reset_player_choices_confirm_description,
     ),
     LIVE_ENGINE_PINS(
-        R.string.settings_reset_live_player_choices_confirm,
-        R.string.settings_reset_live_player_choices_confirm_description,
+        CoreR.string.settings_reset_live_player_choices_confirm,
+        CoreR.string.settings_reset_live_player_choices_confirm_description,
     ),
     STREAM_FIXES(
-        R.string.settings_forget_stream_fixes_confirm,
-        R.string.settings_forget_stream_fixes_confirm_description,
+        CoreR.string.settings_forget_stream_fixes_confirm,
+        CoreR.string.settings_forget_stream_fixes_confirm_description,
     ),
     ZOOM(
-        R.string.settings_reset_saved_zoom_confirm,
-        R.string.settings_reset_saved_zoom_confirm_description,
+        CoreR.string.settings_reset_saved_zoom_confirm,
+        CoreR.string.settings_reset_saved_zoom_confirm_description,
     ),
     VOLUME(
-        R.string.settings_reset_saved_volume_confirm,
-        R.string.settings_reset_saved_volume_confirm_description,
+        CoreR.string.settings_reset_saved_volume_confirm,
+        CoreR.string.settings_reset_saved_volume_confirm_description,
     ),
     AUDIO_DELAY(
-        R.string.settings_reset_saved_audio_delay_confirm,
-        R.string.settings_reset_saved_audio_delay_confirm_description,
+        CoreR.string.settings_reset_saved_audio_delay_confirm,
+        CoreR.string.settings_reset_saved_audio_delay_confirm_description,
     ),
 }
 
@@ -166,8 +168,8 @@ fun SettingsVideoPlayerPage(
             SettingsLeaf.VP_PLAYER -> {
                 settingsGroup(key = "live-engine") {
                     SettingRow(
-                        title = stringResource(R.string.settings_live_tv_player),
-                        subtitle = stringResource(R.string.settings_live_player_description_mobile),
+                        title = stringResource(CoreR.string.settings_live_tv_player),
+                        subtitle = stringResource(CoreR.string.settings_live_player_description_mobile),
                         value = engineLabel(liveEngine),
                         onClick = { sheet = PlaybackSheet.LIVE_ENGINE },
                     )
@@ -175,8 +177,8 @@ fun SettingsVideoPlayerPage(
                 if (sources.isNotEmpty()) {
                     settingsGroup(key = "live-engine-sources") {
                         SettingRow(
-                            title = stringResource(R.string.settings_live_engine_per_playlist),
-                            subtitle = stringResource(R.string.settings_live_engine_per_playlist_description),
+                            title = stringResource(CoreR.string.settings_live_engine_per_playlist),
+                            subtitle = stringResource(CoreR.string.settings_live_engine_per_playlist_description),
                             value = overrideCountLabel(sources.count { it.liveEnginePreference != null }),
                             onClick = { sheet = PlaybackSheet.ENGINE_SOURCES },
                         )
@@ -184,8 +186,8 @@ fun SettingsVideoPlayerPage(
                 }
                 settingsGroup(key = "live-engine-reset") {
                     SettingRow(
-                        title = stringResource(R.string.settings_reset_live_player_choices),
-                        subtitle = stringResource(R.string.settings_reset_live_player_choices_description),
+                        title = stringResource(CoreR.string.settings_reset_live_player_choices),
+                        subtitle = stringResource(CoreR.string.settings_reset_live_player_choices_description),
                         value = rememberedCountLabel(livePins),
                         enabled = livePins > 0,
                         onClick = { resetting = ResetTarget.LIVE_ENGINE_PINS },
@@ -200,23 +202,23 @@ fun SettingsVideoPlayerPage(
                 }
                 settingsGroup(key = "player-more") {
                     SettingRow(
-                        title = stringResource(R.string.settings_reset_player_choices),
-                        subtitle = stringResource(R.string.settings_reset_player_choices_description),
+                        title = stringResource(CoreR.string.settings_reset_player_choices),
+                        subtitle = stringResource(CoreR.string.settings_reset_player_choices_description),
                         value = rememberedCountLabel(enginePins),
                         enabled = enginePins > 0,
                         onClick = { resetting = ResetTarget.ENGINE_PINS },
                     )
 
                     SettingRow(
-                        title = stringResource(R.string.settings_forget_stream_fixes),
-                        subtitle = stringResource(R.string.settings_forget_stream_fixes_description),
+                        title = stringResource(CoreR.string.settings_forget_stream_fixes),
+                        subtitle = stringResource(CoreR.string.settings_forget_stream_fixes_description),
                         onClick = { resetting = ResetTarget.STREAM_FIXES },
                     )
 
                     SettingRow(
-                        title = stringResource(R.string.settings_external_player),
-                        subtitle = stringResource(R.string.settings_external_player_row_description),
-                        value = stringResource(if (externalOn) R.string.common_on else R.string.common_off),
+                        title = stringResource(CoreR.string.settings_external_player),
+                        subtitle = stringResource(CoreR.string.settings_external_player_row_description),
+                        value = stringResource(if (externalOn) CoreR.string.common_on else CoreR.string.common_off),
                         onClick = { sheet = PlaybackSheet.EXTERNAL_PLAYER },
                     )
                 }
@@ -226,36 +228,36 @@ fun SettingsVideoPlayerPage(
                     QuickSwitchRow(
                         vm = vm,
                         toggle = quickToggle("vp_hw"),
-                        subtitle = stringResource(R.string.settings_hardware_decoding_description_mobile),
+                        subtitle = stringResource(CoreR.string.settings_hardware_decoding_description_mobile),
                     )
 
                     QuickSwitchRow(
                         vm = vm,
                         toggle = quickToggle("vp_hdr"),
-                        subtitle = stringResource(R.string.settings_hdr_description_mobile),
+                        subtitle = stringResource(CoreR.string.settings_hdr_description_mobile),
                     )
 
                     // N11 — the Settings limit, and a lower one for mobile data; the player's Quality
                     // button picks within a stream.
                     SettingRow(
-                        title = stringResource(R.string.settings_max_video_quality),
-                        subtitle = stringResource(R.string.settings_max_video_quality_description),
-                        value = qualityLabel(maxVideoHeight, R.string.settings_auto),
+                        title = stringResource(CoreR.string.settings_max_video_quality),
+                        subtitle = stringResource(CoreR.string.settings_max_video_quality_description),
+                        value = qualityLabel(maxVideoHeight, CoreR.string.settings_auto),
                         onClick = { sheet = PlaybackSheet.MAX_QUALITY },
                     )
 
                     SettingRow(
-                        title = stringResource(R.string.settings_mobile_data_quality),
-                        subtitle = stringResource(R.string.settings_mobile_data_quality_description),
-                        value = qualityLabel(mobileDataMaxVideoHeight, R.string.common_off),
+                        title = stringResource(CoreR.string.settings_mobile_data_quality),
+                        subtitle = stringResource(CoreR.string.settings_mobile_data_quality_description),
+                        value = qualityLabel(mobileDataMaxVideoHeight, CoreR.string.common_off),
                         onClick = { sheet = PlaybackSheet.MOBILE_QUALITY },
                     )
 
 
 
                     SettingRow(
-                        title = stringResource(R.string.settings_auto_frame_rate),
-                        subtitle = stringResource(R.string.settings_auto_frame_rate_description_mobile),
+                        title = stringResource(CoreR.string.settings_auto_frame_rate),
+                        subtitle = stringResource(CoreR.string.settings_auto_frame_rate_description_mobile),
                         checked = autoFrameRate,
                         // Below Android 12 there is no way to ask the display which refresh rates it can
                         // reach without blanking it, so turning this ON asks first. Turning it off is
@@ -266,15 +268,15 @@ fun SettingsVideoPlayerPage(
                     )
 
                     SettingRow(
-                        title = stringResource(R.string.settings_default_zoom),
-                        subtitle = stringResource(R.string.settings_default_zoom_description),
+                        title = stringResource(CoreR.string.settings_default_zoom),
+                        subtitle = stringResource(CoreR.string.settings_default_zoom_description),
                         value = stringResource(zoomModeOf(zoom).labelRes),
                         onClick = { sheet = PlaybackSheet.ZOOM },
                     )
 
                     SettingRow(
-                        title = stringResource(R.string.settings_reset_saved_zoom),
-                        subtitle = stringResource(R.string.settings_reset_saved_zoom_description),
+                        title = stringResource(CoreR.string.settings_reset_saved_zoom),
+                        subtitle = stringResource(CoreR.string.settings_reset_saved_zoom_description),
                         value = rememberedCountLabel(savedZoom),
                         enabled = savedZoom > 0,
                         onClick = { resetting = ResetTarget.ZOOM },
@@ -292,7 +294,7 @@ fun SettingsVideoPlayerPage(
                     QuickSwitchRow(
                         vm = vm,
                         toggle = quickToggle("vp_channel_numbers"),
-                        subtitle = stringResource(R.string.settings_channel_numbers_description_mobile),
+                        subtitle = stringResource(CoreR.string.settings_channel_numbers_description_mobile),
                     )
 
                 }
@@ -300,10 +302,10 @@ fun SettingsVideoPlayerPage(
             SettingsLeaf.VP_LIVE_TUNING -> {
                 settingsGroup(key = "latency") {
                     SettingRow(
-                        title = stringResource(R.string.settings_live_latency),
-                        subtitle = stringResource(R.string.settings_live_latency_description),
+                        title = stringResource(CoreR.string.settings_live_latency),
+                        subtitle = stringResource(CoreR.string.settings_live_latency_description),
                         value = if (latency == LiveLatency.CUSTOM) {
-                            stringResource(R.string.settings_live_buffer_seconds, latencySecs)
+                            stringResource(CoreR.string.settings_live_buffer_seconds, latencySecs)
                         } else {
                             stringResource(latency.labelRes())
                         },
@@ -313,10 +315,10 @@ fun SettingsVideoPlayerPage(
                 if (latency == LiveLatency.CUSTOM) {
                     settingsGroup(key = "latency-secs") {
                         SettingsSlider(
-                            title = stringResource(R.string.settings_live_latency_custom),
+                            title = stringResource(CoreR.string.settings_live_latency_custom),
                             value = latencySecs,
                             range = LiveBuffer.CUSTOM_MIN..LiveBuffer.CUSTOM_MAX,
-                            valueLabel = stringResource(R.string.settings_live_buffer_seconds, latencySecs),
+                            valueLabel = stringResource(CoreR.string.settings_live_buffer_seconds, latencySecs),
                             // The acknowledgement is asked once, on the drag that crosses below Balanced.
                             // Asking at every step would make the slider unusable; never asking would let a
                             // buffer too small for the stream look like the app breaking rather than a choice.
@@ -335,8 +337,8 @@ fun SettingsVideoPlayerPage(
                 if (sources.isNotEmpty()) {
                     settingsGroup(key = "latency-sources") {
                         SettingRow(
-                            title = stringResource(R.string.settings_live_latency_per_playlist),
-                            subtitle = stringResource(R.string.settings_live_latency_per_playlist_description),
+                            title = stringResource(CoreR.string.settings_live_latency_per_playlist),
+                            subtitle = stringResource(CoreR.string.settings_live_latency_per_playlist_description),
                             value = overrideCountLabel(sources.count { it.liveLatencyMode != null }),
                             onClick = { sheet = PlaybackSheet.LATENCY_SOURCES },
                         )
@@ -344,19 +346,19 @@ fun SettingsVideoPlayerPage(
                 }
                 settingsGroup(key = "preroll") {
                     SettingsSlider(
-                        title = stringResource(R.string.settings_live_preroll),
-                        subtitle = stringResource(R.string.settings_live_preroll_description),
+                        title = stringResource(CoreR.string.settings_live_preroll),
+                        subtitle = stringResource(CoreR.string.settings_live_preroll_description),
                         value = preroll,
                         range = 0..30,
-                        valueLabel = stringResource(R.string.settings_video_seconds, preroll),
+                        valueLabel = stringResource(CoreR.string.settings_video_seconds, preroll),
                         onValueChange = { secs -> vm.edit { setLivePrerollSecs(secs) } },
                     )
                 }
                 if (sources.isNotEmpty()) {
                     settingsGroup(key = "preroll-sources") {
                         SettingRow(
-                            title = stringResource(R.string.settings_live_preroll_per_playlist),
-                            subtitle = stringResource(R.string.settings_live_preroll_per_playlist_description),
+                            title = stringResource(CoreR.string.settings_live_preroll_per_playlist),
+                            subtitle = stringResource(CoreR.string.settings_live_preroll_per_playlist_description),
                             value = overrideCountLabel(
                                 sources.count { it.livePrerollSecs != FOLLOW_GLOBAL_PREROLL },
                             ),
@@ -366,19 +368,19 @@ fun SettingsVideoPlayerPage(
                 }
                 settingsGroup(key = "tune-timeout") {
                     SettingsSlider(
-                        title = stringResource(R.string.settings_live_tune_timeout),
-                        subtitle = stringResource(R.string.settings_live_tune_timeout_description),
+                        title = stringResource(CoreR.string.settings_live_tune_timeout),
+                        subtitle = stringResource(CoreR.string.settings_live_tune_timeout_description),
                         value = tuneTimeout,
                         range = 0..60,
-                        valueLabel = stringResource(R.string.settings_live_buffer_seconds, tuneTimeout),
+                        valueLabel = stringResource(CoreR.string.settings_live_buffer_seconds, tuneTimeout),
                         onValueChange = { secs -> vm.edit { setLiveTuneTimeoutSecs(secs) } },
                     )
                 }
                 if (sources.isNotEmpty()) {
                     settingsGroup(key = "tune-timeout-sources") {
                         SettingRow(
-                            title = stringResource(R.string.settings_live_tune_timeout_per_playlist),
-                            subtitle = stringResource(R.string.settings_live_tune_timeout_per_playlist_description),
+                            title = stringResource(CoreR.string.settings_live_tune_timeout_per_playlist),
+                            subtitle = stringResource(CoreR.string.settings_live_tune_timeout_per_playlist_description),
                             value = overrideCountLabel(sources.count { it.liveTuneTimeoutSecs != null }),
                             onClick = { sheet = PlaybackSheet.TUNE_TIMEOUT_SOURCES },
                         )
@@ -388,16 +390,16 @@ fun SettingsVideoPlayerPage(
             SettingsLeaf.VP_CONTROLS -> {
                 settingsGroup(key = "controls") {
                     SettingRow(
-                        title = stringResource(R.string.settings_seek_step),
-                        subtitle = stringResource(R.string.settings_seek_step_description),
-                        value = stringResource(R.string.settings_live_buffer_seconds, seekStep),
+                        title = stringResource(CoreR.string.settings_seek_step),
+                        subtitle = stringResource(CoreR.string.settings_seek_step_description),
+                        value = stringResource(CoreR.string.settings_live_buffer_seconds, seekStep),
                         onClick = { sheet = PlaybackSheet.SEEK_STEP },
                     )
 
                     SettingRow(
-                        title = stringResource(R.string.settings_live_rewind_step),
-                        subtitle = stringResource(R.string.settings_live_rewind_step_description),
-                        value = stringResource(R.string.settings_live_buffer_seconds, rewindStep),
+                        title = stringResource(CoreR.string.settings_live_rewind_step),
+                        subtitle = stringResource(CoreR.string.settings_live_rewind_step_description),
+                        value = stringResource(CoreR.string.settings_live_buffer_seconds, rewindStep),
                         onClick = { sheet = PlaybackSheet.REWIND_STEP },
                     )
                 }
@@ -407,19 +409,19 @@ fun SettingsVideoPlayerPage(
                     // Multiview. The phone had neither of these: the feature defaults to off and there was
                     // no way to turn it on, so the grid was unreachable however well it worked.
                     SettingRow(
-                        title = stringResource(R.string.settings_multiview),
-                        subtitle = stringResource(R.string.settings_multiview_description),
+                        title = stringResource(CoreR.string.settings_multiview),
+                        subtitle = stringResource(CoreR.string.settings_multiview_description),
                         checked = multiviewEnabled,
                         onCheckedChange = { on -> vm.edit { setMultiviewEnabled(on) } },
                     )
 
                     if (multiviewEnabled) {
                         SettingRow(
-                            title = stringResource(R.string.settings_multiview_tiles_max),
-                            subtitle = stringResource(R.string.settings_multiview_description),
+                            title = stringResource(CoreR.string.settings_multiview_tiles_max),
+                            subtitle = stringResource(CoreR.string.settings_multiview_description),
                             // "Max 4", not "4": the number is a ceiling. The grid opens with two and grows
                             // only when the user asks, so a bare number would read as "every grid is this big".
-                            value = stringResource(R.string.settings_multiview_tiles_max_value, multiviewTiles),
+                            value = stringResource(CoreR.string.settings_multiview_tiles_max_value, multiviewTiles),
                             onClick = { sheet = PlaybackSheet.MULTIVIEW_TILES },
                         )
                     }
@@ -428,16 +430,16 @@ fun SettingsVideoPlayerPage(
             SettingsLeaf.VP_SOUND -> {
                 settingsGroup(key = "sound") {
                     SettingRow(
-                        title = stringResource(R.string.settings_surround_sound),
-                        subtitle = stringResource(R.string.settings_surround_description_mobile),
+                        title = stringResource(CoreR.string.settings_surround_sound),
+                        subtitle = stringResource(CoreR.string.settings_surround_description_mobile),
                         value = stringResource(surround.labelRes()),
                         onClick = { sheet = PlaybackSheet.SURROUND },
                     )
 
                     // P14 — N8, N9, N10.
                     SettingRow(
-                        title = stringResource(R.string.settings_audio_passthrough),
-                        subtitle = stringResource(R.string.settings_audio_passthrough_description_mobile),
+                        title = stringResource(CoreR.string.settings_audio_passthrough),
+                        subtitle = stringResource(CoreR.string.settings_audio_passthrough_description_mobile),
                         checked = audioPassthrough,
                         onCheckedChange = { on -> vm.edit { setAudioPassthrough(on) } },
                     )
@@ -449,18 +451,18 @@ fun SettingsVideoPlayerPage(
                     // 25 ms steps across ±5s: the offset being corrected is a device's picture-processing
                     // delay, which lands in the tens of milliseconds — a coarser step could only bracket it.
                     SettingsSlider(
-                        title = stringResource(R.string.settings_audio_sync),
-                        subtitle = stringResource(R.string.settings_audio_sync_description),
+                        title = stringResource(CoreR.string.settings_audio_sync),
+                        subtitle = stringResource(CoreR.string.settings_audio_sync_description),
                         value = audioDelay,
                         range = -5000..5000,
                         steps = 399,
-                        valueLabel = stringResource(R.string.settings_audio_delay_value, audioDelay),
+                        valueLabel = stringResource(CoreR.string.settings_audio_delay_value, audioDelay),
                         onValueChange = { ms -> vm.edit { setAudioDelayMs(ms / 25 * 25) } },
                     )
 
                     SettingRow(
-                        title = stringResource(R.string.settings_reset_saved_audio_delay),
-                        subtitle = stringResource(R.string.settings_reset_saved_audio_delay_description),
+                        title = stringResource(CoreR.string.settings_reset_saved_audio_delay),
+                        subtitle = stringResource(CoreR.string.settings_reset_saved_audio_delay_description),
                         value = rememberedCountLabel(savedAudioDelay),
                         enabled = savedAudioDelay > 0,
                         onClick = { resetting = ResetTarget.AUDIO_DELAY },
@@ -470,23 +472,23 @@ fun SettingsVideoPlayerPage(
             SettingsLeaf.VP_LANGUAGES -> {
                 settingsGroup(key = "languages") {
                     SettingRow(
-                        title = stringResource(R.string.settings_preferred_audio_language),
-                        subtitle = stringResource(R.string.settings_preferred_audio_language_description),
+                        title = stringResource(CoreR.string.settings_preferred_audio_language),
+                        subtitle = stringResource(CoreR.string.settings_preferred_audio_language_description),
                         value = trackLanguageName(audioLang),
                         onClick = { sheet = PlaybackSheet.AUDIO_LANG },
                     )
 
                     SettingRow(
-                        title = stringResource(R.string.settings_preferred_subtitle_language),
-                        subtitle = stringResource(R.string.settings_preferred_language_description),
+                        title = stringResource(CoreR.string.settings_preferred_subtitle_language),
+                        subtitle = stringResource(CoreR.string.settings_preferred_language_description),
                         value = trackLanguageName(subLang),
                         onClick = { sheet = PlaybackSheet.SUB_LANG },
                     )
 
                     SettingRow(
-                        title = stringResource(R.string.settings_subtitle_appearance),
-                        subtitle = stringResource(R.string.settings_subtitle_appearance_description),
-                        value = stringResource(if (subStyleOn) R.string.common_on else R.string.common_off),
+                        title = stringResource(CoreR.string.settings_subtitle_appearance),
+                        subtitle = stringResource(CoreR.string.settings_subtitle_appearance_description),
+                        value = stringResource(if (subStyleOn) CoreR.string.common_on else CoreR.string.common_off),
                         onClick = { onOpenLeaf(SettingsLeaf.SUBTITLE_APPEARANCE) },
                     )
                 }
@@ -494,8 +496,8 @@ fun SettingsVideoPlayerPage(
             SettingsLeaf.VP_RESUME -> {
                 settingsGroup(key = "resume") {
                     SettingRow(
-                        title = stringResource(R.string.settings_resume_playback),
-                        subtitle = stringResource(R.string.settings_resume_playback_description),
+                        title = stringResource(CoreR.string.settings_resume_playback),
+                        subtitle = stringResource(CoreR.string.settings_resume_playback_description),
                         value = stringResource(resume.labelRes()),
                         onClick = { sheet = PlaybackSheet.RESUME },
                     )
@@ -503,7 +505,7 @@ fun SettingsVideoPlayerPage(
                     QuickSwitchRow(
                         vm = vm,
                         toggle = quickToggle("vp_autoplay"),
-                        subtitle = stringResource(R.string.settings_autoplay_next_description),
+                        subtitle = stringResource(CoreR.string.settings_autoplay_next_description),
                     )
                 }
             }
@@ -512,13 +514,13 @@ fun SettingsVideoPlayerPage(
                     QuickSwitchRow(
                         vm = vm,
                         toggle = quickToggle("vp_measured_stats"),
-                        subtitle = stringResource(R.string.settings_measured_stats_description_mobile),
+                        subtitle = stringResource(CoreR.string.settings_measured_stats_description_mobile),
                     )
 
                     QuickSwitchRow(
                         vm = vm,
                         toggle = quickToggle("vp_logging"),
-                        subtitle = stringResource(R.string.settings_detailed_playback_logging_description),
+                        subtitle = stringResource(CoreR.string.settings_detailed_playback_logging_description),
                     )
                 }
             }
@@ -532,16 +534,16 @@ fun SettingsVideoPlayerPage(
     val editing = sources.firstOrNull { it.id == overrideSource?.id }
     when (sheet) {
         PlaybackSheet.LIVE_ENGINE -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_live_tv_player),
+            title = stringResource(CoreR.string.settings_live_tv_player),
             choices = EnginePreference.entries.map { SettingsChoice(it, engineLabel(it)) },
             selected = liveEngine,
             onSelect = { picked -> vm.edit { setLiveEnginePreference(picked) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.MULTIVIEW_TILES -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_multiview_tiles_max),
+            title = stringResource(CoreR.string.settings_multiview_tiles_max),
             choices = (MIN_MULTIVIEW_TILES..MAX_MULTIVIEW_TILES).map {
-                SettingsChoice(it, stringResource(R.string.settings_multiview_tiles_max_value, it))
+                SettingsChoice(it, stringResource(CoreR.string.settings_multiview_tiles_max_value, it))
             },
             selected = multiviewTiles,
             onSelect = { picked -> vm.edit { setMultiviewTiles(picked) } },
@@ -555,14 +557,14 @@ fun SettingsVideoPlayerPage(
             onDismiss = dismiss,
         )
         PlaybackSheet.ZOOM -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_default_zoom),
+            title = stringResource(CoreR.string.settings_default_zoom),
             choices = ZoomMode.entries.map { SettingsChoice(it, stringResource(it.labelRes)) },
             selected = zoomModeOf(zoom),
             onSelect = { picked -> vm.edit { setDefaultZoom(picked.name) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.SURROUND -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_surround_sound),
+            title = stringResource(CoreR.string.settings_surround_sound),
             choices = SurroundMode.entries.map {
                 SettingsChoice(it, stringResource(it.labelRes()), stringResource(it.descriptionRes()))
             },
@@ -571,21 +573,21 @@ fun SettingsVideoPlayerPage(
             onDismiss = dismiss,
         )
         PlaybackSheet.AUDIO_LANG -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_preferred_audio_language),
+            title = stringResource(CoreR.string.settings_preferred_audio_language),
             choices = trackLanguageChoices(withOriginal = true),
             selected = audioLang,
             onSelect = { code -> vm.edit { setPreferredAudioLang(code) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.SUB_LANG -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_preferred_subtitle_language),
+            title = stringResource(CoreR.string.settings_preferred_subtitle_language),
             choices = trackLanguageChoices(withOriginal = false),
             selected = subLang,
             onSelect = { code -> vm.edit { setPreferredSubLang(code) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.RESUME -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_resume_playback),
+            title = stringResource(CoreR.string.settings_resume_playback),
             choices = SettingsRepository.ResumeMode.entries.map {
                 SettingsChoice(it, stringResource(it.labelRes()))
             },
@@ -594,7 +596,7 @@ fun SettingsVideoPlayerPage(
             onDismiss = dismiss,
         )
         PlaybackSheet.LATENCY -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_live_latency),
+            title = stringResource(CoreR.string.settings_live_latency),
             choices = LiveLatency.entries.map { SettingsChoice(it, stringResource(it.labelRes())) },
             selected = latency,
             onSelect = { picked ->
@@ -609,18 +611,18 @@ fun SettingsVideoPlayerPage(
             onDismiss = dismiss,
         )
         PlaybackSheet.SEEK_STEP -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_seek_step),
+            title = stringResource(CoreR.string.settings_seek_step),
             choices = SeekSteps.SEEK_CHOICES.map {
-                SettingsChoice(it, stringResource(R.string.settings_live_buffer_seconds, it))
+                SettingsChoice(it, stringResource(CoreR.string.settings_live_buffer_seconds, it))
             },
             selected = seekStep,
             onSelect = { secs -> vm.edit { setSeekStepSec(secs) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.REWIND_STEP -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_live_rewind_step),
+            title = stringResource(CoreR.string.settings_live_rewind_step),
             choices = SeekSteps.LIVE_REWIND_CHOICES.map {
-                SettingsChoice(it, stringResource(R.string.settings_live_buffer_seconds, it))
+                SettingsChoice(it, stringResource(CoreR.string.settings_live_buffer_seconds, it))
             },
             selected = rewindStep,
             onSelect = { secs -> vm.edit { setLiveRewindStepSec(secs) } },
@@ -628,22 +630,22 @@ fun SettingsVideoPlayerPage(
         )
         PlaybackSheet.TIMESHIFT_WINDOW, PlaybackSheet.TIMESHIFT_RESUME -> Unit
         PlaybackSheet.MAX_QUALITY -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_max_video_quality),
-            choices = s.maxVideoHeightChoices.map { SettingsChoice(it, qualityLabel(it, R.string.settings_auto)) },
+            title = stringResource(CoreR.string.settings_max_video_quality),
+            choices = s.maxVideoHeightChoices.map { SettingsChoice(it, qualityLabel(it, CoreR.string.settings_auto)) },
             selected = maxVideoHeight,
             onSelect = { h -> vm.edit { setMaxVideoHeight(h) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.MOBILE_QUALITY -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_mobile_data_quality),
-            choices = s.mobileDataMaxVideoHeightChoices.map { SettingsChoice(it, qualityLabel(it, R.string.common_off)) },
+            title = stringResource(CoreR.string.settings_mobile_data_quality),
+            choices = s.mobileDataMaxVideoHeightChoices.map { SettingsChoice(it, qualityLabel(it, CoreR.string.common_off)) },
             selected = mobileDataMaxVideoHeight,
             onSelect = { h -> vm.edit { setMobileDataMaxVideoHeight(h) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.VOD_BUFFER, PlaybackSheet.VOD_TIMEOUT, PlaybackSheet.VOD_RECONNECTS -> Unit
         PlaybackSheet.ENGINE_SOURCES -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            title = stringResource(CoreR.string.settings_live_preroll_playlist_picker),
             choices = sources.map { src ->
                 SettingsChoice<SourceEntity?>(
                     value = src,
@@ -651,7 +653,7 @@ fun SettingsVideoPlayerPage(
                     description = src.liveEnginePreference
                         ?.let { name -> EnginePreference.entries.firstOrNull { it.name == name } }
                         ?.let { engineLabel(it) }
-                        ?: stringResource(R.string.settings_live_preroll_follow),
+                        ?: stringResource(CoreR.string.settings_live_preroll_follow),
                 )
             },
             selected = editing,
@@ -660,9 +662,9 @@ fun SettingsVideoPlayerPage(
             onDismiss = { if (sheet == PlaybackSheet.ENGINE_SOURCES) { overrideSource = null; sheet = null } },
         )
         PlaybackSheet.ENGINE_SOURCE -> SettingsChoiceSheet(
-            title = editing?.name ?: stringResource(R.string.settings_live_tv_player),
+            title = editing?.name ?: stringResource(CoreR.string.settings_live_tv_player),
             choices = listOf(
-                SettingsChoice<String?>(null, stringResource(R.string.settings_live_preroll_follow)),
+                SettingsChoice<String?>(null, stringResource(CoreR.string.settings_live_preroll_follow)),
             ) + EnginePreference.entries.map { SettingsChoice<String?>(it.name, engineLabel(it)) },
             selected = editing?.liveEnginePreference,
             // A pick closes the whole picker; Back (no pick) returns to the playlist list.
@@ -674,7 +676,7 @@ fun SettingsVideoPlayerPage(
 
         // --- Per-playlist Movies & Series engine: pick the playlist, then its value ---
         PlaybackSheet.VOD_ENGINE_SOURCES -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            title = stringResource(CoreR.string.settings_live_preroll_playlist_picker),
             choices = sources.map { src ->
                 SettingsChoice<SourceEntity?>(
                     value = src,
@@ -682,7 +684,7 @@ fun SettingsVideoPlayerPage(
                     description = src.vodEnginePreference
                         ?.let { name -> EnginePreference.entries.firstOrNull { it.name == name } }
                         ?.let { engineLabel(it) }
-                        ?: stringResource(R.string.settings_live_preroll_follow),
+                        ?: stringResource(CoreR.string.settings_live_preroll_follow),
                 )
             },
             selected = editing,
@@ -693,7 +695,7 @@ fun SettingsVideoPlayerPage(
         PlaybackSheet.VOD_ENGINE_SOURCE -> SettingsChoiceSheet(
             title = editing?.name ?: stringResource(R.string.own_archive_engine),
             choices = listOf(
-                SettingsChoice<String?>(null, stringResource(R.string.settings_live_preroll_follow)),
+                SettingsChoice<String?>(null, stringResource(CoreR.string.settings_live_preroll_follow)),
             ) + EnginePreference.entries.map { SettingsChoice<String?>(it.name, engineLabel(it)) },
             selected = editing?.vodEnginePreference,
             // A pick closes the whole picker; Back (no pick) returns to the playlist list. Returning to
@@ -704,7 +706,7 @@ fun SettingsVideoPlayerPage(
 
         // --- Per-playlist "Give up after": pick the playlist, then its value ---
         PlaybackSheet.TUNE_TIMEOUT_SOURCES -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            title = stringResource(CoreR.string.settings_live_preroll_playlist_picker),
             choices = sources.map { src ->
                 SettingsChoice<SourceEntity?>(
                     value = src,
@@ -718,7 +720,7 @@ fun SettingsVideoPlayerPage(
             onDismiss = { if (sheet == PlaybackSheet.TUNE_TIMEOUT_SOURCES) { overrideSource = null; sheet = null } },
         )
         PlaybackSheet.TUNE_TIMEOUT_SOURCE -> SettingsChoiceSheet(
-            title = editing?.name ?: stringResource(R.string.settings_live_tune_timeout),
+            title = editing?.name ?: stringResource(CoreR.string.settings_live_tune_timeout),
             choices = (listOf<Int?>(null) + TUNE_TIMEOUT_CHOICES)
                 .map { SettingsChoice(it, tuneTimeoutLabel(it)) },
             selected = editing?.liveTuneTimeoutSecs,
@@ -730,7 +732,7 @@ fun SettingsVideoPlayerPage(
 
         // --- Per-playlist Live latency; Custom opens a third level for the seconds ---
         PlaybackSheet.LATENCY_SOURCES -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            title = stringResource(CoreR.string.settings_live_preroll_playlist_picker),
             choices = sources.map { src ->
                 SettingsChoice<SourceEntity?>(
                     value = src,
@@ -744,9 +746,9 @@ fun SettingsVideoPlayerPage(
             onDismiss = { if (sheet == PlaybackSheet.LATENCY_SOURCES) { overrideSource = null; sheet = null } },
         )
         PlaybackSheet.LATENCY_SOURCE -> SettingsChoiceSheet(
-            title = editing?.name ?: stringResource(R.string.settings_live_latency),
+            title = editing?.name ?: stringResource(CoreR.string.settings_live_latency),
             choices = listOf(
-                SettingsChoice<String?>(null, stringResource(R.string.settings_live_preroll_follow)),
+                SettingsChoice<String?>(null, stringResource(CoreR.string.settings_live_preroll_follow)),
             ) + LiveLatency.entries.map {
                 SettingsChoice<String?>(it.name, stringResource(it.labelRes()))
             },
@@ -778,15 +780,15 @@ fun SettingsVideoPlayerPage(
         )
         PlaybackSheet.LATENCY_SOURCE_CUSTOM -> MobileBottomSheet(
             onDismissRequest = { sheet = PlaybackSheet.LATENCY_SOURCES },
-            title = editing?.name ?: stringResource(R.string.settings_live_latency_custom),
+            title = editing?.name ?: stringResource(CoreR.string.settings_live_latency_custom),
         ) {
             val src = editing
             val secs = src?.let { sourceCustomSecs(it) } ?: LiveBuffer.CUSTOM_DEFAULT
             SettingsSlider(
-                title = stringResource(R.string.settings_live_latency_custom),
+                title = stringResource(CoreR.string.settings_live_latency_custom),
                 value = secs,
                 range = LiveBuffer.CUSTOM_MIN..LiveBuffer.CUSTOM_MAX,
-                valueLabel = stringResource(R.string.settings_live_buffer_seconds, secs),
+                valueLabel = stringResource(CoreR.string.settings_live_buffer_seconds, secs),
                 onValueChange = { picked ->
                     if (src == null) return@SettingsSlider
                     vm.setSourceLiveLatency(src.id, LiveLatency.CUSTOM.name, picked)
@@ -802,16 +804,16 @@ fun SettingsVideoPlayerPage(
 
         // --- Per-playlist pre-buffer ---
         PlaybackSheet.PREROLL_SOURCES -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            title = stringResource(CoreR.string.settings_live_preroll_playlist_picker),
             choices = sources.map { src ->
                 SettingsChoice<SourceEntity?>(
                     value = src,
                     label = src.name,
                     description = when {
                         src.livePrerollSecs == FOLLOW_GLOBAL_PREROLL ->
-                            stringResource(R.string.settings_live_preroll_follow)
-                        src.livePrerollSecs <= 0 -> stringResource(R.string.common_off)
-                        else -> stringResource(R.string.settings_video_seconds, src.livePrerollSecs)
+                            stringResource(CoreR.string.settings_live_preroll_follow)
+                        src.livePrerollSecs <= 0 -> stringResource(CoreR.string.common_off)
+                        else -> stringResource(CoreR.string.settings_video_seconds, src.livePrerollSecs)
                     },
                 )
             },
@@ -821,19 +823,19 @@ fun SettingsVideoPlayerPage(
             onDismiss = { if (sheet == PlaybackSheet.PREROLL_SOURCES) { overrideSource = null; sheet = null } },
         )
         PlaybackSheet.PREROLL_SOURCE -> SettingsChoiceSheet(
-            title = editing?.name ?: stringResource(R.string.settings_live_preroll),
+            title = editing?.name ?: stringResource(CoreR.string.settings_live_preroll),
             choices = listOf(
                 SettingsChoice(
                     FOLLOW_GLOBAL_PREROLL,
-                    stringResource(R.string.settings_live_preroll_follow),
+                    stringResource(CoreR.string.settings_live_preroll_follow),
                 ),
             ) + LiveBuffer.PREROLL_CHOICES.map { secs ->
                 SettingsChoice(
                     secs,
                     if (secs <= 0) {
-                        stringResource(R.string.common_off)
+                        stringResource(CoreR.string.common_off)
                     } else {
-                        stringResource(R.string.settings_video_seconds, secs)
+                        stringResource(CoreR.string.settings_video_seconds, secs)
                     },
                 )
             },
@@ -846,10 +848,10 @@ fun SettingsVideoPlayerPage(
         // which kinds of content, not about a single value, so it is one panel rather than a picker.
         PlaybackSheet.EXTERNAL_PLAYER -> MobileBottomSheet(
             onDismissRequest = dismiss,
-            title = stringResource(R.string.settings_external_player),
+            title = stringResource(CoreR.string.settings_external_player),
         ) {
             Text(
-                text = stringResource(R.string.settings_external_player_description),
+                text = stringResource(CoreR.string.settings_external_player_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(
@@ -858,7 +860,7 @@ fun SettingsVideoPlayerPage(
                 ),
             )
             SettingRow(
-                title = stringResource(R.string.common_nav_live_tv),
+                title = stringResource(CoreR.string.common_nav_live_tv),
                 checked = externalLive,
                 onCheckedChange = { on ->
                     vm.edit { setExternalPlayer(SettingsRepository.ExternalPlayerSection.LIVE_TV, on) }
@@ -889,11 +891,11 @@ fun SettingsVideoPlayerPage(
                         }
                         resetting = null
                     },
-                ) { Text(stringResource(R.string.common_reset)) }
+                ) { Text(stringResource(CoreR.string.common_reset)) }
             },
             dismissButton = {
                 TextButton(onClick = { resetting = null }) {
-                    Text(stringResource(R.string.common_cancel))
+                    Text(stringResource(CoreR.string.common_cancel))
                 }
             },
         )
@@ -903,16 +905,16 @@ fun SettingsVideoPlayerPage(
         AlertDialog(
             modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { lowWarning = null; onCancel() },
-            title = { Text(stringResource(R.string.settings_low_latency_warning)) },
-            text = { Text(stringResource(R.string.settings_low_latency_warning_description)) },
+            title = { Text(stringResource(CoreR.string.settings_low_latency_warning)) },
+            text = { Text(stringResource(CoreR.string.settings_low_latency_warning_description)) },
             confirmButton = {
                 TextButton(onClick = { lowWarning = null; onConfirm() }) {
-                    Text(stringResource(R.string.settings_low_latency_understand))
+                    Text(stringResource(CoreR.string.settings_low_latency_understand))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { lowWarning = null; onCancel() }) {
-                    Text(stringResource(R.string.common_cancel))
+                    Text(stringResource(CoreR.string.common_cancel))
                 }
             },
         )
@@ -922,11 +924,11 @@ fun SettingsVideoPlayerPage(
         AlertDialog(
             modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { afrWarning = false },
-            title = { Text(stringResource(R.string.settings_auto_frame_rate_warning_title_mobile)) },
+            title = { Text(stringResource(CoreR.string.settings_auto_frame_rate_warning_title_mobile)) },
             text = {
                 Text(
                     stringResource(
-                        R.string.settings_auto_frame_rate_warning_description_mobile,
+                        CoreR.string.settings_auto_frame_rate_warning_description_mobile,
                         android.os.Build.VERSION.RELEASE,
                     ),
                 )
@@ -934,13 +936,13 @@ fun SettingsVideoPlayerPage(
             // Keeping it off is the safe answer, so it is the one that reads as the main button.
             confirmButton = {
                 TextButton(onClick = { afrWarning = false }) {
-                    Text(stringResource(R.string.settings_auto_frame_rate_keep_off))
+                    Text(stringResource(CoreR.string.settings_auto_frame_rate_keep_off))
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { afrWarning = false; vm.edit { setAutoFrameRate(true) } },
-                ) { Text(stringResource(R.string.settings_auto_frame_rate_turn_on_anyway)) }
+                ) { Text(stringResource(CoreR.string.settings_auto_frame_rate_turn_on_anyway)) }
             },
         )
     }
@@ -955,9 +957,9 @@ private val afrSafe = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSI
 /** "3 playlists" for the per-playlist override rows, or Off when every playlist follows the global. */
 @Composable
 internal fun overrideCountLabel(count: Int): String = if (count == 0) {
-    stringResource(R.string.common_off)
+    stringResource(CoreR.string.common_off)
 } else {
-    pluralStringResource(R.plurals.settings_live_preroll_overrides, count, count)
+    pluralStringResource(CoreR.plurals.settings_live_preroll_overrides, count, count)
 }
 
 /** The per-playlist "Give up after" values: the global slider's 0..60 range, in 5-second steps. */
@@ -966,17 +968,17 @@ private val TUNE_TIMEOUT_CHOICES: List<Int?> = (0..60 step 5).toList()
 /** A per-playlist "Give up after": null follows the global, 0 is never, else seconds. */
 @Composable
 private fun tuneTimeoutLabel(secs: Int?): String = when (secs) {
-    null -> stringResource(R.string.settings_live_preroll_follow)
-    0 -> stringResource(R.string.common_never)
-    else -> stringResource(R.string.settings_live_buffer_seconds, secs)
+    null -> stringResource(CoreR.string.settings_live_preroll_follow)
+    0 -> stringResource(CoreR.string.common_never)
+    else -> stringResource(CoreR.string.settings_live_buffer_seconds, secs)
 }
 
 /** "12 items" for the reset rows, or the "nothing to forget" label when the count is zero. */
 @Composable
 private fun rememberedCountLabel(count: Int): String = if (count == 0) {
-    stringResource(R.string.settings_reset_player_choices_none)
+    stringResource(CoreR.string.settings_reset_player_choices_none)
 } else {
-    pluralStringResource(R.plurals.settings_reset_player_choices_count, count, count)
+    pluralStringResource(CoreR.plurals.settings_reset_player_choices_count, count, count)
 }
 
 /** A playlist's own custom latency, or the global default when it has never been given one. */
@@ -987,9 +989,9 @@ private fun sourceCustomSecs(source: SourceEntity): Int =
 private fun sourceLatencyLabel(source: SourceEntity): String {
     val mode = source.liveLatencyMode?.let { LiveLatency.fromName(it) }
     return when {
-        mode == null -> stringResource(R.string.settings_live_preroll_follow)
+        mode == null -> stringResource(CoreR.string.settings_live_preroll_follow)
         mode == LiveLatency.CUSTOM ->
-            stringResource(R.string.settings_live_buffer_seconds, sourceCustomSecs(source))
+            stringResource(CoreR.string.settings_live_buffer_seconds, sourceCustomSecs(source))
         else -> stringResource(mode.labelRes())
     }
 }
@@ -1001,20 +1003,20 @@ private fun zoomModeOf(name: String): ZoomMode =
 /** "ExoPlayer, then mpv" — the brand names are never translated, the joining phrase is. */
 @Composable
 private fun engineLabel(preference: EnginePreference): String {
-    val exo = stringResource(R.string.settings_player_exoplayer)
-    val mpv = stringResource(R.string.settings_player_mpv)
+    val exo = stringResource(CoreR.string.settings_player_exoplayer)
+    val mpv = stringResource(CoreR.string.settings_player_mpv)
     return when (preference) {
-        EnginePreference.EXO_FIRST -> stringResource(R.string.settings_engine_order, exo, mpv)
-        EnginePreference.MPV_FIRST -> stringResource(R.string.settings_engine_order, mpv, exo)
-        EnginePreference.EXO_ONLY -> stringResource(R.string.settings_engine_only, exo)
-        EnginePreference.MPV_ONLY -> stringResource(R.string.settings_engine_only, mpv)
+        EnginePreference.EXO_FIRST -> stringResource(CoreR.string.settings_engine_order, exo, mpv)
+        EnginePreference.MPV_FIRST -> stringResource(CoreR.string.settings_engine_order, mpv, exo)
+        EnginePreference.EXO_ONLY -> stringResource(CoreR.string.settings_engine_only, exo)
+        EnginePreference.MPV_ONLY -> stringResource(CoreR.string.settings_engine_only, mpv)
     }
 }
 
 @Composable
 private fun trackLanguageName(code: String): String = when (code) {
-    "" -> stringResource(R.string.settings_none_auto)
-    TrackLanguages.ORIGINAL -> stringResource(R.string.settings_language_original)
+    "" -> stringResource(CoreR.string.settings_none_auto)
+    TrackLanguages.ORIGINAL -> stringResource(CoreR.string.settings_language_original)
     else -> TrackLanguages.displayName(code, LocalConfiguration.current.locales[0])
 }
 
@@ -1030,34 +1032,34 @@ private fun trackLanguageChoices(withOriginal: Boolean): List<SettingsChoice<Str
 /** [noneRes] ("Auto" / "Off") for 0, else the picture height ("1080p") — N11. */
 @Composable
 private fun qualityLabel(height: Int, noneRes: Int): String =
-    if (height <= 0) stringResource(noneRes) else stringResource(R.string.settings_video_quality_lines, height)
+    if (height <= 0) stringResource(noneRes) else stringResource(CoreR.string.settings_video_quality_lines, height)
 
 private fun SurroundMode.labelRes() = when (this) {
-    SurroundMode.AUTO -> R.string.settings_auto
-    SurroundMode.STEREO -> R.string.settings_surround_stereo
-    SurroundMode.SURROUND -> R.string.settings_surround_sound
+    SurroundMode.AUTO -> CoreR.string.settings_auto
+    SurroundMode.STEREO -> CoreR.string.settings_surround_stereo
+    SurroundMode.SURROUND -> CoreR.string.settings_surround_sound
 }
 
 private fun SurroundMode.descriptionRes() = when (this) {
-    SurroundMode.AUTO -> R.string.settings_surround_auto_description_mobile
-    SurroundMode.STEREO -> R.string.settings_surround_stereo_description_mobile
-    SurroundMode.SURROUND -> R.string.settings_surround_forced_description
+    SurroundMode.AUTO -> CoreR.string.settings_surround_auto_description_mobile
+    SurroundMode.STEREO -> CoreR.string.settings_surround_stereo_description_mobile
+    SurroundMode.SURROUND -> CoreR.string.settings_surround_forced_description
 }
 
 private fun SettingsRepository.ResumeMode.labelRes() = when (this) {
-    SettingsRepository.ResumeMode.AUTO -> R.string.settings_resume_always
-    SettingsRepository.ResumeMode.ASK -> R.string.settings_resume_ask
-    SettingsRepository.ResumeMode.NEVER -> R.string.settings_resume_never
+    SettingsRepository.ResumeMode.AUTO -> CoreR.string.settings_resume_always
+    SettingsRepository.ResumeMode.ASK -> CoreR.string.settings_resume_ask
+    SettingsRepository.ResumeMode.NEVER -> CoreR.string.settings_resume_never
 }
 
 private fun LiveLatency.labelRes() = when (this) {
-    LiveLatency.LOW -> R.string.settings_live_latency_low
-    LiveLatency.BALANCED -> R.string.settings_live_latency_balanced
-    LiveLatency.STABLE -> R.string.settings_live_latency_stable
-    LiveLatency.CUSTOM -> R.string.settings_live_latency_custom
+    LiveLatency.LOW -> CoreR.string.settings_live_latency_low
+    LiveLatency.BALANCED -> CoreR.string.settings_live_latency_balanced
+    LiveLatency.STABLE -> CoreR.string.settings_live_latency_stable
+    LiveLatency.CUSTOM -> CoreR.string.settings_live_latency_custom
 }
 
 /** "Auto" for 0, else seconds ("60s") — the film buffer and network timeout choices (N18). */
 @Composable
 private fun autoOrSeconds(secs: Int): String =
-    if (secs <= 0) stringResource(R.string.settings_vod_network_auto) else stringResource(R.string.settings_live_buffer_seconds, secs)
+    if (secs <= 0) stringResource(CoreR.string.settings_vod_network_auto) else stringResource(CoreR.string.settings_live_buffer_seconds, secs)

@@ -207,30 +207,12 @@ class CustomizeViewModel(
         viewModelScope.launch { settings.setHideNewCategoriesDefault(pid, hidden) }
     }
 
-    // --- Sort (reuses SettingsRepository.SortMode — the same per-section value Browse uses) ---
-
-    /** Current sort mode for the selected section, for the Sort pill in the header strip. */
-    val currentSort: StateFlow<SettingsRepository.SortMode> = combine(ctx, _section) { c, s -> c to s }
-        .flatMapLatest { (c, s) ->
-            if (c.profileId < 0) flowOf(SettingsRepository.SortMode.PLAYLIST)
-            else when (s) {
-                MediaType.LIVE -> settings.sortLive
-                MediaType.MOVIE -> settings.sortMovies
-                MediaType.SERIES -> settings.sortSeries
-                MediaType.EPISODE -> flowOf(SettingsRepository.SortMode.PLAYLIST)
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsRepository.SortMode.PLAYLIST)
+    // Sorting the editing screen must not overwrite the saved channel-list mode.
+    private val editingSort = MutableStateFlow(SettingsRepository.SortMode.ALPHA)
+    val currentSort: StateFlow<SettingsRepository.SortMode> = editingSort.asStateFlow()
 
     fun setSort(mode: SettingsRepository.SortMode) {
-        viewModelScope.launch {
-            when (_section.value) {
-                MediaType.LIVE -> settings.setSortLive(mode)
-                MediaType.MOVIE -> settings.setSortMovies(mode)
-                MediaType.SERIES -> settings.setSortSeries(mode)
-                MediaType.EPISODE -> { } // not applicable
-            }
-        }
+        editingSort.value = mode
     }
 
     // --- Items screen navigation ---

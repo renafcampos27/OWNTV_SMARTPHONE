@@ -34,7 +34,7 @@ import tv.own.owntv.core.settings.SourceOverrides
 import tv.own.owntv.core.stalker.ReconnectUrlProvider
 import tv.own.owntv.core.stalker.StreamUrlResolver
 import tv.own.owntv.core.subtitles.SubtitleController
-import tv.own.owntv.mobile.R
+import tv.own.owntv.core.R
 import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.cast.CastHandoff
 import tv.own.owntv.mobile.cast.CastRequest
@@ -148,6 +148,26 @@ class VodTuner(
     )
 
     private var playingQueue: PlayingQueue? = null
+    private var recordingPlayback: tv.own.owntv.core.recording.RecordingPlayback? = null
+
+    private val _recordingChapters = MutableStateFlow<List<tv.own.owntv.core.recording.RecordingChapterPoint>>(emptyList())
+    val recordingChapters: StateFlow<List<tv.own.owntv.core.recording.RecordingChapterPoint>> = _recordingChapters
+    private var externalRecording = false
+
+    /** Returning from the external activity ends its local multipart server and one-shot handoff. */
+    fun onExternalPlayerReturned() {
+        if (externalRecording) {
+            externalPlayerLauncher.consumeReturn()
+            releaseRecording()
+        }
+    }
+
+    private fun releaseRecording() {
+        _recordingChapters.value = emptyList()
+        externalRecording = false
+        recordingPlayback?.close()
+        recordingPlayback = null
+    }
 
     init {
         scope.launch {
@@ -217,6 +237,7 @@ class VodTuner(
             ),
         )
         if (!handedOver) {
+            releaseRecording()
             player.play(
                 url = url,
                 title = movie.name,
@@ -347,6 +368,7 @@ class VodTuner(
         // leaving the television on the previous item.
         cast.release(this)
         val resume = withContext(Dispatchers.IO) { progressDao.get(pid, mediaType, itemId) }
+        releaseRecording()
         player.play(
             url = filePath,
             title = title,
@@ -374,26 +396,51 @@ class VodTuner(
      * - **`isLive = false`**, even though what it holds is live television. The flag describes the
      *   source, and a file on disk seeks, pauses and ends — treating it as live would take away the
      *   scrub bar on the one recording a user most wants to skip through.
+     *
+     * The tuner owns a multipart server until playback is replaced or stopped.
      */
-    suspend fun playRecording(filePath: String, title: String, posterUrl: String?): Boolean {
-        val pid = currentProfileId() ?: return false
-        if (settings.externalPlayerFor(MediaType.LIVE).first()) {
-            externalPlayerLauncher.launch(filePath, title)
-            return false
+    suspend fun playRecording(filePath: String, title: String, posterUrl: String?,
+        playback: tv.own.owntv.core.recording.RecordingPlayback? = null,
+        chapters: List<tv.own.owntv.core.recording.RecordingChapterPoint> = emptyList(),
+        expectedProfileId: Long? = null): Boolean {
+        var transferred = false
+        try {
+            val pid = currentProfileId() ?: return false
+            if (expectedProfileId != null && expectedProfileId != pid) return false
+            if (settings.externalPlayerFor(MediaType.LIVE).first()) {
+                saveProgress()
+                if (settings.activeProfileId.first() != pid) return false
+                liveTuner.stop()
+                cast.release(this)
+                player.stop()
+                clearPlaying()
+                recordingPlayback = playback
+                transferred = externalPlayerLauncher.launch(filePath, title)
+                externalRecording = transferred
+                return false
+            }
+            saveProgress()
+            if (settings.activeProfileId.first() != pid) return false
+            liveTuner.stop()
+            cast.release(this)
+            releaseRecording()
+            player.play(url = filePath, title = title, isLive = false)
+            recordingPlayback = playback
+            _recordingChapters.value = chapters
+            player.exitAudioOnly()
+            session.attach(engine)
+            PlaybackService.start(context)
+            playingProfileId = pid
+            _playing.value = VodPlayback(MediaType.LIVE, RECORDING_ITEM_ID, title, posterUrl = posterUrl)
+            playingQueue = null
+            transferred = true
+            return true
+        } finally {
+            if (!transferred) {
+                if (recordingPlayback === playback) recordingPlayback = null
+                playback?.close()
+            }
         }
-        saveProgress()
-        liveTuner.stop()
-        // A file on this phone is not reachable from a receiver, so starting one ends the cast rather
-        // than leaving the television on whatever was playing before.
-        cast.release(this)
-        player.play(url = filePath, title = title, isLive = false)
-        player.exitAudioOnly()
-        session.attach(engine)
-        PlaybackService.start(context)
-        playingProfileId = pid
-        _playing.value = VodPlayback(MediaType.LIVE, RECORDING_ITEM_ID, title, posterUrl = posterUrl)
-        playingQueue = null
-        return true
     }
 
     /**
@@ -517,6 +564,7 @@ class VodTuner(
             player.exitAudioOnly()
             session.attach(engine)
         }
+        releaseRecording()
         PlaybackService.start(context)
         playingProfileId = profileId
         _playing.value = what
@@ -537,6 +585,7 @@ class VodTuner(
         playingQueue = null
         // The player's ADD SUBTITLES entry exists only for a film or an episode. Left set, it would
         // still be offering to search OpenSubtitles for the film while a channel is playing.
+        releaseRecording()
         subtitleController.clear()
     }
 
