@@ -31,7 +31,7 @@ object MobileDimens {
     val ShellGap = 9.dp
     val TopBarCorner = 20.dp
     val PageCorner = 24.dp
-    val NavCorner = 22.dp
+    val NavCorner = 26.dp
     val NavIslandHeight = 64.dp
 
     /**
@@ -64,12 +64,12 @@ object MobileDimens {
     val GridGap = 9.dp
 
     /** Row height for a list of channels or settings — one line of title plus one of subtitle. */
-    val ListRowHeight = 56.dp
+    val ListRowHeight = 60.dp
     val ListRowIconSize = 34.dp
 
     /** A row's own margin inside its group, narrower than a screen's because the group is inset. */
     val ListRowPaddingH = 12.dp
-    val ListRowPaddingV = 11.dp
+    val ListRowPaddingV = 10.dp
     val ListRowIconGap = 12.dp
     val ListRowIconCorner = 11.dp
 

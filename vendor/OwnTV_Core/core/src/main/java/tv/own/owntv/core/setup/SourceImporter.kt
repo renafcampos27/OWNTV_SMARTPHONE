@@ -2,6 +2,7 @@ package tv.own.owntv.core.setup
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +57,7 @@ class SourceImporter(
     private val launcherIntegrationRepository: LauncherIntegrationRepository,
     private val catalogSyncScheduler: CatalogSyncScheduler,
     private val stalkerAuth: StalkerAuthManager,
+    private val xtreamClient: tv.own.owntv.core.parser.XtreamClient,
 ) {
 
     sealed interface SetupFailure {
@@ -228,14 +230,33 @@ class SourceImporter(
         autoRefresh: PlaylistRefresh = PlaylistRefresh.OFF,
         makeDefault: Boolean = false,
         httpReferer: String = "",
-    ) = runImport(autoRefresh, requiresNetwork = !url.isLocalPlaylistPath(), makeDefault = makeDefault) { profileId ->
-        sourceRepository.addM3uSource(
-            profileId = profileId,
-            name = name.trim(),
-            url = url.trim(),
-            userAgent = userAgent.trim().takeIf { it.isNotBlank() },
-            epgUrl = epgUrl.trim().takeIf { it.isNotBlank() },
-        ).withReferer(httpReferer)
+    ) {
+        val playlistUrl = tv.own.owntv.core.parser.XtreamM3uLink.clean(url)
+        val link = tv.own.owntv.core.parser.XtreamM3uLink.parse(playlistUrl)
+        if (link != null && connectivity.isOnlineNow()) {
+            _state.value = ImportState.Running
+            _progress.value = null
+            val probe = SourceEntity(name = name.trim(), type = tv.own.owntv.core.model.SourceType.XTREAM,
+                url = link.server, username = link.username, password = link.password,
+                userAgent = userAgent.trim().takeIf { it.isNotEmpty() },
+                httpReferer = httpReferer.trim().takeIf { it.isNotEmpty() })
+            val recognized = try { xtreamClient.isXtreamAccount(probe) }
+                catch (cancelled: CancellationException) { _state.value = ImportState.Idle; throw cancelled }
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            if (recognized) {
+                // This application is Live-only: recognition must not re-enable movies or series.
+                return xtream(name, link.server, link.username, link.password, userAgent, epgUrl,
+                    autoRefresh, live = SyncScopeChoice.Now, movies = SyncScopeChoice.Off,
+                    series = SyncScopeChoice.Off, preferHls = link.preferHls,
+                    makeDefault = makeDefault, httpReferer = httpReferer)
+            }
+        }
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        runImport(autoRefresh, requiresNetwork = !playlistUrl.isLocalPlaylistPath(), makeDefault = makeDefault) { profileId ->
+            sourceRepository.addM3uSource(profileId = profileId, name = name.trim(), url = playlistUrl,
+                userAgent = userAgent.trim().takeIf { it.isNotBlank() },
+                epgUrl = epgUrl.trim().takeIf { it.isNotBlank() }).withReferer(httpReferer)
+        }
     }
 
     private suspend fun SourceEntity.withReferer(value: String): SourceEntity {

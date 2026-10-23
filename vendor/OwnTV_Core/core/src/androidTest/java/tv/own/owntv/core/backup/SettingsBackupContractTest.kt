@@ -54,4 +54,29 @@ class SettingsBackupContractTest {
             assertFalse(settings.hwDecoding.first())
         } finally { settings.importSettings(previous) }
     }
+    @Test fun audioCalibrationSelectionAndAdvancedFlagsSurviveBackupWithoutResettingOldFiles() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val settings = SettingsRepository(context, LocaleStore.from(context))
+        val previous = settings.exportSettings()
+        val bluetooth = tv.own.owntv.core.player.AudioOutputKind.BLUETOOTH
+        try {
+            settings.setOutputAudioDelay(bluetooth, 250)
+            settings.setPreferSdr(true)
+            settings.setVideoDegradationRecovery(true)
+            val file = JSONObject(settings.exportSettings().toString())
+            settings.setOutputAudioDelay(bluetooth, 50)
+            settings.importSettings(file, restoreOutputCalibration = false)
+            assertEquals(50, settings.outputAudioDelays.first()[bluetooth])
+            settings.importSettings(file, keepDeviceSettings = true, restoreOutputCalibration = true)
+            assertEquals(250, settings.outputAudioDelays.first()[bluetooth])
+            assertTrue(settings.preferSdr.first())
+            assertTrue(settings.videoDegradationRecovery.first())
+            settings.importSettings(JSONObject().put("audio_delay_ms", 100))
+            assertEquals(250, settings.outputAudioDelays.first()[bluetooth])
+            settings.setOutputAudioDelay(bluetooth, 80)
+            settings.importSettings(file, keepDeviceSettings = true)
+            assertEquals(80, settings.outputAudioDelays.first()[bluetooth])
+        } finally { settings.importSettings(previous) }
+    }
+
 }

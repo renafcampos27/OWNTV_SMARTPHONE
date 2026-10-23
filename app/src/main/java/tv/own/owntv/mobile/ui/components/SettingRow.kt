@@ -38,11 +38,13 @@ fun SettingRow(
     enabled: Boolean = true,
     onClick: () -> Unit = {},
     onCheckedChange: ((Boolean) -> Unit)? = null,
+    selected: Boolean = false,
 ) {
     MobileListRow(
         title = title,
         subtitle = subtitle,
         modifier = modifier,
+        selected = selected,
         onClick = {
             if (!enabled) return@MobileListRow
             // Tapping anywhere on a switch row toggles it; the switch itself is not a target.
@@ -65,7 +67,7 @@ fun SettingRow(
                                 // Right-aligned and capped: a long value ellipsises rather than
                                 // pushing the title out of the row.
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MaterialTheme.colorScheme.primary,
                                 textAlign = TextAlign.End,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,

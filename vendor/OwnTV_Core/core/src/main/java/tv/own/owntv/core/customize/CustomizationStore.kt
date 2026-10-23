@@ -224,8 +224,9 @@ class CustomizationStore(private val context: Context) {
             it.copy(itemNames = if (name.isNullOrBlank()) it.itemNames - itemKey else it.itemNames + (itemKey to name.trim()))
         }
 
+    /** Reordering one visible rail must retain the saved categories of other playlists. */
     suspend fun setCategoryOrder(profileId: Long, type: MediaType, orderedKeys: List<String>) =
-        update(profileId, type) { it.copy(categoryOrder = orderedKeys) }
+        update(profileId, type) { it.copy(categoryOrder = mergeCategoryOrder(it.categoryOrder, orderedKeys)) }
 
     /** Manually map an item to an EPG channel id (null/blank clears the override → auto-match). */
     suspend fun setEpgMatch(profileId: Long, type: MediaType, itemKey: String, epgChannelId: String?) =

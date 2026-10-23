@@ -7,6 +7,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import tv.own.owntv.core.database.entity.EpgProgrammeEntity
+import tv.own.owntv.core.database.entity.computeContentHash
 
 class EpgProgrammeSpoolTest {
     @get:Rule val folder = TemporaryFolder()
@@ -21,7 +22,8 @@ class EpgProgrammeSpoolTest {
             rows.forEach(spool::append); spool.finish()
             spool.consume(17) { batch -> assertTrue(batch.size <= 17); restored += batch }
         }
-        assertEquals(rows, restored)
+        assertEquals(rows.map { it.copy(contentHash = it.computeContentHash()) }, restored)
+        restored.forEach { assertEquals(it.computeContentHash(), it.contentHash) }
         assertTrue(folder.root.listFiles()!!.isEmpty())
     }
 

@@ -5,6 +5,12 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 
+/** PlaybackSession owns audio focus; renderers use matching attributes without requesting it. */
+internal val PLAYBACK_AUDIO_ATTRIBUTES = androidx.media3.common.AudioAttributes.Builder()
+    .setUsage(androidx.media3.common.C.USAGE_MEDIA)
+    .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE)
+    .build()
+
 /**
  * The one place every in-app ExoPlayer's renderers are configured.
  *

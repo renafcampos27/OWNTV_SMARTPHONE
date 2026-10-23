@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.components
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
@@ -33,10 +35,10 @@ fun MobileButton(
     }
     when (style) {
         MobileButtonStyle.PRIMARY ->
-            Button(onClick = onClick, modifier = sized, enabled = enabled) { label() }
+            Button(onClick = onClick, modifier = sized, enabled = enabled, shape = RoundedCornerShape(16.dp)) { label() }
         MobileButtonStyle.SECONDARY ->
-            OutlinedButton(onClick = onClick, modifier = sized, enabled = enabled) { label() }
+            OutlinedButton(onClick = onClick, modifier = sized, enabled = enabled, shape = RoundedCornerShape(16.dp)) { label() }
         MobileButtonStyle.TEXT ->
-            TextButton(onClick = onClick, modifier = sized, enabled = enabled) { label() }
+            TextButton(onClick = onClick, modifier = sized, enabled = enabled, shape = RoundedCornerShape(16.dp)) { label() }
     }
 }

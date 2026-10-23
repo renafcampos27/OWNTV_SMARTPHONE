@@ -1,6 +1,40 @@
 # Atualizações OwnCore pendentes de implementação
 
-Última atualização: 10/10/2026.
+Última atualização: 23/10/2026.
+
+## Mobile 1.1.1 / Core 1.0.69 — subfase 4.1 implementada
+
+Após autorização: prioridade de áudio nativo/FFmpeg por instância, Software explícito respeitado, uma tentativa de áudio por software por seleção/item após falha elegível, retenção de idioma/faixa e propagação da escolha por canal aos diferidos/recuo. Corrigido o rótulo Automático nas opções por canal. Atributos áudio coerentes, sem novo pedido de foco; volume interno 100%. Campos de backup, schema e dependências preservados. Compilação, lint e 1.820 testes aprovados (14 novos); aceitação física pendente. Consultar o [relatório 4.1](IMPLEMENTACAO_MOBILE_1_1_1_SUBFASE_4_1_2026_10_23.md).
+
+As subfases 4.2–4.7 continuam pendentes. A próxima é identificar a saída efetiva de áudio; não foi acrescentada deteção de rota nem calibração por saída nesta implementação.
+
+## Mobile 1.1.1 / Core 1.0.69 — fase 3 implementada
+
+Após autorização separada: espera por saída visível no Live Exo, propriedade/serialização do attach mpv e detach síncrono apenas sob lock de superfícies; encerramento único da origem em erros terminais com proteção de reprodução confirmada; buffer da UI coalescido, leituras JNI expiradas rejeitadas, estatísticas opcionais e regex reutilizadas. Compilação, lint e 1.806 testes aprovados (31 novos); aceitação física pendente. Consultar o [relatório da fase 3](IMPLEMENTACAO_MOBILE_1_1_1_FASE_3_2026_10_23.md).
+
+À conclusão da fase 3, a fase 4 ficou pendente. A subfase 4.1 foi entretanto implementada conforme o registo acima; 4.2–4.7 continuam pendentes. As fases anteriores não foram substituídas nem reabertas.
+
+## Mobile 1.1.1 / Core 1.0.69 — fase 2 implementada
+
+Após autorização separada, libmpv atualizado para 2026.10.4 no Core privado; keyframe/probe de arquivos adaptado por carregamento, com reset no direto/software; aprendizagem automática de software por servidor retirada dos dois motores e do arranque. Mantidas as escolhas manuais e a recuperação finita por item. Schema 52, Media3 1.11.1 e políticas locais de buffer/HLS preservados. Compilação, lint e 1.775 testes aprovados; artefacto e merge nativo verificados, reprodução física pendente. Consultar o [relatório da fase 2](IMPLEMENTACAO_MOBILE_1_1_1_FASE_2_2026_10_23.md).
+
+À conclusão da fase 2, as fases 3–4 ficaram pendentes. A fase 3 foi entretanto implementada conforme o registo acima; a fase 4 continua pendente. Não voltar a tratar as fases concluídas como pendentes sem verificar o código atual.
+
+## Mobile 1.1.1 / Core 1.0.69 — fase 1 implementada
+
+Após autorização para a primeira fase, integradas a limpeza por lotes das referências de categorias/ordem manual, a fusão da ordem de categorias entre listas e a correção dos seletores na edição de fontes. Sem alteração de schema, bibliotecas ou reprodução. Compilação release, lint e 1.311 testes Mobile/Core aprovados; testes Android compilaram, com execução física pendente. Consultar o [relatório da fase 1](IMPLEMENTACAO_MOBILE_1_1_1_FASE_1_2026_10_23.md).
+
+À conclusão da fase 1, as fases 2–4 da [análise 1.1.1](ANALISE_MOBILE_1_1_1_CORE_1_0_69_2026_10_23.md) ficaram pendentes. A fase 2 foi entretanto concluída conforme o registo acima; a gestão do player/custo de execução foi depois concluída na fase 3, mantendo-se pendentes as opções avançadas da fase 4. A fase 1 não substitui o Core privado pelo upstream nem altera a política local de HLS, buffer ou volume.
+
+## Visual Stage — implementado em 19/10/2026
+
+O utilizador autorizou agora a adaptação do Stage à Mobile de canais. Implementação apenas visual na app; sem importar Sports/filmes/séries e sem alterar o Core. Consultar [relatório Stage](IMPLEMENTACAO_STAGE_MOBILE_2026_10_19.md). Esta autorização substitui o adiamento do visual, não o das outras opções. As decisões de 18/10 abaixo descrevem o âmbito desse lote anterior.
+
+## Integração de 18/10/2026 — Core 1.0.68 / Mobile 1.1.0
+
+Após autorização do utilizador, recomendações não opcionais integradas seletivamente na Mobile e no Core privado. Consultar o [relatório de implementação](IMPLEMENTACAO_MOBILE_1_1_0_CORE_1_0_68_2026_10_18.md) e a [comparação de origem](ANALISE_MOBILE_1_1_0_CORE_1_0_68_2026_10_18.md). Inclui Guia/desempenho, fuso automático opt-in por fonte, templates M3U, contexto/renovação de diferidos, pressão de memória Android14+, retenção de faixas e motor proprietário. Migração privada51→52; não copiar o upstream49. Media3/libmpv mantêm as versões já usadas. Os lotes anteriores de backup/perfis/gravações mantêm-se. Testes físicos e benchmark continuam pendentes; o relatório distingue validação automática e aceitação real.
+
+O subsistema upstream de timeshift local não foi transplantado, por não corresponder a um consumidor ativo nesta Mobile. Sports, política de retoma de cópia local e ClearKey inline opcional continuam por avaliar, sem autorização automática por nova publicação.
 
 ## Regra para futuras análises
 
@@ -55,3 +89,7 @@ Preservar nas futuras integrações: HLS estrito e exceções autorizadas por ca
 | 09/10/2026 | Reavaliado Core 1.0.65 com libmpv 2026.10.2 e council. O lote 2 continua pendente, sem implementação. Há alterações novas de codec, hardware e recuperação de arquivos que devem ser adaptadas seletivamente, preservando motor exclusivo e identidade da reprodução. Consultar ANALISE_LIBMPV_2026_10_2_CORE_1_0_65_COUNCIL_2026_10_09.md. |
 
 | 10/10/2026 | Após autorização para implementar todas as recomendações, lote 2 integrado na Mobile: erro de diferido sem imagem, recuperação finita e fallback apenas quando permitido. TV e Core externo preservados. |
+
+## 23/10/2026 — conclusão da adaptação Mobile 1.1.1/Core 1.0.69
+
+Subfases 4.2 a 4.7 implementadas seletivamente no Core privado Mobile: saída efetiva/estimada, calibração por saída com backup, FPS/AFR, SDR opcional, diagnóstico de perdas e recuperação opcional limitada no mesmo motor. Não tratar como pendentes de código. Testes físicos continuam pendentes; recuperação e SDR desligados por defeito. Ver [relatório](IMPLEMENTACAO_MOBILE_1_1_1_SUBFASES_4_2_A_4_7_2026_10_23.md). Mantêm-se as outras decisões condicionais deste registo.

@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-19",
+  "result": "BUILD SUCCESSFUL",
+  "tests": {
+    "Mobile": {
+      "tests": 119,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "Core privado": {
+      "tests": 1180,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "Reprodutor": {
+      "tests": 459,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "total_tests": 1758,
+  "new_contrast_tests": 3,
+  "core_working_diff_unchanged": true,
+  "lint_vital": "No issues found.",
+  "preview_debug_compiled": true,
+  "device_visual_tested": false,
+  "apk_generated": false,
+  "scope": "App-only Stage UI; Live, Guide, recordings, catch-up, settings; no new sports or VOD routes",
+  "validation_log_sha256": "84fa1b8e0fd1938470917f63728b4ea2d257ad2fe4c00119e0bb6d31c12be074"
+}

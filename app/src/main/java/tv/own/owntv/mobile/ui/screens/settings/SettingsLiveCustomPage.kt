@@ -33,7 +33,7 @@ fun SettingsLiveCustomPage(vm: SettingsViewModel = koinViewModel()) {
     SettingsPage {
         settingsGroup("compatibility") {
             SettingRow(title = stringResource(R.string.own_hls_only), subtitle = stringResource(R.string.own_hls_hint), checked = hls, onCheckedChange = { vm.edit { setLiveHlsOnly(it) } })
-            SettingRow(title = stringResource(R.string.own_software_audio), checked = software, onCheckedChange = { vm.edit { setSoftwareAudio(it) } })
+            SettingRow(title = stringResource(R.string.own_software_audio), subtitle = stringResource(R.string.own_software_audio_hint), checked = software, onCheckedChange = { vm.edit { setSoftwareAudio(it) } })
             SettingRow(title = stringResource(R.string.own_decoder_queue), value = stringResource(queue.labelRes()), onClick = { decoderSheet = true })
             SettingRow(title = stringResource(R.string.own_reserve_mode), value = stringResource(reserveMode.reserveLabelRes()), onClick = { reserveModePicker = true })
             SettingRow(title = stringResource(R.string.own_reserve_source), onClick = { sourcePicker = true })

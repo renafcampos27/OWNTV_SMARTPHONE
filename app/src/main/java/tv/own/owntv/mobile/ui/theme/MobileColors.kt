@@ -17,9 +17,8 @@ import tv.own.owntv.core.theme.roles
 /**
  * OwnTV's palette as a Material 3 [ColorScheme] for touch.
  *
- * Every value comes from core's [OwnTVPalette], which is also what the TV app draws with, so the
- * two apps are recognisably one product and a colour change lands in both at once. What differs
- * here is only the mapping: `androidx.compose.material3` rather than `androidx.tv.material3`.
+ * Stage owns the phone's neutral surfaces; accent roles and persisted theme choices remain core's.
+ * Material contracts keep existing forms, guide rows and dialogs readable in both themes.
  */
 /** The accent's name, from core's strings — the same label the TV app's settings screen shows. */
 val AccentColor.labelRes: Int
@@ -66,20 +65,9 @@ data class MobileSurfaceTones(
     val inline: Color,
 )
 
-fun mobileSurfaceTones(isDark: Boolean): MobileSurfaceTones = if (isDark) {
-    MobileSurfaceTones(
-        floating = Color(OwnTVPalette.DarkSurfaceContainerHigh),
-        chrome = Color(OwnTVPalette.DarkRailPanel),
-        container = Color(OwnTVPalette.DarkContentPanel),
-        inline = Color(OwnTVPalette.DarkPreviewPanel),
-    )
-} else {
-    MobileSurfaceTones(
-        floating = Color(OwnTVPalette.LightSurfaceContainerHigh),
-        chrome = Color(OwnTVPalette.LightRailPanel),
-        container = Color(OwnTVPalette.LightContentPanel),
-        inline = Color(OwnTVPalette.LightPreviewPanel),
-    )
+fun mobileSurfaceTones(isDark: Boolean): MobileSurfaceTones {
+    val palette = if (isDark) tv.own.owntv.mobile.ui.stage.StagePalette.Dark else tv.own.owntv.mobile.ui.stage.StagePalette.Light
+    return MobileSurfaceTones(floating = palette.chrome, chrome = palette.chrome, container = palette.page, inline = palette.card)
 }
 
 fun mobileColorScheme(
@@ -93,7 +81,8 @@ fun mobileColorScheme(
         ?.let { accentRolesFromSeed(it, isDark) }
         ?: accent.roles(isDark)
 
-    return if (isDark) {
+    val palette = if (isDark) tv.own.owntv.mobile.ui.stage.StagePalette.Dark else tv.own.owntv.mobile.ui.stage.StagePalette.Light
+    val stage = if (isDark) {
         darkColorScheme(
             primary = Color(roles.primary),
             onPrimary = Color(roles.onPrimary),
@@ -152,4 +141,15 @@ fun mobileColorScheme(
             error = Color(OwnTVPalette.LightError),
         )
     }
+    return stage.copy(
+        background = palette.page, onBackground = palette.text,
+        surface = palette.page, onSurface = palette.text,
+        surfaceVariant = palette.card, onSurfaceVariant = palette.muted,
+        secondaryContainer = palette.control, onSecondaryContainer = palette.text,
+        surfaceContainerLowest = palette.page, surfaceContainerLow = palette.control,
+        surfaceContainer = palette.card, surfaceContainerHigh = palette.chrome,
+        surfaceContainerHighest = palette.control, outline = palette.muted,
+        outlineVariant = palette.outline, error = palette.danger,
+    )
+
 }

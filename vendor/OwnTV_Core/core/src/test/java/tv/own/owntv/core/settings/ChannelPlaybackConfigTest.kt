@@ -57,4 +57,14 @@ class ChannelPlaybackConfigTest {
         assertNull(old.options.hlsPrepareFromSegments)
     }
 
+    @Test fun `SDR option preserves inheritance explicit false and source remapping in backup`() {
+        for (choice in listOf(null, false, true)) {
+            val options = ChannelPlaybackOptions(reserveSecs = 12, preferSdr = choice)
+            val row = ChannelPlaybackConfig(ref, options)
+            val decoded = ChannelPlaybackConfig.decode(ChannelPlaybackConfig.encode(listOf(row))).single()
+            assertEquals(options, decoded.options)
+            assertEquals(choice, ChannelPlaybackConfig.remap(listOf(decoded), mapOf(7L to 9L)).single().options.preferSdr)
+        }
+    }
+
 }

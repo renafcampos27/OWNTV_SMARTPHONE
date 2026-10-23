@@ -75,6 +75,9 @@ data class XtEpgEntry(val title: String, val description: String?, val startMs: 
  */
 class XtreamClient(private val http: HttpClient) {
 
+    private fun accountHeaders(s: SourceEntity): Map<String, String> =
+        s.httpReferer?.takeIf { it.isNotBlank() }?.let { mapOf("Referer" to it) }.orEmpty()
+
     // --- Categories ---
     suspend fun liveCategories(s: SourceEntity, onProgress: ((Long, Long?) -> Unit)? = null) = categories(s, "get_live_categories", onProgress)
     suspend fun vodCategories(s: SourceEntity, onProgress: ((Long, Long?) -> Unit)? = null) = categories(s, "get_vod_categories", onProgress)
@@ -82,7 +85,7 @@ class XtreamClient(private val http: HttpClient) {
 
     private suspend fun categories(s: SourceEntity, action: String, onProgress: ((Long, Long?) -> Unit)? = null): List<XtCategory> {
         val out = ArrayList<XtCategory>()
-        http.get(api(s, action), s.userAgent, onProgress, maxAttempts = CATEGORY_MAX_ATTEMPTS) { input ->
+        http.get(api(s, action), s.userAgent, onProgress, maxAttempts = CATEGORY_MAX_ATTEMPTS, headers = accountHeaders(s)) { input ->
             streamObjects(input) { m ->
                 val id = m["category_id"] ?: return@streamObjects
                 out.add(XtCategory(id, m["category_name"] ?: id))
@@ -130,7 +133,7 @@ class XtreamClient(private val http: HttpClient) {
         onItem: suspend (T) -> Unit,
         onProgress: ((Long, Long?) -> Unit)? = null,
     ): Boolean {
-        return http.get(api(s, "get_live_streams", categoryParam(categoryId)), s.userAgent, onProgress) { input ->
+        return http.get(api(s, "get_live_streams", categoryParam(categoryId)), s.userAgent, onProgress, headers = accountHeaders(s)) { input ->
             streamItems("get_live_streams", input, { reader -> readLiveStreamAs(reader, transform) }, onItem)
         }
     }
@@ -167,7 +170,7 @@ class XtreamClient(private val http: HttpClient) {
         onItem: suspend (T) -> Unit,
         onProgress: ((Long, Long?) -> Unit)? = null,
     ): Boolean {
-        return http.get(api(s, "get_vod_streams", categoryParam(categoryId)), s.userAgent, onProgress) { input ->
+        return http.get(api(s, "get_vod_streams", categoryParam(categoryId)), s.userAgent, onProgress, headers = accountHeaders(s)) { input ->
             streamItems("get_vod_streams", input, { reader -> readVodAs(reader, transform) }, onItem)
         }
     }
@@ -205,7 +208,7 @@ class XtreamClient(private val http: HttpClient) {
         onItem: suspend (T) -> Unit,
         onProgress: ((Long, Long?) -> Unit)? = null,
     ): Boolean {
-        return http.get(api(s, "get_series", categoryParam(categoryId)), s.userAgent, onProgress) { input ->
+        return http.get(api(s, "get_series", categoryParam(categoryId)), s.userAgent, onProgress, headers = accountHeaders(s)) { input ->
             streamItems("get_series", input, { reader -> readSeriesAs(reader, transform) }, onItem)
         }
     }
@@ -218,7 +221,7 @@ class XtreamClient(private val http: HttpClient) {
      */
     suspend fun getSeriesInfo(s: SourceEntity, seriesId: String): XtSeriesInfo {
         val episodes = ArrayList<XtEpisode>()
-        http.get(api(s, "get_series_info", "&series_id=$seriesId"), s.userAgent) { input ->
+        http.get(api(s, "get_series_info", "&series_id=$seriesId"), s.userAgent, headers = accountHeaders(s)) { input ->
             JsonReader(input.reader(Charsets.UTF_8)).use { reader ->
                 reader.isLenient = true
                 if (reader.peek() != JsonToken.BEGIN_OBJECT) { reader.skipValue(); return@use }
@@ -358,7 +361,7 @@ class XtreamClient(private val http: HttpClient) {
      */
     suspend fun getShortEpg(s: SourceEntity, streamId: String, limit: Int = 6): List<XtEpgEntry> {
         val out = ArrayList<XtEpgEntry>()
-        http.get(api(s, "get_short_epg", "&stream_id=$streamId&limit=$limit"), s.userAgent) { input ->
+        http.get(api(s, "get_short_epg", "&stream_id=$streamId&limit=$limit"), s.userAgent, headers = accountHeaders(s)) { input ->
             JsonReader(input.reader(Charsets.UTF_8)).use { reader ->
                 reader.isLenient = true
                 if (reader.peek() != JsonToken.BEGIN_OBJECT) { reader.skipValue(); return@use }
@@ -442,6 +445,7 @@ class XtreamClient(private val http: HttpClient) {
         val authOk: Boolean = true,
         /** `user_info.is_trial` — "1" on a trial line. */
         val trial: Boolean = false,
+        val serverTimeZone: String? = null,
     )
 
     /**
@@ -454,6 +458,8 @@ class XtreamClient(private val http: HttpClient) {
      */
     suspend fun fetchAccountDetails(s: SourceEntity): XtAccountDetails? = try {
         fetchAccountStatus(s)
+    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+        throw cancelled
     } catch (e: Exception) {
         Log.w(TAG, "fetchAccountDetails failed for source ${s.id}", e)
         null
@@ -467,7 +473,9 @@ class XtreamClient(private val http: HttpClient) {
     suspend fun fetchAccountStatus(s: SourceEntity): XtAccountDetails {
         val u = URLEncoder.encode(s.username.orEmpty(), "UTF-8")
         val p = URLEncoder.encode(s.password.orEmpty(), "UTF-8")
-        return http.get("${base(s)}/player_api.php?username=$u&password=$p", s.userAgent) { input ->
+        return http.get("${base(s)}/player_api.php?username=$u&password=$p", s.userAgent,
+            headers = accountHeaders(s)) { raw ->
+            val input = BoundedAccountInput(raw, MAX_ACCOUNT_BYTES)
             var expSec: Long? = null
             var hlsSupported = false
             var maxConnections = 0
@@ -475,12 +483,25 @@ class XtreamClient(private val http: HttpClient) {
             var status: String? = null
             var authOk = true
             var trial = false
+            var zoneName: String? = null
+            var timeNow: String? = null
+            var timestampNow: Long? = null
             JsonReader(java.io.InputStreamReader(input, Charsets.UTF_8)).use { r ->
                 r.isLenient = true
                 if (r.peek() != JsonToken.BEGIN_OBJECT) return@use
                 r.beginObject()
                 while (r.hasNext()) {
-                    if (r.nextName() == "user_info" && r.peek() == JsonToken.BEGIN_OBJECT) {
+                    val section = r.nextName()
+                    if (section == "server_info" && r.peek() == JsonToken.BEGIN_OBJECT) {
+                        r.beginObject()
+                        while (r.hasNext()) when (r.nextName()) {
+                            "timezone" -> zoneName = r.nextScalarStringOrNull()
+                            "time_now" -> timeNow = r.nextScalarStringOrNull()
+                            "timestamp_now" -> timestampNow = r.nextScalarStringOrNull()?.toLongOrNull()
+                            else -> r.skipValue()
+                        }
+                        r.endObject()
+                    } else if (section == "user_info" && r.peek() == JsonToken.BEGIN_OBJECT) {
                         r.beginObject()
                         while (r.hasNext()) {
                             when (r.nextName()) {
@@ -565,9 +586,18 @@ class XtreamClient(private val http: HttpClient) {
                 status = status,
                 authOk = authOk,
                 trial = trial,
+                serverTimeZone = xtreamServerTimeZone(zoneName, timeNow, timestampNow),
             )
         }
     }
+
+    /** Probe only while adding a new get.php source; no catalogue or playback sessions are opened. */
+    suspend fun isXtreamAccount(source: SourceEntity): Boolean =
+        kotlinx.coroutines.withTimeoutOrNull(ACCOUNT_PROBE_TIMEOUT_MS) {
+            try { fetchAccountStatus(source).let { it.status != null || !it.authOk } }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { false }
+        } ?: false
 
     /** Convenience delegate returning only [XtAccountDetails.expiryMs]. */
     suspend fun accountExpiryMs(s: SourceEntity): Long? = fetchAccountDetails(s)?.expiryMs
@@ -616,7 +646,7 @@ class XtreamClient(private val http: HttpClient) {
     suspend fun probeHls(s: SourceEntity, streamId: String): HlsProbe {
         val url = "${base(s)}/live/${s.username}/${s.password}/$streamId.m3u8"
         return try {
-            http.get(url, s.userAgent) { input ->
+            http.get(url, s.userAgent, headers = accountHeaders(s)) { input ->
                 val head = ByteArray(HLS_PROBE_BYTES)
                 var read = 0
                 while (read < head.size) {
@@ -659,7 +689,7 @@ class XtreamClient(private val http: HttpClient) {
      * "your provider doesn't do HLS" when it means nothing of the sort.
      */
     private suspend fun probeTsPlayable(s: SourceEntity, streamId: String): Boolean = try {
-        http.get(liveUrl(s, streamId), s.userAgent) { input -> input.read() == 0x47 }
+        http.get(liveUrl(s, streamId), s.userAgent, headers = accountHeaders(s)) { input -> input.read() == 0x47 }
     } catch (c: kotlin.coroutines.cancellation.CancellationException) {
         throw c
     } catch (e: Exception) {
@@ -1007,3 +1037,14 @@ class XtreamClient(private val http: HttpClient) {
         }
     }
 }
+
+/** Streaming cap; malformed accounts cannot turn source recognition into an unbounded download. */
+internal class BoundedAccountInput(input: java.io.InputStream, private val limit: Int) : java.io.FilterInputStream(input) {
+    private var consumed = 0L
+    override fun read(): Int = super.read().also { if (it >= 0) count(1) }
+    override fun read(buffer: ByteArray, offset: Int, length: Int): Int = `in`.read(buffer, offset, minOf(length, (limit - consumed).coerceAtLeast(0).toInt() + 1))
+        .also { if (it > 0) count(it) }
+    private fun count(amount: Int) { consumed += amount; require(consumed <= limit) { "Xtream account response exceeds limit" } }
+}
+private const val MAX_ACCOUNT_BYTES = 1024 * 1024
+private const val ACCOUNT_PROBE_TIMEOUT_MS = 6_000L

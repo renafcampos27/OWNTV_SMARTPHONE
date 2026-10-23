@@ -18,6 +18,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,16 +73,19 @@ fun SearchScreen(
 
     val query by vm.query.collectAsStateWithLifecycle()
     val intent by vm.intent.collectAsStateWithLifecycle()
-    val typed by vm.results.collectAsStateWithLifecycle()
+    val page by vm.page.collectAsStateWithLifecycle()
+    val filter by vm.filter.collectAsStateWithLifecycle()
     val curated by vm.curated.collectAsStateWithLifecycle()
     val recents by vm.recentSearches.collectAsStateWithLifecycle()
     val sources by vm.sourceNames.collectAsStateWithLifecycle()
-    val favoriteChannels by vm.favoriteChannels.collectAsStateWithLifecycle()
-    val favoriteMovies by vm.favoriteMovies.collectAsStateWithLifecycle()
-    val favoriteSeries by vm.favoriteSeries.collectAsStateWithLifecycle()
+    val favoriteChannels = emptySet<Long>()
+    val favoriteMovies = emptySet<Long>()
+    val favoriteSeries = emptySet<Long>()
 
     val searching = query.trim().length >= MIN_QUERY
-    val results = if (searching) typed else curated
+    val currentPage = page.query == query.trim() && page.filter == filter
+    val results = if (searching && currentPage) page.results else if (!searching) curated else tv.own.owntv.core.content.SearchResults()
+    val loading = searching && (!currentPage || page.loading)
     // One playlist needs no attribution; several do, and that is the case the line is there for.
     val showProvider = sources.size > 1
     val listState = rememberLazyListState()
@@ -103,11 +108,11 @@ fun SearchScreen(
         delay(150)
         runCatching { keyboard?.show() }
     }
-    LaunchedEffect(query, intent) { listState.scrollToItem(0) }
+    LaunchedEffect(query, intent, filter) { listState.scrollToItem(0) }
 
     // Reaching the bottom asks for the next page. Without it a search stops at the first 40 of each
     // kind, and a provider with hundreds of CNN feeds looks like it only has forty.
-    LaunchedEffect(listState, searching) {
+    LaunchedEffect(listState, searching, query, filter, page.limit, page.loading) {
         if (!searching) return@LaunchedEffect
         snapshotFlow {
             val info = listState.layoutInfo
@@ -128,15 +133,27 @@ fun SearchScreen(
                 .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapSmall)
                 .focusRequester(focus),
         )
-        IntentChips(selected = intent, enabled = !searching, onSelect = vm::setIntent)
+        tv.own.owntv.mobile.ui.components.FilterChipRow(
+            labels = listOf(
+                stringResource(tv.own.owntv.mobile.R.string.own_search_all_filter),
+                stringResource(tv.own.owntv.mobile.R.string.own_search_channels_filter),
+                stringResource(tv.own.owntv.mobile.R.string.own_search_programmes_filter)),
+            selectedIndex = filter.ordinal,
+            onSelect = { vm.setFilter(SearchFilter.entries[it]) },
+        )
 
         when {
+            loading -> LinearProgressIndicator(Modifier.fillMaxWidth())
+            searching && page.failed -> Column {
+                Text(stringResource(tv.own.owntv.mobile.R.string.own_search_failed))
+                TextButton(onClick = vm::retrySearch) { Text(stringResource(R.string.common_retry)) }
+            }
             !searching && intent == null -> RecentSearches(
                 recents = recents,
                 onPick = vm::setQuery,
                 onClear = vm::clearRecentSearches,
             )
-            results.isEmpty -> CenterMessage(
+            results.isEmpty && !results.hasMore -> CenterMessage(
                 if (searching) stringResource(R.string.search_no_results, query.trim())
                 else stringResource(R.string.search_nothing_in_list, intent.label()),
             )
@@ -201,6 +218,9 @@ fun SearchScreen(
                         onLongClick = { menuFor = ContentTarget(MediaType.SERIES, show.id, show.name) },
                     )
                 }
+                if (results.hasMore && page.limit < 1_000) item(key = "search_more", contentType = "search_action") {
+                    TextButton(onClick = vm::loadMore) { Text(stringResource(tv.own.owntv.mobile.R.string.own_search_load_more)) }
+                }
             }
         }
     }
@@ -239,8 +259,8 @@ private fun <T> LazyListScope.group(
     row: @Composable (T) -> Unit,
 ) {
     if (items.isEmpty()) return
-    item(key = "hdr_$label") { GroupHeader(label, count) }
-    items(items, key = key) { row(it) }
+    item(key = "hdr_$label", contentType = "search_header") { GroupHeader(label, count) }
+    items(items, key = key, contentType = { label }) { row(it) }
 }
 
 @Composable

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -274,6 +275,7 @@ fun <T> SettingsChoiceSheet(
     footer: (@Composable () -> Unit)? = null,
 ) {
     MobileBottomSheet(onDismissRequest = onDismiss, title = title) {
+        Column(Modifier.heightIn(max = tv.own.owntv.mobile.ui.components.sheetListHeight())) {
         if (description != null) {
             Text(
                 text = description,
@@ -286,7 +288,11 @@ fun <T> SettingsChoiceSheet(
                 ),
             )
         }
-        choices.forEach { choice ->
+        val initial = choices.indexOfFirst { it.value == selected }.coerceAtLeast(0)
+        val listState = androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex = initial)
+        LazyColumn(state = listState, modifier = Modifier.weight(1f, fill = false)) {
+        items(choices.size, contentType = { "setting_choice" }) { index ->
+            val choice = choices[index]
             MobileListRow(
                 title = choice.label,
                 subtitle = choice.description,
@@ -306,6 +312,8 @@ fun <T> SettingsChoiceSheet(
                 },
             )
         }
+        }
         footer?.invoke()
+        }
     }
 }

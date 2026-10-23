@@ -227,6 +227,7 @@ class HeroPreviewEngine(
             // softwareFirst follows the same setting the other engines read: a user who turned hardware
             // decoding off did so to work around a broken vendor decoder, and the home screen was the one
             // place still handing that decoder a 4K stream.
+            .setAudioAttributes(PLAYBACK_AUDIO_ATTRIBUTES, false)
             .setRenderersFactory(ownTVRenderers(context, forceStereo = true, softwareFirst = !hwDecodingEnabled, softwareAudio = softwareAudio, queueing = decoderQueueing))
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
             .setLoadControl(loadControl)

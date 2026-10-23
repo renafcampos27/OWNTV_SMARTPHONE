@@ -444,13 +444,7 @@ class EpgRepository(
         val pruneStartedAt = SystemClock.elapsedRealtime()
         pruneFinishedProgrammes(now)
         Log.d("EpgRepository", "EPG prune sourceId=$storeId ms=${SystemClock.elapsedRealtime() - pruneStartedAt}")
-        // Two feeds covering one channel store every programme twice. Collapsing it here means the
-        // read path stops finding any to collapse — it stays in place as the safety net, not the fix.
-        val dedupeStartedAt = SystemClock.elapsedRealtime()
-        val collapsed = runCatching { epgDao.collapseDuplicateProgrammes() }
-            .onFailure { Log.w("EpgRepository", "Unable to collapse duplicate programmes", it) }
-            .getOrDefault(0)
-        CorePerf.log { "epg_dedupe removed=$collapsed ms=${SystemClock.elapsedRealtime() - dedupeStartedAt}" }
+        // Keep each feed intact. Read-side selection preserves source/clock identity for catch-up.
         pruneMs = SystemClock.elapsedRealtime() - parsedAt
         ensureEpgIndexes() // new/refreshed EPG → make sure the Guide read-index exists (no-op if already there)
         val analyzeStartedAt = SystemClock.elapsedRealtime()

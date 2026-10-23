@@ -224,11 +224,7 @@ private fun SettingsList(
                     // leaving; the tinted row is what says which group is open instead.
                     showChevron = selectedRoute == null,
                     onClick = { onOpenRoute(group.route) },
-                    modifier = if (group.route == selectedRoute) {
-                        Modifier.background(MaterialTheme.colorScheme.secondaryContainer)
-                    } else {
-                        Modifier
-                    },
+                    selected = group.route == selectedRoute,
                 )
             }
         }

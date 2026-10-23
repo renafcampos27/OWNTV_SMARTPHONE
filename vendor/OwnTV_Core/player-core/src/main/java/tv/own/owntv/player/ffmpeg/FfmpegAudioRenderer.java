@@ -19,6 +19,8 @@
  * libowntvffmpeg.so (OwnTV_libmpv, built on the engine's own FFmpeg) instead of ffmpegJNI, without
  * the unused setLibraries(). The native side binds to these class names (ffmpeg_jni.cc in
  * OwnTV_libmpv). On a Media3 bump, compare with that tag's copies.
+ * OwnTV also gates capabilities per renderer instance: Automatic reserves native formats for
+ * MediaCodec; an explicit software preference or one owned audio rescue may use FFmpeg instead.
  */
 package tv.own.owntv.player.ffmpeg;
 
@@ -43,6 +45,7 @@ import androidx.media3.exoplayer.audio.AudioSink;
 import androidx.media3.exoplayer.audio.AudioSink.SinkFormatSupport;
 import androidx.media3.exoplayer.audio.DecoderAudioRenderer;
 import androidx.media3.exoplayer.audio.DefaultAudioSink;
+import tv.own.owntv.player.FfmpegAudio;
 
 /** Decodes and renders audio using FFmpeg. */
 @UnstableApi
@@ -55,6 +58,8 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
 
   /** The default input buffer size. */
   private static final int DEFAULT_INPUT_BUFFER_SIZE = 960 * 6;
+
+  private final boolean preferSoftware;
 
   /**
    * @deprecated Use {@link #FfmpegAudioRenderer(Context)} instead.
@@ -128,7 +133,16 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
       @Nullable Handler eventHandler,
       @Nullable AudioRendererEventListener eventListener,
       AudioSink audioSink) {
+    this(eventHandler, eventListener, audioSink, false);
+  }
+
+  public FfmpegAudioRenderer(
+      @Nullable Handler eventHandler,
+      @Nullable AudioRendererEventListener eventListener,
+      AudioSink audioSink,
+      boolean preferSoftware) {
     super(eventHandler, eventListener, audioSink);
+    this.preferSoftware = preferSoftware;
   }
 
   @Override
@@ -141,7 +155,7 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
     String mimeType = checkNotNull(format.sampleMimeType);
     if (!FfmpegLibrary.isAvailable() || !MimeTypes.isAudio(mimeType)) {
       return C.FORMAT_UNSUPPORTED_TYPE;
-    } else if (!FfmpegLibrary.supportsFormat(mimeType)
+    } else if (!FfmpegAudio.takes(mimeType, preferSoftware)
         || (!sinkSupportsFormat(format, C.ENCODING_PCM_16BIT)
             && !sinkSupportsFormat(format, C.ENCODING_PCM_FLOAT))) {
       return C.FORMAT_UNSUPPORTED_SUBTYPE;

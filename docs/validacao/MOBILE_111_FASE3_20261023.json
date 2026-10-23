@@ -1,0 +1,103 @@
+{
+  "date": "2026-10-23",
+  "phase": 3,
+  "project": "C:\\Users\\renat\\Downloads\\OwnTV_Mobile-main\\OwnTV_Mobile-main",
+  "status": "implemented_automated_checks_passed_device_pending",
+  "tests": {
+    "mobile": {
+      "tests": 119,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "core": {
+      "tests": 1193,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "player": {
+      "tests": 494,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "testsTotal": 1806,
+  "newTests": 31,
+  "buildLogs": [
+    "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-111-phase3-final-validation-20261023.log",
+    "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-111-phase3-final-ratchet-20261023.log"
+  ],
+  "releaseLint": "C:\\Users\\renat\\Downloads\\OwnTV_Mobile-main\\OwnTV_Mobile-main\\app\\build\\intermediates\\lint_vital_intermediate_text_report\\standardRelease\\lintVitalReportStandardRelease\\lint-results-standardRelease.txt",
+  "lintResult": "No issues found.",
+  "i18n": {
+    "mobileBaselineKeys": 0,
+    "mobileSafeKeys": 585,
+    "coreBaselineKeys": 310,
+    "coreSafeKeys": 5711,
+    "noDebtIncrease": true
+  },
+  "snapshot": "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-before-phase3-111-20261023",
+  "snapshotInputs": 551,
+  "changedOriginals": [
+    "app/src/main/java/tv/own/owntv/mobile/ui/player/VideoStage.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/LiveDiagnosticsLog.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/LivePreviewEngine.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt",
+    "vendor/OwnTV_Core/core/src/main/java/tv/own/owntv/core/network/HttpClient.kt",
+    "vendor/OwnTV_Core/tools/i18n/hardcoded_baseline.txt",
+    "vendor/OwnTV_Core/tools/i18n/safe_literals.txt",
+    "docs/ANALISE_MOBILE_1_1_1_CORE_1_0_69_2026_10_23.md",
+    "docs/ATUALIZACOES_OWNCORE_PENDENTES_DE_IMPLEMENTACAO.md",
+    "vendor/OwnTV_Core/core/src/test/java/tv/own/owntv/core/network/HttpClientDiagnosticPrivacyTest.kt"
+  ],
+  "newPlayerFiles": [
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/BufferUiSampleTest.kt",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/LiveDiagnosticsCostTest.kt",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/NativeReadTest.kt",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/NativeSurfaceBindingTest.kt",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/TerminalSourceRetirementTest.kt",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/VideoOutputReadyTest.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/BufferUiSample.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/NativeRead.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/NativeSurfaceBinding.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/VideoOutputReady.kt"
+  ],
+  "sourceHashes": {
+    "app/src/main/java/tv/own/owntv/mobile/ui/player/VideoStage.kt": "b323969eabc60b76898141cb1e37057e10614c176f5fbf38e0790d3a6069d93d",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/LiveDiagnosticsLog.kt": "d0ab3dc7f56daf4c8ecb03d3311d3a170c4b77f59a6ba9aa75f2d56728a5152d",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/LivePreviewEngine.kt": "9e736c6721df341547686f0e78f43aff5040df1c3a19fab64a512ee5efe45d1a",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt": "7a26b5683e05f2df74042e7353361d24b64fcf4b7942d554d2607d5d8c4a9bcd",
+    "vendor/OwnTV_Core/core/src/main/java/tv/own/owntv/core/network/HttpClient.kt": "c28044e8f93844a833bd2742f6074f20ef1a6faa746df842b7ceb6c53aa86b34",
+    "vendor/OwnTV_Core/tools/i18n/hardcoded_baseline.txt": "03ec09f3f6afe611381aa1e3a68180489696a8b8144c1fac8a8c5c92653f86b7",
+    "vendor/OwnTV_Core/tools/i18n/safe_literals.txt": "e4d86262f5c9fa9ba546c03d1bf0fa6bf4ed730d0aecc39e2d8fb78532466729",
+    "docs/ANALISE_MOBILE_1_1_1_CORE_1_0_69_2026_10_23.md": "bfd24c3e581d733377e6a28db180df4c95db1be84a6b1275f333bd1816458727",
+    "docs/ATUALIZACOES_OWNCORE_PENDENTES_DE_IMPLEMENTACAO.md": "15e6bfbf129a132ef93141955f4eb571510ee89fe486841dbe60174b2d18e12c",
+    "vendor/OwnTV_Core/core/src/test/java/tv/own/owntv/core/network/HttpClientDiagnosticPrivacyTest.kt": "f6b01b7130cb05bb5a0623b3c2c1b6f3aae2e2915299701b76b613942a188cce",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/BufferUiSampleTest.kt": "2213611a58c8df16f0cc7181ce9e2c5f29135b58c5a8a7b23dfa2b3ae6cb663f",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/LiveDiagnosticsCostTest.kt": "cc757491e431ddc293b73c179a9bf5bd0e04a8c3675177a5fc1a5cdde3c73759",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/NativeReadTest.kt": "6cdb5c678b077ac73441849eb9a43b9c3152a6cf398f8aa42af85bb2e6b879fa",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/NativeSurfaceBindingTest.kt": "ab0a85c6af5f0aff4fa4c061b3aa73dd23c850a850686e976c46b8f80e209aa5",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/TerminalSourceRetirementTest.kt": "ab9a26bef86f8b4d279a612646dc1b18d7d0d89d7887397dd2464b96a9c7b260",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/VideoOutputReadyTest.kt": "df4b6d6070edbbf31c044411c9ff6e3ed8426218424eb4f8be32ed4389e65ddd",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/BufferUiSample.kt": "0243b2db63b3cb3b6c410fe740fdc4e95878260bbc7c405a48687c46146d6030",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/NativeRead.kt": "6a3f6186412e997e41895fd805d448f3aa6cdc18950224a8992ef9dc39682b56",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/NativeSurfaceBinding.kt": "f1c1b5283b46ca926b970c53f4a5526d0103b777643e0acc57bf29dcfa52c03c",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/VideoOutputReady.kt": "a49c37493ef28794aadfac380afedc20d919eea628cf214fafa0b50c26041a60"
+  },
+  "contracts": {
+    "schema": 52,
+    "media3": "1.11.1",
+    "libmpv": "2026.10.4",
+    "internalGainPercent": 100,
+    "httpHandoverFilesUnchanged": true,
+    "nativeSurfaceDetach": "synchronous with native-surface-only lock, no command-queue wait; native call can still block",
+    "exoSurfaceReadinessDeadlineMs": 5000,
+    "mpvOptionalDiagnosticSampleIntervalMs": 5000,
+    "mpvUiBufferGranularitySeconds": 1
+  },
+  "deviceAcceptance": "not executed; adb devices empty",
+  "apkGenerated": false,
+  "tvAndSharedCoreModified": false
+}

@@ -9,7 +9,7 @@ import tv.own.owntv.core.model.SourceType
 
 class PlaybackDatabaseBackupTest {
     private val source = SourceEntity(id = 4, name = "test", type = SourceType.M3U, url = "https://example.invalid/list",
-        catchupTimezone = "MANUAL", catchupOffsetMin = 60, vodEnginePreference = "EXO_ONLY",
+        serverTimeZone = "Europe/Lisbon", catchupTimezone = "MANUAL", catchupOffsetMin = 60, vodEnginePreference = "EXO_ONLY",
         liveTuneTimeoutSecs = 12, httpReferer = "https://example.invalid/private?token=secret")
     private val seal: (String) -> JSONObject = { JSONObject().put("cipher", it.reversed()) }
     private val unseal: (Any?) -> String? = { (it as? JSONObject)?.getString("cipher")?.reversed() }

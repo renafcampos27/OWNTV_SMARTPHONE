@@ -75,9 +75,9 @@ android {
         applicationId = "tv.own.owntv.mobile"
         minSdk = 26
         targetSdk = 36
-        // Version name and code: env var (CI) > git tag (local) > fallback (1.0.2)
+        // Version name and code: env var (CI) > git tag (local) > fallback (1.2)
         val gitTagVersion = providers.of(GitTagValueSource::class.java) {}.orNull
-        val computedVersionName = providers.environmentVariable("VERSION_NAME").orNull ?: gitTagVersion ?: "1.0.2"
+        val computedVersionName = providers.environmentVariable("VERSION_NAME").orNull ?: gitTagVersion ?: "1.2"
         val computedVersionCode = (providers.environmentVariable("VERSION_CODE").orNull ?: run {
             val rawParts = computedVersionName.split(".")
             val p0 = rawParts.getOrNull(0)?.toIntOrNull() ?: 1

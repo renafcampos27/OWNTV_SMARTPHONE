@@ -93,7 +93,7 @@ class GuideReader(
                 .map { EpgShift.apply(it, shift) }
         }
         if (stored.isNotEmpty()) {
-            return@withContext EpgDedupe.collapse(stored).also { collapsed ->
+            return@withContext EpgDedupe.collapse(stored, channel.sourceId).also { collapsed ->
                 CorePerf.log {
                     "guide_row source=stored channelId=${channel.id} key=$epgKey shift=$shift " +
                         "rows=${stored.size} collapsed=${collapsed.size} " +
@@ -143,6 +143,7 @@ class GuideReader(
         var chunks = 0
         var rowsRead = 0
         val collected = HashMap<Long, List<EpgProgrammeEntity>>()
+        val sourceByChannel = channels.associate { it.id to it.sourceId }
         for ((shift, group) in keyed.groupBy { it.third }) {
             val rowsByKey = group
                 .map { it.second }.distinct()
@@ -158,7 +159,7 @@ class GuideReader(
                 .groupBy { it.epgChannelId }
             for ((channelId, epgKey, _) in group) {
                 rowsByKey[epgKey]?.takeIf { it.isNotEmpty() }
-                    ?.let { collected[channelId] = EpgShift.apply(EpgDedupe.collapse(it), shift) }
+                    ?.let { collected[channelId] = EpgShift.apply(EpgDedupe.collapse(it, sourceByChannel[channelId]), shift) }
             }
         }
         val inherited = channels.filter { it.id !in collected }.mapNotNull { ch ->
@@ -169,7 +170,7 @@ class GuideReader(
                 .flatMap { epgDao.programmeSummariesForChannels(it, EpgShift.toStored(from, shift), EpgShift.toStored(to, shift)) }
                 .groupBy { it.epgChannelId }
             for ((id, key, _) in group) rowsByKey[key]?.takeIf { it.isNotEmpty() }
-                ?.let { collected[id] = EpgShift.apply(EpgDedupe.collapse(it), shift) }
+                ?.let { collected[id] = EpgShift.apply(EpgDedupe.collapse(it, sourceByChannel[id]), shift) }
         }
         val ordered = LinkedHashMap<Long, List<EpgProgrammeEntity>>(collected.size)
         for (channel in channels) collected[channel.id]?.let { ordered[channel.id] = it }
@@ -199,7 +200,7 @@ class GuideReader(
         val rows = slice(channels, cust, globalShiftMinutes, atMs, atMs + lookAheadMs)
         val result = HashMap<Long, GuideSlot>(rows.size)
         for ((channelId, list) in rows) {
-            val now = list.firstOrNull { atMs in it.startMs until it.stopMs }
+            val now = list.lastOrNull { atMs in it.startMs until it.stopMs }
             val next = list.firstOrNull { it.startMs > (now?.startMs ?: atMs) }
             if (now == null && next == null) continue
             result[channelId] = GuideSlot(now = now, next = next)

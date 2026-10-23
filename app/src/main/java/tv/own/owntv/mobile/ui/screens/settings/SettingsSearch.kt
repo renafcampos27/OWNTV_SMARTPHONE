@@ -35,6 +35,12 @@ data class SettingsSearchEntry(
 fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
     // group, leaf (null when the row is on the group page itself), title, keywords
     fun rows(): List<SettingsRowEntry> = listOf(
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_SOUND, R.string.own_audio_route, CoreR.string.settings_search_keywords_audio),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_SOUND, R.string.own_output_sync, R.string.own_output_sync_hint),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_SOUND, R.string.own_output_sync_offset, CoreR.string.settings_search_keywords_audio),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_SOUND, R.string.own_audio_sync_total, R.string.own_audio_sync_total_hint),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_PICTURE, R.string.own_prefer_sdr, R.string.own_prefer_sdr_hint),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_DIAGNOSTICS, R.string.own_video_recovery, R.string.own_video_recovery_hint),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.CHANNEL_PLAYBACK, R.string.own_customized_only, CoreR.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.LIVE_CUSTOM, R.string.own_decoder_queue, CoreR.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.LIVE_CUSTOM, R.string.own_extra, CoreR.string.settings_search_keywords_video),
@@ -118,7 +124,6 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_PLAYER, CoreR.string.settings_live_engine_per_playlist, CoreR.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_PLAYER, CoreR.string.settings_reset_player_choices, CoreR.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_PLAYER, CoreR.string.settings_reset_live_player_choices, CoreR.string.settings_search_keywords_video),
-        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_PLAYER, CoreR.string.settings_forget_stream_fixes, CoreR.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_PLAYER, CoreR.string.settings_external_player, CoreR.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_PICTURE, CoreR.string.settings_auto_frame_rate, CoreR.string.settings_search_keywords_afr),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VP_PICTURE, CoreR.string.settings_default_zoom, CoreR.string.settings_search_keywords_zoom),

@@ -103,7 +103,7 @@ class OwnTVRenderersFactory(
         val available = tv.own.owntv.player.ffmpeg.FfmpegLibrary.isAvailable()
         LiveDiagnosticsLog.event("ffmpeg_audio available=$available preferred=$preferFfmpegAudio")
         if (available) {
-            val renderer = tv.own.owntv.player.ffmpeg.FfmpegAudioRenderer(eventHandler, eventListener, audioSink)
+            val renderer = tv.own.owntv.player.ffmpeg.FfmpegAudioRenderer(eventHandler, eventListener, audioSink, preferFfmpegAudio)
             out.add(if (preferFfmpegAudio) firstAudio else out.size, renderer)
         }
     }
@@ -113,12 +113,19 @@ class OwnTVRenderersFactory(
         enableFloatOutput: Boolean,
         enableAudioOutputPlaybackParams: Boolean,
     ): AudioSink? {
-        val sink = if (!forceStereo) super.buildAudioSink(context, enableFloatOutput, enableAudioOutputPlaybackParams)
+        AudioOutputRoutes.start(context)
+        val route = RoutedAudioOutput()
+        @Suppress("DEPRECATION")
+        val sink = if (!forceStereo) DefaultAudioSink.Builder(context)
+            .setEnableFloatOutput(enableFloatOutput)
+            .setEnableAudioOutputPlaybackParameters(enableAudioOutputPlaybackParams)
+            .setAudioTrackProvider(route).build()
         else {
             val mixer = StereoPcmAudioProcessor()
             @Suppress("DEPRECATION")
             val pcmSink = DefaultAudioSink.Builder()
                 .setAudioCapabilities(AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES)
+                .setAudioTrackProvider(route)
                 // Mixing is opt-in here only. Float output skips the PCM16 processing chain.
                 .setEnableFloatOutput(false)
                 .setAudioProcessors(arrayOf(mixer))
@@ -143,7 +150,8 @@ class OwnTVRenderersFactory(
                 }
             }
         }
-        return if (sink != null && audioDelay != null) DelayedClockAudioSink(sink, audioDelay) else sink
+        val routed = route.wrap(sink)
+        return if (audioDelay != null) DelayedClockAudioSink(routed, audioDelay) else routed
     }
 }
 

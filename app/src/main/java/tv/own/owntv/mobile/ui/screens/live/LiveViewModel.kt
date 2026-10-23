@@ -266,6 +266,8 @@ class LiveViewModel(
                         PagingConfig(
                             pageSize = PAGE_SIZE,
                             prefetchDistance = PAGE_SIZE / 2,
+                            initialLoadSize = PAGE_SIZE * 2,
+                            maxSize = 400,
                             enablePlaceholders = false,
                         ),
                     ) {
@@ -281,15 +283,45 @@ class LiveViewModel(
                             hasManualOrder = { it in orderedContexts.value },
                         )
                     }.flow.map { paging ->
-                        val groups = mutableSetOf<String>()
+                        val groups = LiveGroupRepresentatives()
                         val visible = paging.applyCustomizations(key, cust, hidden)
                         if (!cust.groupChannelVersions) visible else visible.filter { channel ->
-                            groups.add(ChannelVersionPolicy.groupKey(channel, cust))
+                            groups.accept(ChannelVersionPolicy.groupKey(channel, cust), channel.id)
                         }
                     }
                 }
             }
             .cachedIn(viewModelScope)
+
+    /** Resolve the selected list using its actual query, never a truncated Paging UI snapshot. */
+    suspend fun prepareNavigation(channel: ChannelEntity): Boolean {
+        val c = ctx.value
+        val key = selected.value
+        val cust = custom.value
+        val hidden = hiddenCategoryIds.value
+        val sort = sortMode.value
+        if (c.profileId < 0) return false
+        val source = livePagingSource(key, c.profileId, c.liveSourceIds, "", sort,
+            channelDao, customCategoryDao, { folderContextKeys.value[it] }, { it in orderedContexts.value })
+        try {
+            val page = source.load(androidx.paging.PagingSource.LoadParams.Refresh(
+                key = null, loadSize = MOVE_LIST_LIMIT + 1, placeholdersEnabled = false))
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            if (c != ctx.value || key != selected.value || cust != custom.value || sort != sortMode.value) return false
+            val loaded = page as? androidx.paging.PagingSource.LoadResult.Page
+            val rows = loaded?.data
+            val complete = loaded != null && loaded.data.size <= MOVE_LIST_LIMIT && loaded.nextKey == null
+            val visible = if (!complete) emptyList() else rows.orEmpty().filter { ch ->
+                ch.sourceId in c.liveSourceIds && tv.own.owntv.core.live.isChannelVisible(ch, cust, hidden) &&
+                    (key !is LiveKey.Folder || cust.movedFromOrigin[CustomizeKeys.channel(ch)] != folderContextKeys.value[key.id])
+            }
+            val grouped = if (cust.groupChannelVersions) visible.distinctBy { ChannelVersionPolicy.groupKey(it, cust) } else visible
+            tuner.setVisibleNavigation(c.profileId, grouped.takeIf { group -> group.any {
+                it.id == channel.id || (cust.groupChannelVersions && ChannelVersionPolicy.groupKey(it, cust) == ChannelVersionPolicy.groupKey(channel, cust))
+            } }.orEmpty())
+            return true
+        } finally { source.invalidate() }
+    }
 
     /**
      * Hidden channels and hidden categories drop out, renames are applied, and a channel moved into

@@ -71,10 +71,10 @@ fun SettingsSourcesPage(
             SettingRow(
                 title = stringResource(R.string.settings_catchup),
                 subtitle = stringResource(R.string.settings_catchup_description),
-                value = if (tz == SettingsRepository.CatchupTimezone.DEVICE) {
-                    stringResource(R.string.settings_catchup_timezone_device)
-                } else {
-                    utcOffsetLabel(vm.settings.catchupOffsetMinutes.pref(0))
+                value = when (tz) {
+                    SettingsRepository.CatchupTimezone.DEVICE -> stringResource(R.string.settings_catchup_timezone_device)
+                    SettingsRepository.CatchupTimezone.AUTOMATIC -> stringResource(tv.own.owntv.mobile.R.string.own_catchup_timezone_automatic)
+                    SettingsRepository.CatchupTimezone.MANUAL -> utcOffsetLabel(vm.settings.catchupOffsetMinutes.pref(0))
                 },
                 onClick = { catchupSheet = true },
             )
@@ -109,6 +109,10 @@ fun SettingsSourcesPage(
             title = editing.name,
             choices = listOf(
                 SettingsChoice<Pair<String?, Int?>>(null to null, stringResource(R.string.settings_live_preroll_follow)),
+                SettingsChoice<Pair<String?, Int?>>(
+                    SettingsRepository.CatchupTimezone.AUTOMATIC.name to null,
+                    stringResource(tv.own.owntv.mobile.R.string.own_catchup_timezone_automatic),
+                ),
                 SettingsChoice<Pair<String?, Int?>>(
                     SettingsRepository.CatchupTimezone.DEVICE.name to null,
                     stringResource(R.string.settings_catchup_timezone_device),
@@ -169,18 +173,14 @@ fun SettingsSourcesPage(
             onDismissRequest = { catchupSheet = false },
             title = stringResource(R.string.settings_catchup),
         ) {
-            SettingRow(
-                title = stringResource(R.string.settings_catchup_timezone_device),
-                checked = tz == SettingsRepository.CatchupTimezone.DEVICE,
-                onCheckedChange = { device ->
-                    vm.edit {
-                        setCatchupTimezone(
-                            if (device) SettingsRepository.CatchupTimezone.DEVICE
-                            else SettingsRepository.CatchupTimezone.MANUAL,
-                        )
-                    }
-                },
-            )
+            listOf(
+                SettingsRepository.CatchupTimezone.AUTOMATIC to tv.own.owntv.mobile.R.string.own_catchup_timezone_automatic,
+                SettingsRepository.CatchupTimezone.DEVICE to R.string.settings_catchup_timezone_device,
+                SettingsRepository.CatchupTimezone.MANUAL to tv.own.owntv.mobile.R.string.own_catchup_timezone_manual,
+            ).forEach { (mode, label) ->
+                SettingRow(title = stringResource(label), checked = tz == mode,
+                    onCheckedChange = { if (it) vm.edit { setCatchupTimezone(mode) } })
+            }
             if (tz == SettingsRepository.CatchupTimezone.MANUAL) {
                 OffsetStepper(
                     minutes = offset,
@@ -208,6 +208,7 @@ fun SettingsSourcesPage(
 @Composable
 private fun sourceCatchupLabel(source: SourceEntity): String = when (source.catchupTimezone) {
     null -> stringResource(R.string.settings_live_preroll_follow)
+    SettingsRepository.CatchupTimezone.AUTOMATIC.name -> stringResource(tv.own.owntv.mobile.R.string.own_catchup_timezone_automatic)
     SettingsRepository.CatchupTimezone.MANUAL.name -> utcOffsetLabel(source.catchupOffsetMin ?: 0)
     else -> stringResource(R.string.settings_catchup_timezone_device)
 }

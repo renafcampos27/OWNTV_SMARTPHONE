@@ -787,6 +787,7 @@ class BackupManager(
         backupPassword: String? = null,
         mode: ImportMode = ImportMode.RESTORE,
         deviceSettings: Boolean = false,
+        outputCalibration: Boolean? = null,
     ): Result<ImportSummary> = withContext(Dispatchers.IO) {
         runCatching {
             val (root, payload) = readBackup(file, backupPassword)
@@ -958,6 +959,7 @@ class BackupManager(
                                         liveEnginePreference = if (srcJson.has("liveEnginePreference")) incoming.liveEnginePreference else existing.liveEnginePreference,
                                         liveLatencyMode = if (srcJson.has("liveLatencyMode")) incoming.liveLatencyMode else existing.liveLatencyMode,
                                         liveLatencyCustomSecs = if (srcJson.has("liveLatencyCustomSecs")) incoming.liveLatencyCustomSecs else existing.liveLatencyCustomSecs,
+                                        serverTimeZone = if (srcJson.has("serverTimeZone")) incoming.serverTimeZone else existing.serverTimeZone,
                                         catchupTimezone = if (srcJson.has("catchupTimezone")) incoming.catchupTimezone else existing.catchupTimezone,
                                         catchupOffsetMin = if (srcJson.has("catchupOffsetMin")) incoming.catchupOffsetMin else existing.catchupOffsetMin,
                                         vodEnginePreference = if (srcJson.has("vodEnginePreference")) incoming.vodEnginePreference else existing.vodEnginePreference,
@@ -1134,7 +1136,7 @@ class BackupManager(
 
             if (Section.SETTINGS in sections) {
                 root.optJSONObject("settings")?.let { s ->
-                    val importedSettings = settings.importSettings(s, keepDeviceSettings) // preserve local hardware policy unless explicitly selected
+                    val importedSettings = settings.importSettings(s, keepDeviceSettings, outputCalibration ?: !keepDeviceSettings) // preserve local hardware policy unless explicitly selected
                     if (importedSettings.localePresent) {
                         localeFieldPresent = true
                         pendingLocaleTag = importedSettings.localeTag

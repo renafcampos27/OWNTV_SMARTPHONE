@@ -111,15 +111,15 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
                 downloadsModule, settingsModule, mobileBackupModule,
             )
         }
+        tv.own.owntv.mobile.images.installMobileImageLoading()
         // A chosen icon colour ("Later", the first-run pick, a restore) reaches the launcher when the app
         // is next in the background, never while it is on screen.
         tv.own.owntv.core.brand.AppIconSwitcher.start(this, org.koin.core.context.GlobalContext.get().get())
-        // Diagnostics switch, the persisted archive-decode quirk and the one-shot settings migrations.
+        // Diagnostics switch and the shared playback settings snapshot.
         tv.own.owntv.player.PlaybackStartup.start(
             context = this,
             scope = appScope,
             settings = org.koin.core.context.GlobalContext.get().get(),
-            archiveStore = org.koin.core.context.GlobalContext.get().get(),
         )
         // "Use this guide's logos": never started on the phone before, so the toggle did nothing here.
         // Reads no EPG data at all while no guide source has it on.

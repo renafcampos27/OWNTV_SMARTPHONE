@@ -205,6 +205,7 @@ internal class M3uSyncer(
                         catchupDays = entry.catchupDays ?: 0,
                         catchupSource = entry.catchupSource,
                         catchupType = entry.catchup,
+                        catchupCorrectionMin = entry.catchupCorrectionMin,
                         httpHeaders = StreamHeaders.encode(entry.headers),
                         drmConfig = DrmConfig.encode(entry.drm),
                         manifestType = ManifestType.encode(entry.manifestType),
@@ -449,7 +450,7 @@ internal class M3uSyncer(
             val header = if (isLocal) {
                 openLocalPlaylist(s.url).use { input -> m3u.parse(input, onEntry) }
             } else {
-                http.get(s.url, s.userAgent, reportBytes) { input -> m3u.parse(input, onEntry) }
+                http.get(s.url, s.userAgent, reportBytes, headers = s.httpReferer?.takeIf { it.isNotBlank() }?.let { mapOf("Referer" to it) }.orEmpty()) { input -> m3u.parse(input, onEntry) }
             }
             if (buffer.isNotEmpty()) {
                 flushChannels()

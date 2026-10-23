@@ -5,6 +5,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import tv.own.owntv.player.ffmpeg.FfmpegLibrary
+import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 
 /**
  * ExoPlayer's FFmpeg audio decoder ([tv.own.owntv.player.ffmpeg]), running on the FFmpeg the mpv engine
@@ -29,6 +30,19 @@ object FfmpegAudio {
     /** FFmpeg can decode this audio MIME type here. */
     fun supports(mime: String): Boolean =
         available && supported.getOrPut(mime) { FfmpegLibrary.supportsFormat(mime) }
+
+    private val deviceDecodable = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
+    private fun deviceDecodes(mime: String): Boolean = deviceDecodable.getOrPut(mime) {
+        runCatching { MediaCodecUtil.getDecoderInfos(mime, false, false).isNotEmpty() }.getOrDefault(false)
+    }
+
+    /** Ordering alone cannot beat Media3's capability ranking. A manual/rescue renderer must opt in. */
+    @JvmStatic fun takes(mime: String, preferSoftware: Boolean): Boolean =
+        takes(mime, preferSoftware, ::deviceDecodes, ::supports)
+
+    internal fun takes(mime: String, preferSoftware: Boolean, deviceDecoder: (String) -> Boolean, ffmpeg: (String) -> Boolean): Boolean =
+        MimeTypes.isAudio(mime) && (preferSoftware || !deviceDecoder(mime)) && ffmpeg(mime)
 }
 
 /** Which audio ExoPlayer can play — the film engine's hand-off gate and the "no playable audio" check. */

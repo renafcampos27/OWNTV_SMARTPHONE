@@ -5,6 +5,7 @@ import java.io.Closeable
 import java.io.File
 import org.json.JSONObject
 import tv.own.owntv.core.database.entity.EpgProgrammeEntity
+import tv.own.owntv.core.database.entity.computeContentHash
 
 /** Private temporary records: parse first, then replace programmes atomically using bounded batches. */
 internal class EpgProgrammeSpool(directory: File) : Closeable {
@@ -49,6 +50,7 @@ internal class EpgProgrammeSpool(directory: File) : Closeable {
                     startMs = json.getLong("start"), stopMs = json.getLong("stop"), title = json.getString("title"),
                     description = text("description"), categories = text("categories"), year = integer("year"),
                     rating = text("rating"), lengthMin = integer("length"), episode = text("episode"))
+                    .let { it.copy(contentHash = it.computeContentHash()) }
                 batchBytes += length
                 if (batch.size >= batchSize || batchBytes >= MAX_RECORD_BYTES) {
                     emit(batch.toList()); batch.clear(); batchBytes = 0

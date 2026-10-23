@@ -80,8 +80,9 @@ data class ChannelEntity(
     /** M3U `catchup-source` URL template (with `${start}`/`${timestamp}`/… placeholders). Null for
      *  Xtream, whose timeshift URL is built from the source credentials instead. */
     val catchupSource: String? = null,
-    /** M3U `catchup` type — "default" / "append" / "shift" / "flussonic" / "xc". Decides HOW
-     *  [catchupSource] is used; without it the `append` convention can't be honoured (F17). */
+    /** Request-only correction from M3U catchup-correction; does not shift the displayed guide. */
+    @ColumnInfo(defaultValue = "0") val catchupCorrectionMin: Int = 0,
+    /** M3U `catchup` type decides how [catchupSource] is used (append, shift, flussonic, xc). */
     val catchupType: String? = null,
     /** Per-channel HTTP request headers as `Key: Value` per line — see
      *  [tv.own.owntv.core.network.StreamHeaders]. Set from the M3U's `#EXTVLCOPT` / `#EXTHTTP` /
@@ -340,14 +341,15 @@ fun ChannelEntity.computeContentHash(): Int {
         epgChannelId, number, remoteId, catchup, catchupDays, catchupSource,
     )
     if (catchupType == null && httpHeaders == null && drmConfig == null &&
-        manifestType == null && directSource == null
+        manifestType == null && directSource == null && catchupCorrectionMin == 0
     ) {
         return base
     }
     val withV26 = Objects.hash(base, catchupType, httpHeaders)
     val withDrm = if (drmConfig == null) withV26 else Objects.hash(withV26, drmConfig)
-    return if (manifestType == null && directSource == null) withDrm
+    val withV43 = if (manifestType == null && directSource == null) withDrm
     else Objects.hash(withDrm, manifestType, directSource)
+    return if (catchupCorrectionMin == 0) withV43 else Objects.hash(withV43, catchupCorrectionMin)
 }
 
 /** [httpHeaders], [MovieEntity.drmConfig] and [MovieEntity.manifestType] are folded in only when the

@@ -6,9 +6,8 @@ import java.util.concurrent.ConcurrentHashMap
  * Per-provider live-stream quirks learned at runtime, shared by both engines.
  *
  * Everything here is **in-memory for the session only** — so a provider that fixes its panel is back
- * to stock behaviour after the next app start. The one exception is the archive-decode quirk, which
- * is also written to [tv.own.owntv.core.player.ArchiveDecodeStore] because re-learning it costs a
- * failed archive open rather than a few seconds. Keyed by `host:port` so a
+ * to stock behaviour after the next app start. Archive software recovery is item-local, never learned
+ * here. Provider-wide transport lessons are keyed by `host:port` so a
  * lesson learned on one channel applies immediately to every other channel of the same panel
  * (these faults are panel-wide, not per-channel).
  *
@@ -136,7 +135,6 @@ object LiveStreamQuirks {
     private val noHlsVariantStreams = urlLessonSet()
     private val noHlsVariantMpvStreams = urlLessonSet()
     private val tolerantDemuxStreams = urlLessonSet()
-    private val softwareArchiveHosts = ConcurrentHashMap.newKeySet<String>()
     private val uaBlockingUrls = ConcurrentHashMap<String, Long>()
     private val providerMessages = ConcurrentHashMap<String, Pair<Int, String>>()
 
@@ -367,45 +365,6 @@ object LiveStreamQuirks {
     fun needsTolerantDemux(url: String): Boolean = url in tolerantDemuxStreams
 
 
-    /**
-     * Record that this panel's catch-up archive needs a SOFTWARE video decoder.
-     *
-     * Archive (timeshift) segments start mid-GOP, and some TV-class hardware decoders can't resync from
-     * that: the decoder accepts the format, audio plays, and no video frame is ever emitted (Realtek OMX:
-     * "setPortMode … DynamicANWBuffer failed", "BAD CODEC: stride 1920 -> 64"). A software decoder picks
-     * up cleanly at the next keyframe.
-     *
-     * Catch-up used to be pinned to software *unconditionally* for that reason, which cost every panel
-     * hardware decoding — including the majority whose decoders cope fine. So archives now open in
-     * hardware and drop to software only once this panel has actually been caught failing; the cost of a
-     * panel that does fail is one silent retry on the session's first catch-up.
-     *
-     * Panel-wide, because the mid-GOP archive mux is a property of the panel's timeshift server, not of
-     * one channel. Unlike every other quirk here this one is also **persisted** (see
-     * [installArchivePersistence]): re-learning it costs a whole failed archive open — audio with no
-     * picture until the watchdog fires — which is too expensive to repeat every app start.
-     */
-    fun rememberArchiveNeedsSoftware(url: String) {
-        val host = hostKey(url)
-        if (softwareArchiveHosts.add(host)) archivePersistence?.invoke(host)
-    }
-
-    /**
-     * Seed the archive-decode quirk from the previous run and start persisting new ones.
-     *
-     * Called once at startup off the main thread. [known] hosts are applied immediately; [save] is
-     * invoked only for a host learned *now* that wasn't already remembered, so the store is written
-     * at most once per panel per install.
-     */
-    fun installArchivePersistence(known: Set<String>, save: (String) -> Unit) {
-        softwareArchiveHosts += known
-        archivePersistence = save
-    }
-
-    @Volatile private var archivePersistence: ((String) -> Unit)? = null
-
-    fun archiveNeedsSoftware(url: String): Boolean = hostKey(url) in softwareArchiveHosts
-
     /** Confirmed recovery scoped to this URL, bounded and expiring after thirty minutes. */
     fun rememberBlocksDefaultUserAgent(url: String, nowMs: Long = System.nanoTime() / 1_000_000L) {
         if (uaBlockingUrls.size >= MAX_URL_LESSONS && !uaBlockingUrls.containsKey(url)) {
@@ -447,7 +406,7 @@ object LiveStreamQuirks {
     internal fun clearForTest() {
         hlsRedirectHosts.clear(); segmentRefusingHosts.clear(); singleSessionHosts.clear()
         hostBackOffUntilMs.clear()
-        brokenTimestampStreams.clear(); softwareArchiveHosts.clear(); archivePersistence = null
+        brokenTimestampStreams.clear()
         noHlsVariantStreams.clear(); noHlsVariantMpvStreams.clear()
         tolerantDemuxStreams.clear()
         uaBlockingUrls.clear(); providerMessages.clear()

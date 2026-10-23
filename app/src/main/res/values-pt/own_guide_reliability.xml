@@ -1,0 +1,7 @@
+<resources>
+    <string name="own_guide_loading">A carregar o guia…</string>
+    <string name="own_guide_load_error">Não foi possível carregar o guia.</string>
+    <string name="own_guide_retry">Repetir</string>
+    <string name="own_catchup_timezone_automatic">Automático (servidor da lista)</string>
+    <string name="own_catchup_timezone_manual">Desvio UTC manual</string>
+</resources>

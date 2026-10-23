@@ -399,6 +399,8 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         // Video Player Settings
         val HW_DECODING = booleanPreferencesKey("hw_decoding")
         val SOFTWARE_AUDIO = booleanPreferencesKey("software_audio")
+        val PREFER_SDR = booleanPreferencesKey("prefer_sdr")
+        val VIDEO_DEGRADATION_RECOVERY = booleanPreferencesKey("video_degradation_recovery")
         val DECODER_QUEUEING = stringPreferencesKey("decoder_queueing")
         val VOD_PREFER_EXO = booleanPreferencesKey("vod_prefer_exo") // legacy; read for migration only
         val LIVE_HLS_ONLY = booleanPreferencesKey("live_hls_only")
@@ -436,6 +438,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         val SUB_POSITION = stringPreferencesKey("sub_position")
         val SUB_BG_OPACITY = intPreferencesKey("sub_bg_opacity")
         val AUDIO_DELAY_MS = intPreferencesKey("audio_delay_ms")
+        val AUDIO_DELAY_BY_OUTPUT = stringPreferencesKey("audio_delay_by_output")
         val PREF_AUDIO_LANG = stringPreferencesKey("pref_audio_lang")
         val PREF_SUB_LANG = stringPreferencesKey("pref_sub_lang")
         // OpenSubtitles online-search language filter. Separate from PREF_SUB_LANG (embedded tracks) —
@@ -962,7 +965,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
 
     /** Which timezone to format Xtream timeshift URLs in. Most panels run on the server's local time, which
      *  usually matches the user's region — so **Device** is the default; a manual UTC offset is the fallback. */
-    enum class CatchupTimezone { DEVICE, MANUAL }
+    enum class CatchupTimezone { AUTOMATIC, DEVICE, MANUAL }
 
     /** Manual UTC offset bounds (whole hours), in minutes. */
     val catchupOffsetStepMinutes = 15
@@ -1051,9 +1054,13 @@ class SettingsRepository(private val context: Context, private val localeStore: 
     }
 
     /** The timezone catch-up/timeshift URLs are formatted in — device tz, or a manual UTC offset. */
-    suspend fun resolveCatchupTimeZone(): java.util.TimeZone = when (catchupTimezone.first()) {
-        CatchupTimezone.DEVICE -> java.util.TimeZone.getDefault()
-        CatchupTimezone.MANUAL -> java.util.SimpleTimeZone(catchupOffsetMinutes.first() * 60_000, "catchup")
+    suspend fun resolveCatchupTimeZone(source: tv.own.owntv.core.database.entity.SourceEntity? = null): java.util.TimeZone {
+        SourceOverrides.catchupTimeZoneOf(source)?.let { return it }
+        return when (catchupTimezone.first()) {
+            CatchupTimezone.AUTOMATIC -> SourceOverrides.panelTimeZoneOf(source) ?: java.util.TimeZone.getDefault()
+            CatchupTimezone.DEVICE -> java.util.TimeZone.getDefault()
+            CatchupTimezone.MANUAL -> java.util.SimpleTimeZone(catchupOffsetMinutes.first() * 60_000, "catchup")
+        }
     }
 
     /** Automatically check GitHub Releases for a newer version shortly after launch. */
@@ -1698,6 +1705,13 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         context.dataStore.edit { it[Keys.AUDIO_DELAY_MS] = ms }
     }
 
+    val outputAudioDelays = prefsFlow { tv.own.owntv.core.player.OutputAudioDelays.parse(it[Keys.AUDIO_DELAY_BY_OUTPUT]) }
+    suspend fun setOutputAudioDelay(kind: tv.own.owntv.core.player.AudioOutputKind, ms: Int) {
+        context.dataStore.edit { p ->
+            p[Keys.AUDIO_DELAY_BY_OUTPUT] = tv.own.owntv.core.player.OutputAudioDelays.parse(p[Keys.AUDIO_DELAY_BY_OUTPUT]).with(kind, ms).encode()
+        }
+    }
+
     // --- CH+- key paging (browse panels): master toggle + per-direction skip counts ---
     // Clamped to [1, ChNavLimits.HARD_MAX] on write so an accidental huge value can never persist.
     val chNavEnabled: Flow<Boolean> = prefsFlow { it[Keys.CH_NAV_ENABLED] ?: true }
@@ -2107,6 +2121,12 @@ class SettingsRepository(private val context: Context, private val localeStore: 
     }
 
     /** Use HDR output when the video and display support it. */
+    val videoDegradationRecovery: Flow<Boolean> = prefsFlow { it[Keys.VIDEO_DEGRADATION_RECOVERY] ?: false }
+    suspend fun setVideoDegradationRecovery(on: Boolean) { context.dataStore.edit { it[Keys.VIDEO_DEGRADATION_RECOVERY] = on } }
+
+    val preferSdr: Flow<Boolean> = prefsFlow { it[Keys.PREFER_SDR] ?: false }
+    suspend fun setPreferSdr(on: Boolean) { context.dataStore.edit { it[Keys.PREFER_SDR] = on } }
+
     val hdrEnabled: Flow<Boolean> = prefsFlow { it[Keys.HDR_ENABLED] ?: true }
 
     suspend fun setHdrEnabled(enabled: Boolean) {
@@ -2749,7 +2769,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
         Keys.DNS_HOST, Keys.DNS_DOH_URL,
         // Surround mode (Auto/Stereo only/Surround). The legacy boolean is in backupBoolKeys and stays
         // in sync, but the string is what is read first, so it has to travel too.
-        Keys.SURROUND_MODE, Keys.DECODER_QUEUEING,
+        Keys.SURROUND_MODE, Keys.DECODER_QUEUEING, Keys.AUDIO_DELAY_BY_OUTPUT,
         // The mobility layer's two choices. Same reasoning as the touch-host booleans below: a phone
         // restored from a phone keeps them, a television never reads them.
         Keys.MINI_PLAYER_STYLE, Keys.PIP_SIZE,
@@ -2774,7 +2794,7 @@ class SettingsRepository(private val context: Context, private val localeStore: 
     private val backupBoolKeys = listOf(Keys.MULTIVIEW_ENABLED, Keys.MULTIVIEW_WARNING_ACCEPTED,
         Keys.RECORDING_RESERVE_CONNECTION, Keys.RECORD_WHAT_IM_WATCHING, Keys.RECORDING_OVER_MOBILE_DATA,
         Keys.AUDIO_PASSTHROUGH, Keys.NIGHT_MODE, Keys.VOLUME_LEVELLING,
-        Keys.SOFTWARE_AUDIO,
+        Keys.SOFTWARE_AUDIO, Keys.PREFER_SDR, Keys.VIDEO_DEGRADATION_RECOVERY,
         Keys.GUIDE_REPLAY_ONLY,
         Keys.UI_DIAGNOSTICS,
         Keys.LIVE_PREVIEW, Keys.LIVE_PREVIEW_AUDIO, Keys.HERO_PREVIEW, Keys.HDR_ENABLED, Keys.AUTO_FRAME_RATE, Keys.AFR_MATCH_RESOLUTION, Keys.AUTO_FRAME_RATE_PROMPTED, Keys.ANDROID_TV_HOME, Keys.HW_DECODING,
@@ -2830,6 +2850,9 @@ class SettingsRepository(private val context: Context, private val localeStore: 
             Keys.HW_DECODING.name to (p[Keys.HW_DECODING] ?: true),
             Keys.SOFTWARE_AUDIO.name to (p[Keys.SOFTWARE_AUDIO] ?: false),
             Keys.HDR_ENABLED.name to (p[Keys.HDR_ENABLED] ?: true),
+            Keys.PREFER_SDR.name to (p[Keys.PREFER_SDR] ?: false),
+            Keys.VIDEO_DEGRADATION_RECOVERY.name to (p[Keys.VIDEO_DEGRADATION_RECOVERY] ?: false),
+            Keys.AUDIO_DELAY_BY_OUTPUT.name to (p[Keys.AUDIO_DELAY_BY_OUTPUT] ?: ""),
             Keys.LIVE_ENGINE.name to (p[Keys.LIVE_ENGINE]?.let { runCatching { tv.own.owntv.core.player.EnginePreference.valueOf(it) }.getOrNull() }
                 ?: tv.own.owntv.core.player.EnginePreference.EXO_FIRST).name,
             Keys.SURROUND_MODE.name to SurroundMode.of(p[Keys.SURROUND_MODE], p[Keys.SURROUND_SOUND]).name,
@@ -2908,17 +2931,17 @@ class SettingsRepository(private val context: Context, private val localeStore: 
     private val deviceSpecificSettings = listOf(Keys.LIVE_ENGINE, Keys.VOD_ENGINE, Keys.VOD_PREFER_EXO,
         Keys.HW_DECODING, Keys.AUTO_FRAME_RATE, Keys.AFR_PAUSE_SECS, Keys.AFR_MATCH_RESOLUTION,
         Keys.HDR_ENABLED, Keys.SURROUND_MODE, Keys.SURROUND_SOUND, Keys.AUDIO_PASSTHROUGH,
-        Keys.SOFTWARE_AUDIO, Keys.DECODER_QUEUEING).map { it.name }.toSet()
+        Keys.SOFTWARE_AUDIO, Keys.DECODER_QUEUEING, Keys.AUDIO_DELAY_BY_OUTPUT, Keys.VIDEO_DEGRADATION_RECOVERY).map { it.name }.toSet()
     fun deviceIdentity() = tv.own.owntv.core.backup.DeviceIdentity.of(context)
     fun carriesDeviceSettings(o: org.json.JSONObject) = deviceSpecificSettings.any { o.has(it) }
 
-    suspend fun importSettings(o: org.json.JSONObject, keepDeviceSettings: Boolean = false): SettingsImportResult {
+    suspend fun importSettings(o: org.json.JSONObject, keepDeviceSettings: Boolean = false, restoreOutputCalibration: Boolean = !keepDeviceSettings): SettingsImportResult {
         validateSettingsBackup(o)
+        val protected = deviceSpecificSettings.filter { keepDeviceSettings && it != Keys.AUDIO_DELAY_BY_OUTPUT.name }.toSet() +
+            if (restoreOutputCalibration) emptySet() else setOf(Keys.AUDIO_DELAY_BY_OUTPUT.name)
         val unset = tv.own.owntv.core.backup.PortableSettingsSnapshot.unsetKeys(o, snapshotPortableKeys)
-            .filterNot { keepDeviceSettings && it in deviceSpecificSettings }.toSet()
-        val filtered = if (keepDeviceSettings) org.json.JSONObject(o.toString()).apply {
-            deviceSpecificSettings.forEach(::remove)
-        } else o
+            .filterNot { it in protected }.toSet()
+        val filtered = org.json.JSONObject(o.toString()).apply { protected.forEach(::remove) }
         context.dataStore.edit { prefs ->
             backupStringKeys.forEach { if (it.name in unset) prefs.remove(it) }
             backupStringSetKeys.forEach { if (it.name in unset) prefs.remove(it) }

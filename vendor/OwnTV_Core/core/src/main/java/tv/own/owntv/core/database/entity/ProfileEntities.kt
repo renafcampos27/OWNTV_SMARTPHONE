@@ -126,6 +126,8 @@ data class SourceEntity(
     @ColumnInfo(defaultValue = "-1") val liveReserveCustomSecs: Int = FOLLOW_GLOBAL_RESERVE_SECS,
     @ColumnInfo(defaultValue = "-1") val liveReserveExtraSecs: Int = FOLLOW_GLOBAL_RESERVE_SECS,
     /** Optional database overrides; null retains the global behavior. */
+    /** Validated IANA/fixed GMT zone reported by the Xtream panel; never an EPG display shift. */
+    val serverTimeZone: String? = null,
     val catchupTimezone: String? = null,
     val catchupOffsetMin: Int? = null,
     val vodEnginePreference: String? = null,

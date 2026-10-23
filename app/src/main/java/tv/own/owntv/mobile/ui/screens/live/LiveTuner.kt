@@ -421,6 +421,22 @@ class LiveTuner(
     }
 
     private val _siblings = MutableStateFlow<List<ChannelEntity>>(emptyList())
+    private var visibleNavigationProfile = -1L
+    private var visibleNavigationRows: List<ChannelEntity> = emptyList()
+
+    /** Immutable UI order, never a closure retaining a screen/ViewModel. Visibility is rechecked. */
+    fun setVisibleNavigation(profileId: Long, rows: List<ChannelEntity>) {
+        visibleNavigationProfile = profileId
+        visibleNavigationRows = rows.distinctBy { it.id }.toList()
+        if (profileId != ctx.value.profileId) return
+        val cust = custom.value
+        val current = _channel.value
+        val currentGroup = current?.let { ChannelVersionPolicy.groupKey(it, cust) }
+        _siblings.value = ChannelVersionPolicy.grouped(visibleNavigationRows, cust).map { row ->
+            val actual = if (current != null && cust.groupChannelVersions && ChannelVersionPolicy.groupKey(row, cust) == currentGroup) current else row
+            cust.itemNames[CustomizeKeys.channel(actual)]?.let { actual.copy(name = it) } ?: actual
+        }
+    }
 
     /** The other channels of the same folder — the Channels tab, and the swipe-up overlay. */
     val siblings: StateFlow<List<ChannelEntity>> = _siblings
@@ -882,7 +898,11 @@ class LiveTuner(
         if (c.profileId < 0) return
         val providerChannel = withContext(Dispatchers.IO) { channelDao.getById(channel.id) } ?: channel
         val category = providerChannel.categoryId?.let { withContext(Dispatchers.IO) { categoryDao.getById(it) } }
-        val list = withContext(Dispatchers.IO) {
+        val navigation = visibleNavigationRows.takeIf { visibleNavigationProfile == c.profileId && it.any { row ->
+            row.id == providerChannel.id || (custom.value.groupChannelVersions &&
+                ChannelVersionPolicy.groupKey(row, custom.value) == ChannelVersionPolicy.groupKey(providerChannel, custom.value))
+        } }
+        val list = navigation ?: withContext(Dispatchers.IO) {
             if (category != null) {
                 channelDao.snapshotByCategoryManual(
                     categoryId = category.id,
@@ -898,7 +918,9 @@ class LiveTuner(
         val cust = custom.value
         val categories = withContext(Dispatchers.IO) { categoryDao.observe(c.liveSourceIds.ifEmpty { listOf(-1L) }, MediaType.LIVE).first() }
         val hidden = AdultCategoryClassifier.hiddenCategoryIds(categories, cust.hiddenCategories, profileDao.getById(c.profileId)?.isKids == true)
-        val visible = list.filter { tv.own.owntv.core.live.isChannelVisible(it, cust, hidden) }
+        val visible = list.filter { it.sourceId in c.liveSourceIds && tv.own.owntv.core.live.isChannelVisible(it, cust, hidden) }
+        currentCoroutineContext().ensureActive()
+        if (c != ctx.value || cust != custom.value || _channel.value?.id != channel.id) return
         val grouped = ChannelVersionPolicy.grouped(visible, cust)
         val currentGroup = ChannelVersionPolicy.groupKey(providerChannel, cust)
         _siblings.value = grouped.map { if (cust.groupChannelVersions && ChannelVersionPolicy.groupKey(it, cust) == currentGroup) providerChannel else it }
@@ -934,13 +956,16 @@ class LiveTuner(
             if (!dataSaver.allowsStreaming()) return@launch
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
             if (!AdultCategoryClassifier.allows(pid, channel.categoryId, profileDao, categoryDao)) return@launch
-            val url = archiveUrls.forProgramme(channel, programme) ?: run {
+            val archive = archiveUrls.resolveProgramme(channel, programme) ?: run {
                 // Silence here is indistinguishable from a broken button: the tap did nothing, said
                 // nothing, and left the user to guess whether the app or the provider was at fault.
                 catchupUnavailable()
                 return@launch
             }
+            val url = archive.url
             val source = withContext(Dispatchers.IO) { sourceDao.getById(channel.sourceId) }
+            val channelOptions = settings.channelPlaybackConfigs.first()
+                .firstOrNull { it.channel.matches(channel) }?.options
             currentCoroutineContext().ensureActive()
             if (revision != requestRevision || pid != ctx.value.profileId) return@launch
             if (channel.id != loadedId) {
@@ -975,6 +1000,13 @@ class LiveTuner(
                     logoUrl = channel.displayLogoUrl,
                     isLive = false,
                     isArchive = true,
+                    contentKey = CustomizeKeys.channel(channel),
+                    softwareAudioOverride = channelOptions?.softwareAudio,
+            preferSdrOverride = channelOptions?.preferSdr,
+                    manifestType = archive.manifestTypes[url],
+                    archiveAlternatives = archive.alternatives,
+                    archiveManifestTypes = archive.manifestTypes,
+                    reconnectProvider = archiveReconnect(channel, pid, revision) { archiveUrls.resolveProgramme(channel, programme) },
                     userAgent = source?.userAgent,
                     httpHeaders = SourceOverrides.headersWithReferer(channel.httpHeaders, source),
                 )
@@ -1106,17 +1138,20 @@ class LiveTuner(
         val generation = player.playbackGeneration
         val playbackRevision = player.playbackRequestRevision.value
         val profileId = ctx.value.profileId
-        val (url, source) = withContext(Dispatchers.IO) {
+        val (archive, source) = withContext(Dispatchers.IO) {
             val source = sourceDao.getById(ch.sourceId) ?: return@withContext null
-            val tz = settings.resolveCatchupTimeZone()
-            archiveUrls.forTimeshift(ch, source, startMs, offsetSec, tz)?.let { it to source }
+            val tz = settings.resolveCatchupTimeZone(source)
+            archiveUrls.resolveTimeshift(ch, source, startMs, offsetSec, tz)?.let { it to source }
         } ?: run {
             // The timeshift hands back to the live edge from here, which on its own is indistinguishable
             // from "Go back to…" doing nothing at all.
             catchupUnavailable()
             return false
         }
+        val url = archive.url
         if (timeshift.offsetSec.value == null) return false // user jumped back to live meanwhile
+        val channelOptions = settings.channelPlaybackConfigs.first()
+            .firstOrNull { it.channel.matches(ch) }?.options
         currentCoroutineContext().ensureActive()
         if (revision != requestRevision || generation != player.playbackGeneration ||
             playbackRevision != player.playbackRequestRevision.value || profileId != ctx.value.profileId ||
@@ -1132,12 +1167,39 @@ class LiveTuner(
             title = ch.name,
             logoUrl = ch.displayLogoUrl,
             isArchive = true,
+            contentKey = CustomizeKeys.channel(ch),
+            softwareAudioOverride = channelOptions?.softwareAudio,
+            preferSdrOverride = channelOptions?.preferSdr,
+            manifestType = archive.manifestTypes[url],
+            archiveAlternatives = archive.alternatives,
+            archiveManifestTypes = archive.manifestTypes,
+            reconnectProvider = archiveReconnect(ch, profileId, revision) {
+                val freshSource = sourceDao.getById(ch.sourceId) ?: return@archiveReconnect null
+                archiveUrls.resolveTimeshift(ch, freshSource, startMs, offsetSec, settings.resolveCatchupTimeZone(freshSource))
+            },
             userAgent = source.userAgent,
             httpHeaders = SourceOverrides.headersWithReferer(ch.httpHeaders, source),
             rewindStartMs = startMs,
         )
         publishToSystem()
         return true
+    }
+
+    /** A renewal can never revive an archive after a newer selection/profile has taken ownership. */
+    private fun archiveReconnect(
+        channel: ChannelEntity, profileId: Long, revision: Long,
+        resolve: suspend () -> tv.own.owntv.core.epg.ResolvedArchiveSource?,
+    ) = tv.own.owntv.core.stalker.ReconnectUrlProvider {
+        suspend fun checkOwner() = withContext(Dispatchers.Main.immediate) {
+            currentCoroutineContext().ensureActive()
+            if (revision != requestRevision || profileId != ctx.value.profileId ||
+                channel.sourceId !in ctx.value.sourceIds || _channel.value?.id != channel.id ||
+                !(_replaying.value || timeshift.offsetSec.value != null)) throw CancellationException("Archive request superseded")
+        }
+        checkOwner()
+        val resolved = resolve()
+        checkOwner()
+        resolved?.url
     }
 
     /** Stop playing altogether — the mini player's swipe-down, and nothing else. */

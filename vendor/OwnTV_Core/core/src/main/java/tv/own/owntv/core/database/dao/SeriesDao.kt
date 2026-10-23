@@ -56,6 +56,9 @@ interface SeriesDao {
     @Query("SELECT * FROM series WHERE id IN (:ids)")
     suspend fun getSeriesByIds(ids: List<Long>): List<SeriesEntity>
 
+    @Query("SELECT * FROM episodes WHERE id IN (:ids)")
+    suspend fun getEpisodesByIds(ids: List<Long>): List<EpisodeEntity>
+
     // --- Stable-key lookups (Backup & Restore resolution: content ids change on re-sync) ---
     @Query("SELECT * FROM series WHERE sourceId = :sourceId AND remoteId = :remoteId LIMIT 1")
     suspend fun findSeriesByRemote(sourceId: Long, remoteId: String): SeriesEntity?

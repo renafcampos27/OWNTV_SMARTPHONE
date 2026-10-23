@@ -1,5 +1,8 @@
 package tv.own.owntv.mobile.ui.components
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -67,6 +70,12 @@ fun MobileTextField(
         placeholder = placeholder?.let {
             { Text(text = it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         },
+        shape = RoundedCornerShape(14.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+        ),
         singleLine = true,
         isError = isError,
         supportingText = supportingText?.let {
@@ -84,7 +93,8 @@ fun MobileTextField(
         } else {
             VisualTransformation.None
         },
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+        keyboardOptions = KeyboardOptions(keyboardType = protectedKeyboardType(keyboardType, isPassword),
+            autoCorrectEnabled = if (isPassword) false else null, imeAction = imeAction),
         keyboardActions = KeyboardActions(
             onNext = { focusManager.moveFocus(FocusDirection.Down) },
             onDone = {
@@ -108,4 +118,10 @@ fun MobileTextField(
             },
         ),
     )
+}
+
+internal fun protectedKeyboardType(type: KeyboardType, password: Boolean): KeyboardType = when {
+    !password -> type
+    type == KeyboardType.Number || type == KeyboardType.NumberPassword -> KeyboardType.NumberPassword
+    else -> KeyboardType.Password
 }

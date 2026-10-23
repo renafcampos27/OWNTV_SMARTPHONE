@@ -31,53 +31,85 @@ object CatchupUrl {
 
 
     /** Unix-second tokens (both `${name}` and `{name}`, case-insensitive) → their value. */
-    private val START_TOKENS = setOf("start", "utc", "timestamp", "start-timestamp", "utcstart")
+    private val START_TOKENS = setOf("start", "utc", "start-timestamp", "utcstart")
     private val END_TOKENS = setOf("end", "utcend", "end-timestamp", "stop")
 
     /** "Now", in unix seconds. `catchup-source="…?utc={utc}&lutc={lutc}"` is one of the most common
-     *  templates in the wild, and an unsubstituted `{lutc}` reached the provider verbatim (F17). */
-    private val NOW_TOKENS = setOf("lutc", "now", "timenow", "currenttime")
+     *  templates in the wild, and an unsubstituted `{lutc}` reached the provider verbatim.
+     *  `timestamp` is now as well — Kodi documents `${timestamp}` as "same as `{lutc}`", and TiviMate
+     *  agrees; it used to be sent as the programme start. */
+    private val NOW_TOKENS = setOf("lutc", "now", "timenow", "currenttime", "timestamp")
 
-    private val TOKEN = Regex("\\$?\\{([A-Za-z_][A-Za-z0-9_-]*)\\}")
+    /** `{name}` / `${name}`, optionally with an argument after a colon: `{duration:60}`, `{utc:YmdHMS}`. */
+    private val TOKEN = Regex("\\$?\\{([A-Za-z_][A-Za-z0-9_-]*)(?::([^}]*))?\\}")
 
     /**
      * Fill an M3U `catchup-source` [template] for the programme spanning [startMs]..[endMs].
-     * Recognised placeholders (UTC): unix start/end/duration/offset, and date parts Y/m/d/H/M/S of the
-     * start. Unknown placeholders are left untouched so unusual templates degrade gracefully.
+     * Recognised placeholders (UTC), after Kodi IPTV Simple, the de-facto reference:
+     *  - unix start/end/now, and duration/offset in seconds;
+     *  - `{duration:X}` / `{offset:X}` — the same divided by X seconds (`{duration:60}` = minutes);
+     *  - `{utc:FMT}`, `${start:FMT}`, `{utcend:FMT}`, `${end:FMT}`, `{lutc:FMT}`, `${now:FMT}`,
+     *    `${timestamp:FMT}` — that instant formatted, the letters Y m d H M S replaced and anything
+     *    else kept (`{utc:Ymd-H-M}` → `20210101-00-00`);
+     *  - the bare date parts Y/m/d/H/M/S of the start.
+     * Unknown placeholders are left untouched so unusual templates degrade gracefully.
      */
     fun fromTemplate(template: String, startMs: Long, endMs: Long, nowMs: Long = System.currentTimeMillis()): String {
         val startS = startMs / 1000
         val endS = endMs / 1000
         val durationS = ((endMs - startMs) / 1000).coerceAtLeast(0)
         val offsetS = ((nowMs - startMs) / 1000).coerceAtLeast(0)
-        val cal = java.util.Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = startMs }
-        fun two(n: Int) = n.toString().padStart(2, '0')
-        val dateParts = mapOf(
-            "y" to cal.get(java.util.Calendar.YEAR).toString(),
-            "m" to two(cal.get(java.util.Calendar.MONTH) + 1),
-            "d" to two(cal.get(java.util.Calendar.DAY_OF_MONTH)),
-            "h" to two(cal.get(java.util.Calendar.HOUR_OF_DAY)),
-            "min" to two(cal.get(java.util.Calendar.MINUTE)),
-            "s" to two(cal.get(java.util.Calendar.SECOND)),
-        )
         return TOKEN.replace(template) { match ->
             val raw = match.groupValues[1]
             val name = raw.lowercase()
+            val arg = match.groups[2]?.value
+            val instantMs = when (name) {
+                in START_TOKENS -> startMs
+                in END_TOKENS -> endMs
+                in NOW_TOKENS -> nowMs
+                else -> null
+            }
             when {
-                name in START_TOKENS -> startS.toString()
-                name in END_TOKENS -> endS.toString()
-                name in NOW_TOKENS -> (nowMs / 1000).toString()
+                arg != null -> when {
+                    instantMs != null && arg.isNotEmpty() -> formatUtc(instantMs, arg)
+                    name == "duration" -> divided(durationS, arg) ?: match.value
+                    name == "offset" -> divided(offsetS, arg) ?: match.value
+                    else -> match.value
+                }
+                instantMs != null -> (instantMs / 1000).toString()
                 name == "duration" -> durationS.toString()
                 name == "offset" -> offsetS.toString()
                 // Date parts are single-letter and case-sensitive in the wild (M = month/minute), so map
                 // by the ORIGINAL token: Y/m/d/H/M/S.
-                raw == "Y" -> dateParts["y"]!!
-                raw == "m" -> dateParts["m"]!!
-                raw == "d" -> dateParts["d"]!!
-                raw == "H" -> dateParts["h"]!!
-                raw == "M" -> dateParts["min"]!!
-                raw == "S" -> dateParts["s"]!!
+                raw.length == 1 && raw[0] in DATE_LETTERS -> formatUtc(startMs, raw)
                 else -> match.value // unknown placeholder: leave as-is
+            }
+        }
+    }
+
+    private const val DATE_LETTERS = "YmdHMS"
+
+    /** [seconds] divided by the whole number [arg]; null when [arg] is not a positive number. */
+    private fun divided(seconds: Long, arg: String): String? =
+        arg.toLongOrNull()?.takeIf { it > 0 }?.let { (seconds / it).toString() }
+
+    /** [ms] in UTC, with each of Y m d H M S in [format] replaced by that field; other characters kept. */
+    private fun formatUtc(ms: Long, format: String): String {
+        val cal = java.util.Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = ms }
+        fun two(n: Int) = n.toString().padStart(2, '0')
+        return buildString {
+            format.forEach { c ->
+                append(
+                    when (c) {
+                        'Y' -> cal.get(java.util.Calendar.YEAR).toString()
+                        'm' -> two(cal.get(java.util.Calendar.MONTH) + 1)
+                        'd' -> two(cal.get(java.util.Calendar.DAY_OF_MONTH))
+                        'H' -> two(cal.get(java.util.Calendar.HOUR_OF_DAY))
+                        'M' -> two(cal.get(java.util.Calendar.MINUTE))
+                        'S' -> two(cal.get(java.util.Calendar.SECOND))
+                        else -> c.toString()
+                    },
+                )
             }
         }
     }
@@ -113,6 +145,7 @@ object CatchupUrl {
                 programme.startMs,
                 programme.stopMs,
                 tz,
+                correctionMinutes = channel.catchupCorrectionMin,
             )
             else -> null
         }
@@ -155,15 +188,18 @@ object CatchupUrl {
         startMs: Long,
         endMs: Long,
         tz: TimeZone = TimeZone.getTimeZone("UTC"),
+        correctionMinutes: Int = 0,
     ): String? {
+        val requestStart = requestStartMs(startMs, correctionMinutes)
+        val requestEnd = requestStartMs(endMs, correctionMinutes)
         val template = catchupSource?.takeIf { it.isNotBlank() }
         val type = catchupType?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
         return when {
-            template != null && type == "append" -> joinQuery(liveUrl, fromTemplate(template, startMs, endMs))
-            template != null -> fromTemplate(template, startMs, endMs)
-            type == "shift" || type == "timeshift" -> joinQuery(liveUrl, fromTemplate(SHIFT_TEMPLATE, startMs, endMs))
-            type != null && type.startsWith("flussonic") -> flussonic(liveUrl, startMs, endMs)
-            type == "xc" || type == "xtream" -> xtreamStyle(liveUrl, startMs, endMs, tz)
+            template != null && type == "append" -> joinQuery(liveUrl, fromTemplate(template, requestStart, requestEnd))
+            template != null -> fromTemplate(template, requestStart, requestEnd)
+            type == "shift" || type == "timeshift" -> joinQuery(liveUrl, fromTemplate(SHIFT_TEMPLATE, requestStart, requestEnd))
+            type != null && type.startsWith("flussonic") -> flussonic(liveUrl, requestStart, requestEnd)
+            type == "xc" || type == "xtream" -> xtreamStyle(liveUrl, requestStart, requestEnd, tz)
             // A bare catchup="default" with no source needs server support we can't model.
             else -> null
         }

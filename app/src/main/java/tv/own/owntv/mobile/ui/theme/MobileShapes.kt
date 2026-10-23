@@ -1,11 +1,13 @@
 package tv.own.owntv.mobile.ui.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.graphics.shapes.CornerRounding
@@ -58,23 +60,23 @@ class SquircleShape(
 }
 
 /** The shape of every card and panel in the app. */
-val MobileCardShape: Shape = SquircleShape(MobileDimens.CardCorner)
+val MobileCardShape: Shape = RoundedCornerShape(16.dp)
 
 /** Artwork's own corner, a touch tighter than a card's — a poster is the picture, not a plate. */
-val MobilePosterShape: Shape = SquircleShape(MobileDimens.PosterArtCorner)
+val MobilePosterShape: Shape = RoundedCornerShape(12.dp)
 
 /** The little plate a row's icon sits on. */
-val MobileChipShape: Shape = SquircleShape(MobileDimens.ListRowIconCorner)
+val MobileChipShape: Shape = RoundedCornerShape(11.dp)
 
 /** The block a run of rows is grouped into. */
-val MobileGroupShape: Shape = SquircleShape(MobileDimens.GroupCorner)
+val MobileGroupShape: Shape = RoundedCornerShape(16.dp)
 
 // The floating shell's four panes. Each stands clear of the screen edges, so each is rounded on all
 // four corners — including the sheet, which no longer sits on the bottom edge.
-val MobileTopBarShape: Shape = SquircleShape(MobileDimens.TopBarCorner)
-val MobilePageShape: Shape = SquircleShape(MobileDimens.PageCorner)
-val MobileNavShape: Shape = SquircleShape(MobileDimens.NavCorner)
-val MobileSheetShape: Shape = SquircleShape(MobileDimens.SheetCorner)
+val MobileTopBarShape: Shape = RoundedCornerShape(16.dp)
+val MobilePageShape: Shape = RoundedCornerShape(0.dp)
+val MobileNavShape: Shape = RoundedCornerShape(26.dp)
+val MobileSheetShape: Shape = RoundedCornerShape(28.dp)
 
 /** The plate a sheet's rows stand on, inside the sheet's own corner. */
-val MobileSheetRowsShape: Shape = SquircleShape(MobileDimens.SheetRowsCorner)
+val MobileSheetRowsShape: Shape = RoundedCornerShape(16.dp)

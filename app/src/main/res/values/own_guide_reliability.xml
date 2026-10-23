@@ -1,0 +1,7 @@
+<resources>
+    <string name="own_guide_loading">Loading guide…</string>
+    <string name="own_guide_load_error">Could not load the guide.</string>
+    <string name="own_guide_retry">Retry</string>
+    <string name="own_catchup_timezone_automatic">Automatic (playlist server)</string>
+    <string name="own_catchup_timezone_manual">Manual UTC offset</string>
+</resources>

@@ -2,19 +2,21 @@ package tv.own.owntv.mobile.ui.screens.guide
 
 import tv.own.owntv.core.theme.AnimationLevel
 import tv.own.owntv.mobile.ui.components.MobileIcons
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +53,8 @@ import kotlinx.coroutines.launch
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.EpgProgrammeEntity
 import tv.own.owntv.core.R
+import tv.own.owntv.mobile.ui.components.MobileButton
+import tv.own.owntv.mobile.ui.components.MobileButtonStyle
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -101,7 +106,7 @@ internal fun GuideGrid(
                     Icon(MobileIcons.Schedule, stringResource(R.string.content_epg_jump_now))
                 }
             }
-            Row(Modifier.horizontalScroll(timeScroll)) {
+            Row(Modifier.weight(1f).horizontalScroll(timeScroll).width(minuteWidth * minutesBetween(window.start, window.end))) {
                 var tick = window.start
                 while (tick < window.end) {
                     Text(
@@ -152,74 +157,75 @@ private fun GuideGridRow(
     onOpenChannel: (Long) -> Unit,
     onMenu: (ChannelEntity) -> Unit,
 ) {
-    // A new match or a new offset invalidates what was read, so the row is asked for again.
-    var programmes by remember(channel.id, window.start, revision) {
-        mutableStateOf(vm.cachedRow(channel.id))
-    }
-    LaunchedEffect(channel.id, window.start, revision) {
-        if (programmes == null) programmes = vm.row(channel)
-    }
-
-    Row(Modifier.heightIn(min = ROW_HEIGHT)) {
+    var retry by remember(channel.id, window, revision) { mutableStateOf(0) }
+    val state by rememberGuideRow(vm, channel, window, revision, retry)
+    val rows = (state as? GuideRowState.Data)?.rows.orEmpty()
+    val cells = remember(rows, window) { guideProgrammeCells(rows, window) }
+    val density = LocalDensity.current
+    val minutePx = with(density) { minuteWidth.toPx() }
+    val rowHeight = ROW_HEIGHT * density.fontScale.coerceAtLeast(1f)
+    Row(Modifier.height(rowHeight)) {
         Row(
-            modifier = Modifier
-                .width(CHANNEL_COLUMN)
-                .fillMaxHeight()
-                .combinedClickable(
-                    onClick = { onOpenChannel(channel.id) },
-                    onLongClick = { onMenu(channel) },
-                )
+            modifier = Modifier.width(CHANNEL_COLUMN).fillMaxHeight()
+                .combinedClickable(onClick = { onOpenChannel(channel.id) }, onLongClick = { onMenu(channel) })
                 .padding(horizontal = MobileDimens.GapSmall),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
         ) {
             ChannelLogo(channel)
-            Text(
-                text = channel.name,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Text(channel.name, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
-        Row(Modifier.horizontalScroll(timeScroll).fillMaxHeight()) {
-            val rows = programmes
-            if (rows.isNullOrEmpty()) {
-                Text(
-                    text = stringResource(R.string.content_epg_no_guide),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(MobileDimens.GapSmall),
-                )
-            } else {
-                var cursor = window.start
-                rows.forEach { programme ->
-                    val start = programme.startMs.coerceAtLeast(window.start)
-                    val end = programme.stopMs.coerceAtMost(window.end)
-                    if (end <= cursor) return@forEach
-                    // A hole in the schedule is drawn as one: pretending it is not there slides every
-                    // later programme left and the row stops lining up with the clock above it.
-                    if (start > cursor) Spacer(Modifier.width(minuteWidth * minutesBetween(cursor, start)))
-                    ProgrammeBlock(
-                        programme = programme,
-                        width = minuteWidth * minutesBetween(maxOf(start, cursor), end),
-                        onClick = { onOpen(channel, programme) },
-                    )
-                    cursor = end
+        BoxWithConstraints(Modifier.weight(1f).fillMaxHeight()) {
+            val viewportMinutes = with(density) { maxWidth.toPx() } / minutePx
+            // Read pixel scroll only here, quantized to half-hour bands rather than every frame.
+            val band by remember(timeScroll, minutePx) {
+                derivedStateOf { (timeScroll.value / minutePx / TICK_MINUTES).toLong() }
+            }
+            val from = window.start + (band - 1) * TICK_MINUTES * MINUTE_MS
+            val until = window.start + ((band + 2) * TICK_MINUTES + viewportMinutes.toLong()) * MINUTE_MS
+            val visible = remember(cells, from, until) { guideVisibleCells(cells, from, until) }
+            // Every row has the exact same full-day extent, including empty rows and trailing gaps.
+            Box(Modifier.fillMaxSize().horizontalScroll(timeScroll)) {
+                Box(Modifier.width(minuteWidth * minutesBetween(window.start, window.end)).fillMaxHeight()) {
+                    visible.forEach { cell ->
+                        androidx.compose.runtime.key(cell.programme.id, cell.programme.sourceId, cell.startMs, cell.endMs) {
+                            ProgrammeBlock(cell.programme, minuteWidth * minutesBetween(cell.startMs, cell.endMs),
+                                Modifier.offset(x = minuteWidth * minutesBetween(window.start, cell.startMs))) {
+                                onOpen(channel, cell.programme)
+                            }
+                        }
+                    }
                 }
             }
+            if (state !is GuideRowState.Data) GuideRowMessage(state, onRetry = { retry++ })
         }
     }
 }
 
 @Composable
-private fun ProgrammeBlock(programme: EpgProgrammeEntity, width: androidx.compose.ui.unit.Dp, onClick: () -> Unit) {
+private fun GuideRowMessage(state: GuideRowState, onRetry: () -> Unit) {
+    Row(Modifier.padding(horizontal = MobileDimens.GapSmall), verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(when (state) {
+            GuideRowState.Loading -> tv.own.owntv.mobile.R.string.own_guide_loading
+            GuideRowState.Error -> tv.own.owntv.mobile.R.string.own_guide_load_error
+            else -> R.string.content_epg_no_guide
+        }), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f, fill = false))
+        if (state == GuideRowState.Error) MobileButton(stringResource(tv.own.owntv.mobile.R.string.own_guide_retry),
+            onClick = onRetry, style = MobileButtonStyle.TEXT)
+    }
+}
+
+@Composable
+private fun ProgrammeBlock(programme: EpgProgrammeEntity, width: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .width(width)
             .fillMaxHeight()
             .padding(BLOCK_GAP)
             .clip(RoundedCornerShape(MobileDimens.GapSmall))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(MobileDimens.GapSmall))
             .clickable(onClick = onClick)
             .padding(horizontal = MobileDimens.GapSmall),
         contentAlignment = Alignment.CenterStart,
@@ -248,8 +254,12 @@ internal fun GuideTimeline(
     onOpen: (ChannelEntity, EpgProgrammeEntity) -> Unit,
 ) {
     val guideWindow by vm.window.collectAsStateWithLifecycle()
-    var selected by remember { mutableStateOf<ChannelEntity?>(null) }
-    val channel = selected ?: channels.itemSnapshotList.items.firstOrNull()
+    val context by vm.listContext.collectAsStateWithLifecycle()
+    val category by vm.selected.collectAsStateWithLifecycle()
+    val query by vm.query.collectAsStateWithLifecycle()
+    var selected by remember(context.profileId, context.liveSourceIds, category, query) { mutableStateOf<ChannelEntity?>(null) }
+    val channel = selected?.let { chosen -> channels.itemSnapshotList.items.firstOrNull { it.id == chosen.id } ?: chosen }
+        ?: channels.itemSnapshotList.items.firstOrNull()
     val times = rememberGuideTimeFormat()
 
     Column(Modifier.fillMaxSize()) {
@@ -273,19 +283,12 @@ internal fun GuideTimeline(
         HorizontalDivider()
         if (channel != null) {
             val revision by vm.revision.collectAsStateWithLifecycle()
-            var programmes by remember(channel.id, revision, guideWindow) { mutableStateOf(vm.cachedRow(channel.id)) }
-            LaunchedEffect(channel.id, revision, guideWindow) { if (programmes == null) programmes = vm.row(channel) }
-            val rows = programmes
-            if (rows != null && rows.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.content_epg_no_guide),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(MobileDimens.ScreenPaddingH),
-                )
-            }
+            var retry by remember(channel.id, revision, guideWindow) { mutableStateOf(0) }
+            val state by rememberGuideRow(vm, channel, guideWindow, revision, retry)
+            val rows = (state as? GuideRowState.Data)?.rows.orEmpty()
+            if (state !is GuideRowState.Data) GuideRowMessage(state, onRetry = { retry++ })
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                items(rows.orEmpty(), key = { it.id }) { programme ->
+                items(rows, key = { it.id }, contentType = { "programme" }) { programme ->
                     MobileListRow(
                         title = programme.title,
                         subtitle = stringResource(

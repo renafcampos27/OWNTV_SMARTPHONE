@@ -1,6 +1,10 @@
 package tv.own.owntv.player
 
 import androidx.media3.common.util.UnstableApi
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +32,25 @@ import kotlinx.coroutines.flow.asStateFlow
 class LiveEnginePool(private val newEngine: () -> LivePreviewEngine) {
 
     private val engines = LinkedHashMap<Int, LivePreviewEngine>()
+    private val observationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val observations = mutableMapOf<Int, Job>()
+    private val activeTiles = mutableMapOf<Int, Boolean>()
+    private val _playbackActivity = MutableStateFlow(false)
+    val playbackActivity: StateFlow<Boolean> = _playbackActivity.asStateFlow()
+
+    private fun observeActivity(tile: Int, engine: LivePreviewEngine) {
+        if (tile in observations) return
+        observations[tile] = observationScope.launch {
+            combine(engine.isPlaying, engine.buffering, engine.playbackRequested) { playing, buffering, requested ->
+                requested && (playing || buffering)
+            }.distinctUntilChanged().collect { active ->
+                if (engines[tile] === engine) {
+                    activeTiles[tile] = active
+                    _playbackActivity.value = activeTiles.values.any { it }
+                }
+            }
+        }
+    }
     private val _audibleTile = MutableStateFlow<Int?>(null)
 
     /** The tile whose sound is playing, or null while every tile is muted. */
@@ -45,7 +68,7 @@ class LiveEnginePool(private val newEngine: () -> LivePreviewEngine) {
             it.setMuted(true)
             it.setMaxVideoHeight(BACKGROUND_TILE_HEIGHT)
         }
-    }
+    }.also { observeActivity(tile, it) }
 
     /** The engine for [tile] if it has one, without building one. */
     fun peek(tile: Int): LivePreviewEngine? = engines[tile]
@@ -88,6 +111,9 @@ class LiveEnginePool(private val newEngine: () -> LivePreviewEngine) {
 
     /** Free one tile's engine — the user emptied it, or the grid shrank. */
     fun release(tile: Int) {
+        observations.remove(tile)?.cancel()
+        activeTiles.remove(tile)
+        _playbackActivity.value = activeTiles.values.any { it }
         engines.remove(tile)?.dispose()
         if (_audibleTile.value == tile) _audibleTile.value = null
     }
@@ -103,6 +129,10 @@ class LiveEnginePool(private val newEngine: () -> LivePreviewEngine) {
 
     /** Free every engine. Leaving Multiview, and the only thing a caller must not forget. */
     fun releaseAll() {
+        observations.values.forEach { it.cancel() }
+        observations.clear()
+        activeTiles.clear()
+        _playbackActivity.value = false
         engines.values.forEach { it.dispose() }
         engines.clear()
         _audibleTile.value = null

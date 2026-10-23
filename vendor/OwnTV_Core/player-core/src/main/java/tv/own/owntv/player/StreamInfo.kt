@@ -8,7 +8,7 @@ import java.util.Locale
 import tv.own.owntv.core.R
 
 /** Stable labels and typed values for the technical stream overlay. */
-enum class StreamInfoLabel { ENGINE, FORMAT, SOURCE, VIDEO, HDR, BITRATE, DOWNLOAD_RATE, DECODER, AUDIO, AUDIO_DECODER, AUDIO_OUTPUT, BUFFER, LIVE_BUFFER }
+enum class StreamInfoLabel { ENGINE, FORMAT, SOURCE, VIDEO, HDR, BITRATE, DOWNLOAD_RATE, DECODER, AUDIO, AUDIO_DECODER, AUDIO_OUTPUT, BUFFER, LIVE_BUFFER, FRAME_HEALTH, AUDIO_SYNC }
 
 enum class StreamEngine { MPV, EXOPLAYER }
 
@@ -65,6 +65,8 @@ sealed interface StreamInfoValue {
         val multichannelAllowed: Boolean,
         val fallbackReason: String? = null,
     ) : StreamInfoValue
+    data class AudioSync(val baseMs: Int, val outputMs: Int, val effectiveMs: Int) : StreamInfoValue
+    data class FrameHealth(val rendered: Long, val dropped: Long, val percent: Double, val elapsedMs: Long) : StreamInfoValue
     data class Buffer(val bufferedMs: Long? = null, val droppedFrames: Long? = null) : StreamInfoValue
     data class LiveBuffer(
         val prerollEnabled: Boolean,
@@ -103,6 +105,8 @@ val StreamInfoLabel.titleRes: Int
         StreamInfoLabel.AUDIO_DECODER -> R.string.player_stream_audio_decoder
         StreamInfoLabel.AUDIO_OUTPUT -> R.string.player_stream_audio_output
         StreamInfoLabel.BUFFER -> R.string.player_stream_buffer
+        StreamInfoLabel.AUDIO_SYNC -> R.string.own_audio_sync
+        StreamInfoLabel.FRAME_HEALTH -> R.string.own_frame_health
         StreamInfoLabel.LIVE_BUFFER -> R.string.player_stream_live_buffer
     }
 
@@ -206,6 +210,8 @@ fun StreamInfoValue.displayText(res: Resources): String {
             )
             fallbackReason?.let { add(res.getString(R.string.player_stream_fell_back, it)) }
         }.joinToString(separator)
+        is StreamInfoValue.AudioSync -> res.getString(R.string.own_audio_sync_value, baseMs, outputMs, effectiveMs)
+        is StreamInfoValue.FrameHealth -> res.getString(R.string.own_frame_health_value, rendered, dropped, number(percent), number(elapsedMs / 1000.0))
         is StreamInfoValue.Buffer -> listOfNotNull(
             bufferedMs?.let { res.getString(R.string.player_stream_seconds, number(it / 1000.0)) },
             droppedFrames?.let {
@@ -240,3 +246,9 @@ fun StreamInfoValue.displayText(res: Resources): String {
         is StreamInfoValue.Raw -> text
     }
 }
+
+internal fun VideoFrameWindow.infoRow() = StreamInfoRow(StreamInfoLabel.FRAME_HEALTH,
+    StreamInfoValue.FrameHealth(rendered, dropped, percent, elapsedMs))
+
+internal fun audioSyncInfo(baseMs: Int, outputMs: Int) = StreamInfoRow(StreamInfoLabel.AUDIO_SYNC,
+    StreamInfoValue.AudioSync(baseMs, outputMs, tv.own.owntv.core.player.OutputAudioDelays.effective(baseMs, outputMs)))

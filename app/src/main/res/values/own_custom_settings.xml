@@ -5,6 +5,7 @@
     <string name="own_hls_hint">Usar apenas HLS, salvo exceções configuradas manualmente por canal.</string>
     <string name="own_reserve">Reserva de reprodução (segundos)</string>
     <string name="own_extra">Margem adicional (segundos)</string>
+    <string name="own_software_audio_hint">Desativado: automático. Ativado: prefere FFmpeg para áudio compatível. A configuração do vídeo mantém-se.</string>
     <string name="own_software_audio">Descodificação de áudio por software</string>
     <string name="own_decoder_queue">Fila do descodificador</string>
     <string name="own_shift">Correção dos pedidos diferidos (minutos)</string>

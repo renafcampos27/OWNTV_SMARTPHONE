@@ -1,6 +1,7 @@
 package tv.own.owntv.mobile.ui.screens.live
 
 import tv.own.owntv.mobile.ui.components.MobileIcons
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -99,6 +100,9 @@ fun LiveScreen(
     // Channels kept with "Add to Multiview" are spent by playing one. While any are waiting, a tap
     // plays rather than browses — see the tap handler below.
     val tuner: LiveTuner = koinInject()
+    val navigationScope = rememberCoroutineScope()
+    var navigationJob by remember { mutableStateOf<Job?>(null) }
+    DisposableEffect(Unit) { onDispose { navigationJob?.cancel() } }
     val multiviewSelection by tuner.multiviewSelection.collectAsStateWithLifecycle()
     val multiviewPending = multiviewSelection.isNotEmpty()
 
@@ -232,6 +236,9 @@ fun LiveScreen(
                                 onClick = {
                                     returnChannelId = channel.id
                                     returnGroup = ChannelVersionPolicy.groupKey(channel, versionPolicy)
+                                    navigationJob?.cancel()
+                                    navigationJob = navigationScope.launch {
+                                        if (!vm.prepareNavigation(channel)) return@launch
                                     when {
                                         // Channels are waiting to become a Multiview grid, so the
                                         // tap that says "now" must actually start playing. Sent to
@@ -246,6 +253,7 @@ fun LiveScreen(
                                         }
                                         twoPane -> previewing = channel.id
                                         else -> onOpenChannel(channel.id, false)
+                                    }
                                     }
                                 },
                                 onLongClick = { versionsFor = channel; editVersions = false },
@@ -390,7 +398,7 @@ private fun ChannelRow(
     val subtitle = listOfNotNull(nowPlaying, providerName).takeIf { it.isNotEmpty() }?.joinToString(separator)
 
     MobileListRow(
-        modifier = Modifier.focusRequester(rowFocus).onFocusChanged { rowFocused = it.isFocused; if (!it.hasFocus) menuTimer?.cancel() }.onPreviewKeyEvent { key ->
+        modifier = Modifier.heightIn(min = 66.dp).focusRequester(rowFocus).onFocusChanged { rowFocused = it.isFocused; if (!it.hasFocus) menuTimer?.cancel() }.onPreviewKeyEvent { key ->
             val event = key.nativeKeyEvent
             if (!rowFocused || event.keyCode !in listOf(android.view.KeyEvent.KEYCODE_DPAD_CENTER, android.view.KeyEvent.KEYCODE_ENTER, android.view.KeyEvent.KEYCODE_NUMPAD_ENTER)) false
             else {

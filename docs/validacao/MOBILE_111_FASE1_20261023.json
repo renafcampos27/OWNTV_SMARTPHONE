@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-23",
+  "scope": "Mobile 1.1.1 phase 1 only",
+  "result": "BUILD SUCCESSFUL",
+  "suites": {
+    "mobile": {
+      "tests": 119,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "new_suites": []
+    },
+    "core": {
+      "tests": 1192,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "new_suites": [
+        {
+          "suite": "tv.own.owntv.core.backup.SnapshotPurgeBatchesTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "tv.own.owntv.core.backup.SnapshotPurgeSqlTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "tv.own.owntv.core.customize.CategoryOrderMergeTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ]
+    }
+  },
+  "android_integration_tests_compiled": true,
+  "android_integration_tests_executed": false,
+  "new_android_tests": 2,
+  "new_jvm_tests": 12,
+  "apk_generated": false,
+  "schema_version": 52,
+  "playback_or_library_versions_changed": false,
+  "rollback_path": "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-before-phase1-111-20261023",
+  "log": "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-111-phase1-validation-20261023.log",
+  "log_sha256": "048e791e0c4b4c2eaa3aa39fac582a7d7276bc11a0cb433b93bf458f2db98a69",
+  "total_jvm_tests": 1311,
+  "lint_vital": "No issues found.",
+  "diff_check": "passed",
+  "i18n": "passed",
+  "scope_checked_preexisting_sources": 1335
+}

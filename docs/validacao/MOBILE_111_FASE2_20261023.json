@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-23",
+  "result": "BUILD SUCCESSFUL",
+  "scope": "Mobile 1.1.1 phase 2",
+  "libmpv": "2026.10.4",
+  "media3": "1.11.1",
+  "schema": 52,
+  "jvm_suites": {
+    "mobile": {
+      "tests": 119,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "core": {
+      "tests": 1192,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "player": {
+      "tests": 464,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "total_jvm_tests": 1775,
+  "new_tests": 7,
+  "obsolete_panel_learning_tests_removed": 2,
+  "core_tests_reused_in_final_run": true,
+  "native_library_checks": 30,
+  "native_static_evidence": "LIBMPV_20261004_FASE2_STATIC.json",
+  "aar_sha256": "30da5e483342ee7c44ac57a694050279a1a69a5a0d55876ebf94cfdd90fbbfe4",
+  "merged_native_match": true,
+  "jni_wrapper_bytecode_unchanged": true,
+  "apk_generated": false,
+  "physical_playback_tested": false,
+  "log": "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-111-phase2-validation-final-20261023.log",
+  "log_sha256": "b297f815186af7f1e8fdb2e817e5b049ab255f8633ab1bbdebc5ae2d5616efd5",
+  "backup_path": "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-before-phase2-111-20261023"
+}

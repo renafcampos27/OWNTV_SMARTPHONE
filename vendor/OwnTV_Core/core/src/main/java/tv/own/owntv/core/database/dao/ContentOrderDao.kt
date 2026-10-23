@@ -65,15 +65,15 @@ interface ContentOrderDao {
     )
     suspend fun exportRowsForSource(sourceId: Long): List<ContentOrderExportRow>
 
-    /** Snapshot-scoped orphan drop, mirroring FavoriteDao.purgeSnapshotOrphan. */
+    /** Drop only captured orphan ids, in batches: this table's index is keyed by folder before item. */
     @Query(
-        "DELETE FROM content_order WHERE profileId = :profileId AND mediaType = :type AND itemId = :itemId AND (" +
+        "DELETE FROM content_order WHERE profileId = :profileId AND mediaType = :type AND itemId IN (:itemIds) AND (" +
             "(:type = 'LIVE'   AND itemId NOT IN (SELECT id FROM channels)) OR " +
             "(:type = 'MOVIE'  AND itemId NOT IN (SELECT id FROM movies))   OR " +
             "(:type = 'SERIES' AND itemId NOT IN (SELECT id FROM series))" +
             ")",
     )
-    suspend fun purgeSnapshotOrphan(profileId: Long, type: MediaType, itemId: Long)
+    suspend fun purgeSnapshotOrphans(profileId: Long, type: MediaType, itemIds: List<Long>)
 
     /**
      * Drops order rows whose content row no longer exists — content is clear-then-insert on every sync,

@@ -7,6 +7,7 @@ import tv.own.owntv.core.database.entity.SourceEntity
 /** Optional v24 backup fields. Old backups retain the target device's absent overrides. */
 internal object PlaybackDatabaseBackup {
     fun writeSource(out: JSONObject, source: SourceEntity, seal: ((String) -> JSONObject)?) {
+        out.put("serverTimeZone", source.serverTimeZone ?: JSONObject.NULL)
         out.put("catchupTimezone", source.catchupTimezone ?: JSONObject.NULL)
         out.put("catchupOffsetMin", source.catchupOffsetMin ?: JSONObject.NULL)
         out.put("vodEnginePreference", source.vodEnginePreference ?: JSONObject.NULL)
@@ -16,6 +17,7 @@ internal object PlaybackDatabaseBackup {
     }
 
     fun readSource(input: JSONObject, base: SourceEntity, unseal: (Any?) -> String?): SourceEntity = base.copy(
+        serverTimeZone = if (input.has("serverTimeZone")) input.textOrNull("serverTimeZone")?.let { tv.own.owntv.core.parser.validatedPanelTimeZone(it)?.id } else base.serverTimeZone,
         catchupTimezone = if (input.has("catchupTimezone")) input.textOrNull("catchupTimezone") else base.catchupTimezone,
         catchupOffsetMin = if (input.has("catchupOffsetMin")) input.intOrNull("catchupOffsetMin")?.coerceIn(-840, 840) else base.catchupOffsetMin,
         vodEnginePreference = if (input.has("vodEnginePreference")) input.textOrNull("vodEnginePreference") else base.vodEnginePreference,

@@ -20,10 +20,15 @@ object SourceOverrides {
         val mode = source?.catchupTimezone
             ?.let { runCatching { SettingsRepository.CatchupTimezone.valueOf(it) }.getOrNull() } ?: return null
         return when (mode) {
+            SettingsRepository.CatchupTimezone.AUTOMATIC -> panelTimeZoneOf(source) ?: TimeZone.getDefault()
             SettingsRepository.CatchupTimezone.DEVICE -> TimeZone.getDefault()
             SettingsRepository.CatchupTimezone.MANUAL -> SimpleTimeZone((source.catchupOffsetMin ?: 0) * 60_000, "catchup")
         }
     }
+
+    /** Invalid zone identifiers must not silently become GMT. */
+    fun panelTimeZoneOf(source: SourceEntity?): TimeZone? =
+        source?.takeIf { it.type == tv.own.owntv.core.model.SourceType.XTREAM }?.serverTimeZone?.let { tv.own.owntv.core.parser.validatedPanelTimeZone(it) }
 
     /** [source]'s own Movies & Series engine, or null when it follows the global one. */
     fun vodEngineOf(source: SourceEntity?): EnginePreference? =

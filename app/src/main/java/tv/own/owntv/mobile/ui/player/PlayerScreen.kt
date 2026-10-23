@@ -612,6 +612,8 @@ fun PlayerScreen(
             onGoLive = tuner::goToLive,
             onScrubLive = tuner::scrubLive,
             onSkipLive = tuner::skipLive.takeIf { tuner.archiveWindowSec() > 0 },
+            onPreviousChannel = if (isLive && siblings.size > 1) ({ tuner.step(-1) }) else null,
+            onNextChannel = if (isLive && siblings.size > 1) ({ tuner.step(1) }) else null,
             liveGaps = tuner::timeshiftGaps,
             onOpenSheet = { sheet = it },
             // Shrink the picture without stopping it: the stream carries on in the mini player, docked

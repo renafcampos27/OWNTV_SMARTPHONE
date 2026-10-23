@@ -63,6 +63,9 @@ data class PlaybackSettings(
     val decoderQueueing: tv.own.owntv.core.settings.DecoderQueueing = tv.own.owntv.core.settings.DecoderQueueing.AUTO,
     val softwareAudio: Boolean = false,
     val backgroundPlayback: Boolean = false,
+    val preferSdr: Boolean = false,
+    val videoDegradationRecovery: Boolean = false,
+    val outputAudioDelays: tv.own.owntv.core.player.OutputAudioDelays = tv.own.owntv.core.player.OutputAudioDelays(),
 ) {
     companion object {
         @Volatile private var shared: Pair<SettingsRepository, StateFlow<PlaybackSettings?>>? = null
@@ -88,7 +91,7 @@ data class PlaybackSettings(
                 s.subtitlePosition, s.subtitleBgOpacity, s.audioDelayMs, s.preferredAudioLang,
                 s.preferredSubLang, s.defaultZoom, s.defaultVolume, s.seekStepSec, s.autoFrameRate,
                 s.liveEnginePreference, s.liveTuneTimeoutSecs, s.liveHlsOnly,
-                s.liveReserveConfiguration, s.decoderQueueing, s.softwareAudio, s.backgroundPlayback,
+                s.liveReserveConfiguration, s.decoderQueueing, s.softwareAudio, s.backgroundPlayback, s.outputAudioDelays, s.preferSdr, s.videoDegradationRecovery,
             )
             return combine(sources) { v ->
                 PlaybackSettings(
@@ -122,6 +125,9 @@ data class PlaybackSettings(
                     decoderQueueing = v[26] as tv.own.owntv.core.settings.DecoderQueueing,
                     softwareAudio = v[27] as Boolean,
                     backgroundPlayback = v[28] as Boolean,
+                    outputAudioDelays = v[29] as tv.own.owntv.core.player.OutputAudioDelays,
+                    preferSdr = v[30] as Boolean,
+                    videoDegradationRecovery = v[31] as Boolean,
                 )
             }.stateIn(CoroutineScope(SupervisorJob() + Dispatchers.Default), SharingStarted.Eagerly, null)
         }

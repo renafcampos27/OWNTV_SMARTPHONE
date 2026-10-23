@@ -41,6 +41,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -85,6 +89,14 @@ fun GuideScreen(
     modifier: Modifier = Modifier,
     vm: GuideViewModel = koinViewModel(),
 ) {
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(vm, lifecycle) {
+        val observer = LifecycleEventObserver { _, _ -> vm.setActive(lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) }
+        lifecycle.addObserver(observer)
+        vm.setActive(lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+        onDispose { lifecycle.removeObserver(observer); vm.setActive(false) }
+    }
+    val statsFailed by vm.statsFailed.collectAsStateWithLifecycle()
     val categories by vm.categories.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
     val channels = vm.channels.collectAsLazyPagingItems()
@@ -151,7 +163,12 @@ fun GuideScreen(
 
         // The list gets the height that is left, explicitly, rather than filling the column.
         Box(Modifier.weight(1f)) {
-        if (channels.itemCount == 0) {
+        val refresh = channels.loadState.refresh
+        if (channels.itemCount == 0 && refresh is LoadState.Loading) {
+            GuideLoadMessage(loading = true)
+        } else if (channels.itemCount == 0 && (refresh is LoadState.Error || statsFailed)) {
+            GuideLoadMessage(loading = false, onRetry = { channels.retry(); vm.retryStats() })
+        } else if (channels.itemCount == 0) {
             EmptyGuide(
                 query = query,
                 stats = stats,
@@ -189,6 +206,12 @@ fun GuideScreen(
                     onOpen = { channel, programme -> sheetFor = channel to programme },
                 )
             }
+        }
+        val append = channels.loadState.append
+        if (channels.itemCount > 0 && (append is LoadState.Error || refresh is LoadState.Error)) {
+            Box(Modifier.align(Alignment.BottomCenter)) { GuideLoadMessage(false, onRetry = { channels.retry() }) }
+        } else if (append is LoadState.Loading) {
+            LinearProgressIndicator(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth())
         }
         }
     }
@@ -244,6 +267,15 @@ fun GuideScreen(
     }
 }
 
+@Composable
+private fun GuideLoadMessage(loading: Boolean, onRetry: () -> Unit = {}) {
+    Column(Modifier.fillMaxWidth().padding(MobileDimens.ScreenPaddingH), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (loading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        Text(stringResource(if (loading) tv.own.owntv.mobile.R.string.own_guide_loading else tv.own.owntv.mobile.R.string.own_guide_load_error))
+        if (!loading) MobileButton(stringResource(tv.own.owntv.mobile.R.string.own_guide_retry), onClick = onRetry)
+    }
+}
+
 /** Today first, then the week the guide usually holds. A day with nothing in it shows as empty. */
 @Composable
 private fun DayStrip(selected: Int, days: Int, atMs: Long, onSelect: (Int) -> Unit) {
@@ -280,6 +312,9 @@ private fun OnNowList(
     onMenu: (ChannelEntity) -> Unit,
 ) {
     val onNow by vm.onNow.collectAsStateWithLifecycle()
+    val loading by vm.onNowLoading.collectAsStateWithLifecycle()
+    val errors by vm.onNowErrors.collectAsStateWithLifecycle()
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     val revision by vm.revision.collectAsStateWithLifecycle()
     // "On now" has to keep meaning now. Without this the list answered the question once, when it
     // opened, and then stood still: an hour later the bars were where they had been and the titles
@@ -289,7 +324,8 @@ private fun OnNowList(
 
     // A new match clears what was read, so the rows on screen have to ask for it again — and so does
     // the clock moving on, which is what makes a finished programme give way to the one after it.
-    LaunchedEffect(listState, channels, revision, nowMs) {
+    LaunchedEffect(listState, channels, revision, nowMs, lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
         snapshotFlow {
             listState.layoutInfo.visibleItemsInfo.mapNotNull {
                 channels.itemSnapshotList.getOrNull(it.index)
@@ -297,6 +333,7 @@ private fun OnNowList(
         }
             .distinctUntilChanged()
             .collect(vm::loadOnNow)
+        }
     }
 
     val times = rememberGuideTimeFormat()
@@ -310,9 +347,15 @@ private fun OnNowList(
             val now = slot?.now
             MobileListRow(
                 title = channel.name,
-                subtitle = now?.title ?: stringResource(R.string.content_epg_no_guide),
+                subtitle = now?.title ?: stringResource(when {
+                    channel.id in errors -> tv.own.owntv.mobile.R.string.own_guide_load_error
+                    channel.id in loading || slot == null -> tv.own.owntv.mobile.R.string.own_guide_loading
+                    else -> R.string.content_epg_no_guide
+                }),
                 leading = { ChannelLogo(channel) },
                 trailing = {
+                    if (channel.id in errors) MobileButton(stringResource(tv.own.owntv.mobile.R.string.own_guide_retry),
+                        onClick = { vm.retryOnNow(channel) }, style = tv.own.owntv.mobile.ui.components.MobileButtonStyle.TEXT)
                     if (channel.id in favorites) {
                         Icon(
                             imageVector = MobileIcons.Star,
@@ -398,8 +441,8 @@ internal fun ProgrammeSheet(
     onOpenChannel: (Long) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var description by remember(programme.id) { mutableStateOf<String?>(null) }
-    LaunchedEffect(programme.id) { description = vm.description(programme.id) }
+    var description by remember(programme.id, programme.sourceId) { mutableStateOf(programme.description) }
+    LaunchedEffect(programme.id, programme.sourceId) { if (description == null) description = vm.description(programme.id) }
 
     val times = rememberGuideTimeFormat()
 

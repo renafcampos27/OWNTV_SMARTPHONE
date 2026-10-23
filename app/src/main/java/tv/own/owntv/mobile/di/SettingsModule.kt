@@ -33,7 +33,6 @@ val settingsModule = module {
             okHttpClient = get(),
             vodEngineStore = get(),
             forceMpvStore = get(),
-            archiveDecodeStore = get(),
             playbackPrefs = get(),
             metadataProvider = get(),
             metadataBudget = get(),

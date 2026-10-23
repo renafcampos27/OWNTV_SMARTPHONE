@@ -46,8 +46,10 @@ fun SettingsMetadataPage(
 ) {
     val mode = vm.settings.metadataMode.pref(MetadataMode.PROVIDER_PLUS_TMDB)
     val language = vm.settings.metadataLanguage.pref("")
-    val storedKey = vm.settings.tmdbApiKey.pref("")
-    val storedUrl = vm.settings.metadataServerUrl.pref("")
+    val keySnapshot by vm.settings.tmdbApiKey.collectAsStateWithLifecycle(initialValue = null)
+    val urlSnapshot by vm.settings.metadataServerUrl.collectAsStateWithLifecycle(initialValue = null)
+    val storedKey = keySnapshot.orEmpty()
+    val storedUrl = urlSnapshot.orEmpty()
 
     val context = LocalContext.current
     val tier by vm.metadataTier.collectAsStateWithLifecycle()
@@ -66,8 +68,8 @@ fun SettingsMetadataPage(
     var key by remember { mutableStateOf(storedKey) }
     var url by remember { mutableStateOf(storedUrl) }
     var seeded by remember { mutableStateOf(false) }
-    LaunchedEffect(storedKey, storedUrl) {
-        if (!seeded) {
+    LaunchedEffect(keySnapshot, urlSnapshot) {
+        if (!seeded && keySnapshot != null && urlSnapshot != null) {
             key = storedKey; url = storedUrl
             seeded = true
         }
@@ -99,16 +101,19 @@ fun SettingsMetadataPage(
                         onValueChange = { key = it },
                         label = stringResource(R.string.settings_metadata_key_label),
                         isPassword = true,
+                        enabled = seeded,
                         imeAction = ImeAction.Next,
                     )
                     MobileTextField(
                         value = url,
                         onValueChange = { url = it },
                         label = stringResource(R.string.settings_metadata_server_label),
+                        enabled = seeded,
                     )
                     MobileButton(
                         text = stringResource(R.string.common_save),
                         onClick = { vm.edit { setTmdbApiKey(key); setMetadataServerUrl(url) } },
+                        enabled = seeded,
                         modifier = Modifier.padding(vertical = MobileDimens.GapSmall),
                     )
                     // The only way back to the shared service once a key or a server has been

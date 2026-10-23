@@ -144,7 +144,7 @@ class BackupV17ScopingTest {
             // is the same wherever it is restored. The merge prefers whatever this device measured
             // itself.
             "maxConnections", "maxConnectionsProbedAt",
-            "catchupTimezone", "catchupOffsetMin", "vodEnginePreference", "liveTuneTimeoutSecs", "httpReferer",
+            "catchupTimezone", "catchupOffsetMin", "serverTimeZone", "vodEnginePreference", "liveTuneTimeoutSecs", "httpReferer",
         )
         val deliberatelyExcluded = emptySet<String>()
         // Not a field of the entity at all: the Compose compiler adds `$stable` as a static, and

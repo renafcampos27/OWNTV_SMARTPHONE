@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_audio_route">Saída de áudio</string>
+    <string name="own_route_confirmed">Confirmada pelo AudioTrack em reprodução.</string>
+    <string name="own_route_anticipated">Estimativa do Android, quando disponível. Sem confirmação, a saída pode ser desconhecida.</string>
+    <string name="own_output_sync">Calibrar sincronismo por saída</string>
+    <string name="own_output_sync_offset">Compensação desta saída</string>
+    <string name="own_output_sync_hint">0 ms mantém o comportamento atual. Valores positivos atrasam o som; negativos adiantam-no. Soma ao ajuste global, por canal ou guardado, com total limitado a ±5000 ms.</string>
+    <string name="own_audio_sync_total">Sincronismo da configuração global</string>
+    <string name="own_audio_sync_values">Base %1$d ms + saída %2$d ms = %3$d ms</string>
+    <string name="own_audio_sync_total_hint">Um ajuste por canal ou guardado substitui a base global. A compensação da saída soma sempre à base efetiva. Saída desconhecida aplica 0 ms.</string>
+    <string name="own_output_unknown">Desconhecida</string>
+    <string name="own_output_speaker">Altifalante</string>
+    <string name="own_output_headphones">Auscultadores com fio</string>
+    <string name="own_output_bluetooth">Bluetooth</string>
+    <string name="own_output_hdmi">HDMI</string>
+    <string name="own_output_arc">HDMI ARC/eARC</string>
+    <string name="own_output_usb">USB</string>
+    <string name="own_output_other">Outra saída</string>
+    <string name="own_restore_output_sync">Restaurar calibração das saídas de áudio</string>
+    <string name="own_restore_output_sync_hint">Incluída no backup. Noutro aparelho fica desmarcada por defeito; os valores podem não ser adequados.</string>
+    <string name="own_prefer_sdr">Preferir variantes SDR</string>
+    <string name="own_prefer_sdr_hint">Opcional, desligado por defeito. Em ExoPlayer/HLS com variantes SDR e HDR identificadas, prefere SDR. Sem conversão de HDR, alteração de motor ou formato. Ficheiros com legendas externas mantêm o percurso habitual.</string>
+    <string name="own_video_recovery">Recuperar degradação grave de vídeo</string>
+    <string name="own_video_recovery_hint">Desligado por defeito. Perante perdas graves persistentes, tenta reconstruir o mesmo leitor uma vez por sintonia, mantendo motor e formato. Não atua em pausa, sem superfície, com buffer reduzido ou em diferidos sem retoma segura. Não corrige falhas da origem.</string>
+</resources>

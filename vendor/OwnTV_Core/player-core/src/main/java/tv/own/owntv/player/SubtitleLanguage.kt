@@ -16,3 +16,12 @@ private fun languageIdentity(code: String): String {
         .takeUnless { it.isNullOrBlank() }
         ?: normalized.substringBefore('-')
 }
+
+/** Explicit carry-over may normalize ISO aliases, but never exchanges two known regions/scripts. */
+internal fun explicitTrackLanguageMatches(preferred: String, actual: String?): Boolean {
+    if (!subtitleLanguageMatches(preferred, actual)) return false
+    val wanted = Locale.forLanguageTag(preferred.trim().replace('_', '-'))
+    val available = Locale.forLanguageTag(actual!!.trim().replace('_', '-'))
+    return (wanted.country.isEmpty() || available.country.isEmpty() || wanted.country.equals(available.country, true)) &&
+        (wanted.script.isEmpty() || available.script.isEmpty() || wanted.script.equals(available.script, true))
+}

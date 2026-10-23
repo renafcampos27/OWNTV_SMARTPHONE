@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.theme
 
+import tv.own.owntv.mobile.ui.stage.stageSurface
+import tv.own.owntv.mobile.ui.stage.stageBackdrop
 import tv.own.owntv.core.theme.AnimationLevel
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Animatable
@@ -367,6 +369,13 @@ fun GlassBackdropRoot(content: @Composable () -> Unit) {
     val hasImage = bgImagePath.isNotBlank() && glass.enabled
     val frosted = hasImage && supportsBackdropBlur && glass.blurStrength > 0f
 
+    if (!hasImage) {
+        Box(Modifier.fillMaxSize().stageBackdrop()) {
+            CompositionLocalProvider(LocalGlassBackdrop provides null, LocalGlassTint provides null, content = content)
+        }
+        return
+    }
+
     // Ten full-screen textures is real memory even though only the rungs actually drawn are ever
     // rasterized, so a low-RAM phone gets half the rungs — a coarser ladder over the same range,
     // which costs a little cross-fade accuracy rather than the deep frost the top rung provides.
@@ -379,7 +388,7 @@ fun GlassBackdropRoot(content: @Composable () -> Unit) {
     // Recorded sharp, drawn sharp behind the content; each rung replays it through its own blur, so
     // the wallpaper is decoded and rasterized exactly once for all of them.
     val sharp = rememberGraphicsLayer()
-    val levels = List(levelCount) { rememberGraphicsLayer() }
+    val levels = List(if (frosted) levelCount else 0) { rememberGraphicsLayer() }
     val density = LocalDensity.current
     val radiiPx = remember(density, levelCount) {
         val min = with(density) { MinBlurRadius.toPx() }
@@ -411,7 +420,7 @@ fun GlassBackdropRoot(content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .then(if (hasImage) Modifier.background(MaterialTheme.colorScheme.background) else Modifier.stageBackdrop())
             .onGloballyPositioned {
                 rootOffset = it.positionInRoot()
                 rootSize = it.size.toSize()
@@ -504,10 +513,11 @@ fun Modifier.glassSurface(
     selected: Boolean = false,
 ): Modifier {
     val glass = LocalGlass.current
+    val pressed = interactionSource?.collectIsPressedAsState()?.value == true
+    // Preserve explicitly configured wallpaper glass; the default Stage route needs no blur stack.
+    if (LocalGlassBackdrop.current == null) return stageSurface(surface, shape, selected, pressed, fill)
     val material = materialFor(surface)
     val accent = MaterialTheme.colorScheme.primary
-
-    val pressed = interactionSource?.collectIsPressedAsState()?.value == true
     val scale by animateFloatAsState(
         targetValue = if (pressed) PRESS_SCALE else 1f,
         animationSpec = LocalMobileMotion.current.fast(),

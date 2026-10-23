@@ -44,7 +44,7 @@ import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /** Which picker is open. One at a time, so one nullable holds them all. */
 private enum class PlaybackSheet {
-    LIVE_ENGINE, VOD_ENGINE, ZOOM, SURROUND, AUDIO_LANG, SUB_LANG,
+    LIVE_ENGINE, VOD_ENGINE, ZOOM, SURROUND, AUDIO_LANG, SUB_LANG, OUTPUT_AUDIO,
     RESUME, LATENCY, SEEK_STEP, REWIND_STEP, EXTERNAL_PLAYER, MULTIVIEW_TILES,
     VOD_BUFFER, VOD_TIMEOUT, VOD_RECONNECTS, MAX_QUALITY, MOBILE_QUALITY, TIMESHIFT_WINDOW, TIMESHIFT_RESUME,
 
@@ -70,10 +70,6 @@ private enum class ResetTarget(
     LIVE_ENGINE_PINS(
         CoreR.string.settings_reset_live_player_choices_confirm,
         CoreR.string.settings_reset_live_player_choices_confirm_description,
-    ),
-    STREAM_FIXES(
-        CoreR.string.settings_forget_stream_fixes_confirm,
-        CoreR.string.settings_forget_stream_fixes_confirm_description,
     ),
     ZOOM(
         CoreR.string.settings_reset_saved_zoom_confirm,
@@ -128,7 +124,12 @@ fun SettingsVideoPlayerPage(
     val zoom = s.defaultZoom.pref(ZoomMode.FIT.name)
     val surround = s.surroundMode.pref(SurroundMode.AUTO)
     val audioLang = s.preferredAudioLang.pref("")
+    val preferSdr = s.preferSdr.pref(false)
+    val videoRecovery = s.videoDegradationRecovery.pref(false)
     val audioDelay = s.audioDelayMs.pref(0)
+    val outputDelays = s.outputAudioDelays.pref(tv.own.owntv.core.player.OutputAudioDelays())
+    val outputRoute by tv.own.owntv.player.AudioOutputRoutes.current.collectAsStateWithLifecycle()
+    var editingOutput by remember { mutableStateOf(tv.own.owntv.core.player.AudioOutputKind.BLUETOOTH) }
     val subLang = s.preferredSubLang.pref("")
     val latency = LiveLatency.fromName(s.liveLatencyMode.pref(LiveLatency.BALANCED.name))
     val latencySecs = s.liveLatencyCustomSecs.pref(LiveBuffer.CUSTOM_DEFAULT)
@@ -210,12 +211,6 @@ fun SettingsVideoPlayerPage(
                     )
 
                     SettingRow(
-                        title = stringResource(CoreR.string.settings_forget_stream_fixes),
-                        subtitle = stringResource(CoreR.string.settings_forget_stream_fixes_description),
-                        onClick = { resetting = ResetTarget.STREAM_FIXES },
-                    )
-
-                    SettingRow(
                         title = stringResource(CoreR.string.settings_external_player),
                         subtitle = stringResource(CoreR.string.settings_external_player_row_description),
                         value = stringResource(if (externalOn) CoreR.string.common_on else CoreR.string.common_off),
@@ -236,6 +231,9 @@ fun SettingsVideoPlayerPage(
                         toggle = quickToggle("vp_hdr"),
                         subtitle = stringResource(CoreR.string.settings_hdr_description_mobile),
                     )
+                    SettingRow(title = stringResource(R.string.own_prefer_sdr),
+                        subtitle = stringResource(R.string.own_prefer_sdr_hint), checked = preferSdr,
+                        onCheckedChange = { on -> vm.edit { setPreferSdr(on) } })
 
                     // N11 — the Settings limit, and a lower one for mobile data; the player's Quality
                     // button picks within a stream.
@@ -460,6 +458,20 @@ fun SettingsVideoPlayerPage(
                         onValueChange = { ms -> vm.edit { setAudioDelayMs(ms / 25 * 25) } },
                     )
 
+                    SettingRow(title = stringResource(R.string.own_audio_route),
+                        value = stringResource(outputRoute.kind.labelRes()),
+                        subtitle = stringResource(if (outputRoute.confirmed) R.string.own_route_confirmed else R.string.own_route_anticipated))
+                    SettingRow(title = stringResource(R.string.own_output_sync),
+                        value = stringResource(editingOutput.labelRes()), onClick = { sheet = PlaybackSheet.OUTPUT_AUDIO })
+                    SettingsSlider(title = stringResource(R.string.own_output_sync_offset),
+                        subtitle = stringResource(R.string.own_output_sync_hint),
+                        value = outputDelays[editingOutput], range = -5000..5000, steps = 399,
+                        valueLabel = stringResource(CoreR.string.settings_audio_delay_value, outputDelays[editingOutput]),
+                        onValueChange = { ms -> vm.edit { setOutputAudioDelay(editingOutput, ms / 25 * 25) } })
+                    SettingRow(title = stringResource(R.string.own_audio_sync_total),
+                        subtitle = stringResource(R.string.own_audio_sync_total_hint),
+                        value = stringResource(R.string.own_audio_sync_values, audioDelay,
+                            outputDelays[outputRoute.kind], tv.own.owntv.core.player.OutputAudioDelays.effective(audioDelay, outputDelays[outputRoute.kind])))
                     SettingRow(
                         title = stringResource(CoreR.string.settings_reset_saved_audio_delay),
                         subtitle = stringResource(CoreR.string.settings_reset_saved_audio_delay_description),
@@ -511,6 +523,9 @@ fun SettingsVideoPlayerPage(
             }
             SettingsLeaf.VP_DIAGNOSTICS -> {
                 settingsGroup(key = "measured-stats") {
+                    SettingRow(title = stringResource(R.string.own_video_recovery),
+                        subtitle = stringResource(R.string.own_video_recovery_hint), checked = videoRecovery,
+                        onCheckedChange = { on -> vm.edit { setVideoDegradationRecovery(on) } })
                     QuickSwitchRow(
                         vm = vm,
                         toggle = quickToggle("vp_measured_stats"),
@@ -533,6 +548,12 @@ fun SettingsVideoPlayerPage(
     // is the one just saved rather than the one captured when the row was tapped.
     val editing = sources.firstOrNull { it.id == overrideSource?.id }
     when (sheet) {
+        PlaybackSheet.OUTPUT_AUDIO -> SettingsChoiceSheet(
+            title = stringResource(R.string.own_output_sync),
+            choices = tv.own.owntv.core.player.AudioOutputKind.entries.filter { it != tv.own.owntv.core.player.AudioOutputKind.UNKNOWN }
+                .map { SettingsChoice(it, stringResource(it.labelRes())) },
+            selected = editingOutput, onSelect = { editingOutput = it }, onDismiss = dismiss,
+        )
         PlaybackSheet.LIVE_ENGINE -> SettingsChoiceSheet(
             title = stringResource(CoreR.string.settings_live_tv_player),
             choices = EnginePreference.entries.map { SettingsChoice(it, engineLabel(it)) },
@@ -884,7 +905,6 @@ fun SettingsVideoPlayerPage(
                         when (target) {
                             ResetTarget.ENGINE_PINS -> vm.clearVodEnginePins()
                             ResetTarget.LIVE_ENGINE_PINS -> vm.clearLivePins()
-                            ResetTarget.STREAM_FIXES -> vm.forgetStreamFixes()
                             ResetTarget.ZOOM -> vm.clearSavedZoom()
                             ResetTarget.VOLUME -> vm.clearSavedVolume()
                             ResetTarget.AUDIO_DELAY -> vm.clearSavedAudioDelay()
@@ -1063,3 +1083,14 @@ private fun LiveLatency.labelRes() = when (this) {
 @Composable
 private fun autoOrSeconds(secs: Int): String =
     if (secs <= 0) stringResource(CoreR.string.settings_vod_network_auto) else stringResource(CoreR.string.settings_live_buffer_seconds, secs)
+
+private fun tv.own.owntv.core.player.AudioOutputKind.labelRes(): Int = when (this) {
+    tv.own.owntv.core.player.AudioOutputKind.UNKNOWN -> R.string.own_output_unknown
+    tv.own.owntv.core.player.AudioOutputKind.SPEAKER -> R.string.own_output_speaker
+    tv.own.owntv.core.player.AudioOutputKind.HEADPHONES -> R.string.own_output_headphones
+    tv.own.owntv.core.player.AudioOutputKind.BLUETOOTH -> R.string.own_output_bluetooth
+    tv.own.owntv.core.player.AudioOutputKind.HDMI -> R.string.own_output_hdmi
+    tv.own.owntv.core.player.AudioOutputKind.ARC -> R.string.own_output_arc
+    tv.own.owntv.core.player.AudioOutputKind.USB -> R.string.own_output_usb
+    tv.own.owntv.core.player.AudioOutputKind.OTHER -> R.string.own_output_other
+}

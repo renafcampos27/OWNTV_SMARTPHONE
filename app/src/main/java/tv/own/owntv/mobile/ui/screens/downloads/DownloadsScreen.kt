@@ -63,9 +63,6 @@ fun DownloadsScreen(
     vm: DownloadsViewModel = koinViewModel(),
 ) {
     val downloads by vm.downloads.collectAsStateWithLifecycle()
-    val storage by vm.storage.collectAsStateWithLifecycle()
-    val speed by vm.speedMbps.collectAsStateWithLifecycle()
-    val root by vm.downloadRoot.collectAsStateWithLifecycle()
     val playing by vm.playing.collectAsStateWithLifecycle()
 
     val wifiOnly by vm.wifiOnly.collectAsStateWithLifecycle()
@@ -98,19 +95,14 @@ fun DownloadsScreen(
         }
     }
 
-    val shown = downloads.filter { tab.holds(it.mediaType) }
+    val shown = remember(downloads, tab) { downloads.filter { tab.holds(it.mediaType) } }
     // The statuses, now headings rather than chips, in the order the television lists them.
-    val sections = DownloadSection.entries
+    val sections = remember(shown) { DownloadSection.entries
         .map { section -> section to shown.filter { section.holds(it.status) } }
-        .filter { it.second.isNotEmpty() }
+        .filter { it.second.isNotEmpty() } }
 
     Column(modifier.fillMaxSize()) {
-        StorageHeader(
-            storage = storage,
-            speedMbps = speed,
-            root = root,
-            onOpenOptions = { optionsSheet = true },
-        )
+        DownloadStorageHeader(vm, onOpenOptions = { optionsSheet = true })
         FilterChipRow(
             labels = DownloadsTab.entries.map { stringResource(it.labelRes) },
             selectedIndex = DownloadsTab.entries.indexOf(tab),
@@ -140,10 +132,10 @@ fun DownloadsScreen(
         } else {
             LazyColumn(Modifier.fillMaxSize()) {
                 sections.forEach { (section, items) ->
-                    item(key = "header_${section.name}") {
+                    item(key = "header_${section.name}", contentType = "download_header") {
                         SectionHeader(title = stringResource(section.labelRes))
                     }
-                    items(items, key = { it.id }) { download ->
+                    items(items, key = { it.id }, contentType = { "download" }) { download ->
                         DownloadRow(
                             download = download,
                             onClick = {
@@ -171,6 +163,7 @@ fun DownloadsScreen(
     }
 
     if (optionsSheet) {
+        val root by vm.downloadRoot.collectAsStateWithLifecycle()
         DownloadOptionsSheet(
             volumes = vm.volumes,
             current = root,
@@ -227,6 +220,14 @@ private enum class DownloadsTab(val labelRes: Int) {
         SERIES -> MediaFolders.folderFor(type) == MediaFolders.SERIES
         LIVE -> false // recordings come from their own screen
     }
+}
+
+@Composable
+private fun DownloadStorageHeader(vm: DownloadsViewModel, onOpenOptions: () -> Unit) {
+    val storage by vm.storage.collectAsStateWithLifecycle()
+    val speed by vm.speedMbps.collectAsStateWithLifecycle()
+    val root by vm.downloadRoot.collectAsStateWithLifecycle()
+    StorageHeader(storage = storage, speedMbps = speed, root = root, onOpenOptions = onOpenOptions)
 }
 
 @Composable

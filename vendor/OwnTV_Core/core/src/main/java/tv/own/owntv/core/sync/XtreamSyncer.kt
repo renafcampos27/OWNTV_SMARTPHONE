@@ -32,7 +32,7 @@ internal class XtreamSyncer(
     private val support: SyncSupport,
 ) {
     suspend fun sync(s: SourceEntity, progress: SyncCounters, stats: SyncStatsCollector, contentTypes: SyncContentTypes) {
-        val details = runCatching { xtream.fetchAccountDetails(s) }.getOrNull()
+        val details = xtream.fetchAccountDetails(s)
         if (details != null) {
             // Only a panel that actually answered gets to settle this: `details == null` is a network or
             // parse failure, and leaving the row UNKNOWN is the honest record of that.
@@ -43,6 +43,7 @@ internal class XtreamSyncer(
             // The panel states its session limit up front; the app used to learn it only by failing a
             // tune and reading the 458 back (F30). Stored, so it also survives a restart.
             support.sourceDao.updateMaxConnections(s.id, details.maxConnections)
+            details.serverTimeZone?.let { support.sourceDao.updateServerTimeZone(s.id, it) }
             if (details.maxConnections == 1) tv.own.owntv.core.player.LiveSessionLimit.singleSession(s.url)
         }
         val semaphore = Semaphore(PHASE_CONCURRENCY)

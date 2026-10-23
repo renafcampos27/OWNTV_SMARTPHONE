@@ -2,6 +2,8 @@ package tv.own.owntv.player
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -11,6 +13,23 @@ import org.junit.Test
  * already tried would retry forever.
  */
 class PlayerResetStateTest {
+
+    @Test
+    fun `software rescue survives same item reloads but cannot become another archive's default`() {
+        val failed = ItemState(archiveThisItem = true, altFormatBaseUrl = "https://panel.test/archive-a.ts")
+        failed.forceSoftwareThisLoad = true
+        failed.autoRetries = 2
+        // A same-item reload preserves the item while it replaces only LoadState.
+        val reload = LoadState(pendingSeekMs = 0)
+        assertFalse(reload.fileLoaded)
+        assertTrue(failed.forceSoftwareThisLoad)
+        assertEquals(2, failed.autoRetries)
+        // A new selection receives a fresh item, even on the same provider.
+        val next = ItemState(archiveThisItem = true, altFormatBaseUrl = "https://panel.test/archive-b.ts")
+        assertFalse(next.forceSoftwareThisLoad)
+        assertFalse(next.forceCopyThisLoad)
+        assertEquals(0, next.autoRetries)
+    }
 
     @Test
     fun `a used load state does not compare equal to a fresh one`() {

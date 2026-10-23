@@ -88,7 +88,7 @@ internal object BackupImportValidation {
         listOf("name", "url").forEach { v.text(row.get(it), "$path.$it") }
         if (!selected) return
         listOf("username", "userAgent", "epgUrl", "liveEnginePreference", "liveLatencyMode", "liveReserveMode",
-            "catchupTimezone", "vodEnginePreference").forEach { v.optionalText(row, it, path, true) }
+            "catchupTimezone", "serverTimeZone", "vodEnginePreference").forEach { v.optionalText(row, it, path, true) }
         listOf("password", "mac", "stalkerSerialNumber", "stalkerDeviceId", "stalkerDeviceId2", "stalkerSignature", "httpReferer")
             .forEach { secret(row, it, path) }
         listOf("syncLive", "syncMovies", "syncSeries", "importPortalEpg", "preferHls").forEach { v.optionalFlag(row, it, path) }

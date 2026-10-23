@@ -53,6 +53,7 @@ import tv.own.owntv.core.sync.work.CatalogSyncState
 import tv.own.owntv.core.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.MobileSheetHost
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.setup.AddSourceForm
 import tv.own.owntv.mobile.ui.setup.SourceFormValues
@@ -402,30 +403,33 @@ private fun EditPlaylistDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.fillMaxSize()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = MobileDimens.ScreenPaddingH),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = source.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = onDismiss) {
-                        Icon(MobileIcons.Close, contentDescription = stringResource(R.string.settings_close))
+        // Pickers opened by the form must be hosted in this dialog's window, above its content.
+        MobileSheetHost {
+            Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+                Column(Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = MobileDimens.ScreenPaddingH),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = source.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = onDismiss) {
+                            Icon(MobileIcons.Close, contentDescription = stringResource(R.string.settings_close))
+                        }
                     }
+                    AddSourceForm(
+                        onStartXtream = { _, _, _, _, _, _, _, _, _, _, _ -> },
+                        onStartM3u = { _, _, _, _, _ -> },
+                        onStartStalker = { _, _, _, _, _, _, _, _, _, _, _, _, _ -> },
+                        initial = source.toFormValues(),
+                        onSave = onSave,
+                    )
                 }
-                AddSourceForm(
-                    onStartXtream = { _, _, _, _, _, _, _, _, _, _, _ -> },
-                    onStartM3u = { _, _, _, _, _ -> },
-                    onStartStalker = { _, _, _, _, _, _, _, _, _, _, _, _, _ -> },
-                    initial = source.toFormValues(),
-                    onSave = onSave,
-                )
             }
         }
     }

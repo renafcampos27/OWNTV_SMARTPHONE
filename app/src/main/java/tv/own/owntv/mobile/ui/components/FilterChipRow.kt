@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.components
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -64,7 +66,7 @@ fun FilterChipRow(
             val press = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
-                    .defaultMinSize(minHeight = MobileDimens.ChipHeight)
+                    .defaultMinSize(minHeight = MobileDimens.TouchTarget)
                     .glassSurface(
                         surface = GlassSurface.CARDS,
                         shape = ChipShape,

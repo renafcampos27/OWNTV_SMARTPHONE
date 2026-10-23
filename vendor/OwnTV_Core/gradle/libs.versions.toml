@@ -44,7 +44,7 @@ paging = "3.5.1"
 # the default PCM buffer is a fixed 500ms — both are felt by the forced-stereo DefaultAudioSink path.
 media3 = "1.11.1"
 # libmpv (FFmpeg-based) — full codec/track support for IPTV, caching, speed, etc.
-libmpv = "2026.10.3"
+libmpv = "2026.10.4"
 
 # --- Kotlin libs ---
 coroutines = "1.11.0"

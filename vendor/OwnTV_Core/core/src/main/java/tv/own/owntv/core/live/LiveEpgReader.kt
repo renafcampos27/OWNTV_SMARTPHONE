@@ -125,10 +125,10 @@ class LiveEpgReader(
             val shift = EpgShift.minutesFor(cust, ch, globalShiftMinutes)
             if (epgKey != null) {
                 val at = EpgShift.toStored(now, shift)
-                val nowProg = epgDao.nowPlaying(epgKey, at)
+                val nowProg = EpgDedupe.collapse(epgDao.programmesForChannel(epgKey, at, at + 1), ch.sourceId).lastOrNull { at in it.startMs until it.stopMs }
                 // Collapsed first: two feeds covering one channel list every programme twice, which
                 // put the same title in Next AND at the head of Later.
-                val future = EpgDedupe.collapse(epgDao.upcoming(epgKey, at, UPCOMING_LIMIT).first())
+                val future = EpgDedupe.collapse(epgDao.upcoming(epgKey, at, UPCOMING_LIMIT).first(), ch.sourceId)
                     .filter { it.startMs > (nowProg?.startMs ?: 0) }
                 val nextProg = future.firstOrNull()
                 if (nowProg != null || nextProg != null) {
@@ -307,6 +307,7 @@ class LiveEpgReader(
         val startedAt = android.os.SystemClock.elapsedRealtime()
         var chunks = 0
         val result = HashMap<Long, NowPlayingEntry>()
+        val sourceByChannel = channels.associate { it.id to it.sourceId }
         for ((shift, group) in channelKeys.groupBy { it.third }) {
             val at = EpgShift.toStored(now, shift)
             val rowsByKey = group
@@ -318,8 +319,8 @@ class LiveEpgReader(
                 }
                 .groupBy { it.epgChannelId }
             for ((channelId, epgKey, _) in group) {
-                rowsByKey[epgKey]
-                    ?.firstOrNull { at in it.startMs until it.stopMs }
+                rowsByKey[epgKey]?.let { EpgDedupe.collapse(it, sourceByChannel[channelId]) }
+                    ?.lastOrNull { at in it.startMs until it.stopMs }
                     ?.let { result[channelId] = NowPlayingEntry(it.title, minOf(now + CACHE_TTL_MS, it.stopMs + shift * 60_000L)) }
             }
         }
@@ -329,7 +330,7 @@ class LiveEpgReader(
             val at = EpgShift.toStored(now, shift)
             val rows = group.map { it.second }.distinct().chunked(400)
                 .flatMap { epgDao.programmeSummariesForChannels(it, at, at + 1) }.groupBy { it.epgChannelId }
-            for ((id, key, _) in group) rows[key]?.firstOrNull { at in it.startMs until it.stopMs }?.let { result[id] = NowPlayingEntry(it.title, minOf(now + CACHE_TTL_MS, it.stopMs + shift * 60_000L)) }
+            for ((id, key, _) in group) rows[key]?.let { EpgDedupe.collapse(it, sourceByChannel[id]) }?.lastOrNull { at in it.startMs until it.stopMs }?.let { result[id] = NowPlayingEntry(it.title, minOf(now + CACHE_TTL_MS, it.stopMs + shift * 60_000L)) }
         }
         // Second pass: whatever the preview pane has already resolved for a channel the stored guide
         // could not answer — **from cache, never from the network**.
@@ -397,8 +398,8 @@ class LiveEpgReader(
         // instant and move what comes back, or the card would disagree with the archive it describes.
         val shift = EpgShift.minutesFor(cust, ch, globalShiftMinutes)
         val at = EpgShift.toStored(atMs, shift)
-        val playing = epgDao.nowPlaying(epgKey, at)
-        val then = epgDao.upcoming(epgKey, at, 4).first()
+        val playing = EpgDedupe.collapse(epgDao.programmesForChannel(epgKey, at, at + 1), ch.sourceId).lastOrNull { at in it.startMs until it.stopMs }
+        val then = EpgDedupe.collapse(epgDao.upcoming(epgKey, at, 8).first(), ch.sourceId)
             .firstOrNull { it.startMs > (playing?.startMs ?: 0) }
         if (playing == null && then == null) return@withContext null
         fun EpgProgrammeEntity.shifted() = EpgShift.apply(this, shift).toXt()
@@ -417,7 +418,7 @@ class LiveEpgReader(
             ?: return@withContext emptyList()
         val ids = liveSourceIds + epgSourceStore.getAll().map { it.id }
         EpgDedupe.collapse(epgDao.programmeSummariesForChannel(key, start, stop)
-            .filter { it.sourceId in ids }).map { EpgShift.apply(it, shift) }
+            .filter { it.sourceId in ids }, ch.sourceId).map { EpgShift.apply(it, shift) }
     }
 
     /** Recent (already-aired) programmes for a catch-up channel, newest first — drives the Live TV
@@ -441,7 +442,7 @@ class LiveEpgReader(
         val epgKey = tv.own.owntv.core.epg.GuideInheritance.key(ch, cust, epgDao,
             EpgShift.toStored(windowStart, shift), at + 3_600_000L) ?: return@withContext emptyList()
         EpgDedupe.collapse(epgDao.programmesForChannel(epgKey, EpgShift.toStored(windowStart, shift), at + 60 * 60 * 1000)
-            .filter { it.sourceId in ids && it.startMs <= at })
+            .filter { it.sourceId in ids && it.startMs <= at }, ch.sourceId)
             .sortedByDescending { it.startMs }      // most recent first
             .map { EpgShift.apply(it, shift) }
     }
@@ -467,7 +468,8 @@ class LiveEpgReader(
         val ids = liveSourceIds + epgSourceStore.getAll().map { it.id }
         val epgKey = tv.own.owntv.core.epg.GuideInheritance.key(ch, cust, epgDao, from, from + NEXT_PROGRAMME_GAP_CAP_MS)
             ?: return@withContext null
-        epgDao.programmesForChannel(epgKey, from, from + NEXT_PROGRAMME_GAP_CAP_MS)
+        EpgDedupe.collapse(epgDao.programmesForChannel(epgKey, from, from + NEXT_PROGRAMME_GAP_CAP_MS)
+            .filter { it.sourceId in ids }, ch.sourceId)
             // The query keeps anything still running at [from]; the next programme is the one that
             // starts at or after it.
             .firstOrNull { it.startMs >= from }
@@ -499,20 +501,24 @@ class LiveArchiveUrls(
 ) {
     /** The archive URL for [programme] on [ch], or null when it can't be built. */
     suspend fun forProgramme(ch: ChannelEntity, displayProgramme: EpgProgrammeEntity): String? =
+        resolveProgramme(ch, displayProgramme)?.url
+
+    suspend fun resolveProgramme(ch: ChannelEntity, displayProgramme: EpgProgrammeEntity): tv.own.owntv.core.epg.ResolvedArchiveSource? =
         withContext(Dispatchers.IO) {
             val programme = settings.correctCatchupProgramme(displayProgramme)
             val source = sourceDao.getById(ch.sourceId) ?: return@withContext null
             // Stalker archive URLs are minted per-play via create_link (Phase E §5.6); the others
             // are pure string templates handled by CatchupUrl.
-            if (source.type == SourceType.STALKER) {
+            val url = if (source.type == SourceType.STALKER) {
                 ch.remoteId?.let { rid ->
-                    runCatching { streamUrlResolver.resolveCatchup(source, rid, programme.startMs, programme.stopMs) }
-                        .onFailure { Log.w(LOG_TAG, "Stalker catch-up resolve failed channelId=${ch.id}", it) }
-                        .getOrNull()
+                    try { streamUrlResolver.resolveCatchup(source, rid, programme.startMs, programme.stopMs) }
+                    catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                    catch (error: Exception) { Log.w(LOG_TAG, "Stalker catch-up resolution failed channelId=${ch.id} type=${error.javaClass.simpleName}"); null }
                 }
             } else {
-                tv.own.owntv.core.epg.CatchupUrl.forSource(ch, programme, source, settings.resolveCatchupTimeZone(), xtreamClient)
+                tv.own.owntv.core.epg.CatchupUrl.forSource(ch, programme, source, settings.resolveCatchupTimeZone(source), xtreamClient)
             }
+            url?.let { tv.own.owntv.core.epg.ResolvedArchiveSource.of(it) }
         }
 
     /** The rolling-archive URL for watching [ch] [offsetSec] behind the live edge. */
@@ -522,14 +528,21 @@ class LiveArchiveUrls(
         displayStartMs: Long,
         offsetSec: Int,
         tz: java.util.TimeZone,
-    ): String? {
+    ): String? = resolveTimeshift(ch, source, displayStartMs, offsetSec, tz)?.url
+
+    suspend fun resolveTimeshift(
+        ch: ChannelEntity,
+        source: tv.own.owntv.core.database.entity.SourceEntity,
+        displayStartMs: Long,
+        offsetSec: Int,
+        tz: java.util.TimeZone,
+    ): tv.own.owntv.core.epg.ResolvedArchiveSource? {
         val startMs = settings.correctCatchupStartMs(displayStartMs)
         val durationMin = (offsetSec / 60 + 5).coerceAtLeast(1) // rewound window + buffer to play up to live
-        return when (source.type) {
+        val url = when (source.type) {
             SourceType.XTREAM -> ch.remoteId?.let {
-                // Always `.ts` — live rewind reads the same timeshift server as catch-up, and "Prefer
-                // HLS" deliberately does not apply to it. See [CatchupUrl.forSource] for why: the
-                // archive has no HLS repackager, so `.m3u8` there answers with an error page.
+                // Preserve this Xtream archive endpoint's existing TS default. The live HLS setting
+                // does not establish that the provider offers an HLS archive endpoint too.
                 xtreamClient.timeshiftUrl(source, it, startMs, durationMin, tz, "ts")
             }
             // No HLS swap here: [resolveStreamUrl] is Xtream-only, so it would be a no-op on M3U.
@@ -540,14 +553,16 @@ class LiveArchiveUrls(
                 startMs,
                 startMs + durationMin * 60_000L,
                 tz,
+                correctionMinutes = ch.catchupCorrectionMin,
             )
             // Stalker rewind = the same per-play archive create_link as catch-up (Phase E §5.6).
             SourceType.STALKER -> ch.remoteId?.let { rid ->
-                runCatching { streamUrlResolver.resolveCatchup(source, rid, startMs, startMs + durationMin * 60_000L) }
-                    .onFailure { Log.w(LOG_TAG, "Stalker rewind resolve failed channelId=${ch.id}", it) }
-                    .getOrNull()
+                try { streamUrlResolver.resolveCatchup(source, rid, startMs, startMs + durationMin * 60_000L) }
+                catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                catch (error: Exception) { Log.w(LOG_TAG, "Stalker rewind resolution failed channelId=${ch.id} type=${error.javaClass.simpleName}"); null }
             }
             else -> null
         }
+        return url?.let { tv.own.owntv.core.epg.ResolvedArchiveSource.of(it) }
     }
 }

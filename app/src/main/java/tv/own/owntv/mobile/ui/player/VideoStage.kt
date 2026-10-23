@@ -218,7 +218,7 @@ private class MpvSurfaceView(context: Context, private val player: OwnTVPlayer) 
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) =
-        player.setSurfaceSize(width, height)
+        player.setSurfaceSize(holder.surface, width, height)
 
     // This app has three views of one stream, and the outgoing one is destroyed AFTER the incoming
     // one has attached — so the detach names its own surface and does nothing once it is stale.

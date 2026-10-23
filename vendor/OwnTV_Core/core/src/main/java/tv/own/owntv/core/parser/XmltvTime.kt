@@ -15,10 +15,10 @@ package tv.own.owntv.core.parser
  */
 
 /**
- * Parses `yyyyMMddHHmmss`, optionally followed by a `±HHMM` offset, to epoch millis.
+ * Parses `yyyyMMddHHmm[ss]`, with optional `±HHMM`, `±HH:MM` or `Z`, to epoch millis.
  *
- * Contract preserved exactly from the `SimpleDateFormat` version it replaces:
- * - null, blank, or shorter than 14 characters → `0`
+ * Legacy 14-digit leniency is retained; minute-precision and colon offsets are additionally accepted:
+ * - null, blank, or shorter than 12 characters → `0`
  * - non-digit / malformed input → `0`, never throws
  * - spaces are stripped anywhere in the string (`20260725143000 +0200` is one timestamp)
  * - **no offset means UTC**, an offset is honoured as stated — getting this backwards would shift
@@ -29,22 +29,26 @@ package tv.own.owntv.core.parser
  */
 fun parseXmltvTime(raw: String?): Long {
     val t = raw?.trim()?.replace(" ", "") ?: return 0
-    if (t.length < 14) return 0
+    if (t.length < 12) return 0
+    val precision = when {
+        t.length >= 14 && t[12] in '0'..'9' && t[13] in '0'..'9' -> 14
+        t.length == 12 || t[12] == '+' || t[12] == '-' || t[12] == 'Z' -> 12
+        else -> return 0
+    }
 
     val year = t.digitsAt(0, 4) ?: return 0
     val month = t.digitsAt(4, 2) ?: return 0
     val day = t.digitsAt(6, 2) ?: return 0
     val hour = t.digitsAt(8, 2) ?: return 0
     val minute = t.digitsAt(10, 2) ?: return 0
-    val second = t.digitsAt(12, 2) ?: return 0
+    val second = if (precision == 14) t.digitsAt(12, 2) ?: return 0 else 0
 
     var offsetSecs = 0L
-    if (t.length >= 15 && (t[14] == '+' || t[14] == '-')) {
-        // A sign with a malformed offset behind it was a parse failure before, and stays one.
-        if (t.length < 19) return 0
-        val offHours = t.digitsAt(15, 2) ?: return 0
-        val offMinutes = t.digitsAt(17, 2) ?: return 0
-        offsetSecs = (offHours * 3600L + offMinutes * 60L) * (if (t[14] == '-') -1 else 1)
+    if (t.length > precision && (t[precision] == '+' || t[precision] == '-')) {
+        val offHours = t.digitsAt(precision + 1, 2) ?: return 0
+        val minuteIndex = precision + if (t.getOrNull(precision + 3) == ':') 4 else 3
+        val offMinutes = t.digitsAt(minuteIndex, 2) ?: return 0
+        offsetSecs = (offHours * 3600L + offMinutes * 60L) * (if (t[precision] == '-') -1 else 1)
     }
 
     // Lenient month rollover, as SimpleDateFormat did: month 13 of 2026 is month 1 of 2027.

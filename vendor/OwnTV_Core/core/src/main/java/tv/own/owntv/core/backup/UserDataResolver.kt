@@ -322,19 +322,31 @@ class UserDataResolver(
     private fun JSONArray.hasSourceSnapshotIds(): Boolean =
         length() > 0 && (0 until length()).all { getJSONObject(it).has("oid") }
 
-    private suspend fun purgeSnapshotOrphans(snapshot: JSONArray) = db.transaction {
+    private suspend fun purgeSnapshotOrphans(snapshot: JSONArray) {
+        // Parse and group before taking the writer; only the scoped deletes need the transaction.
+        val rows = ArrayList<SnapshotRow>(snapshot.length())
         for (i in 0 until snapshot.length()) {
             val e = snapshot.getJSONObject(i)
             val type = runCatching { MediaType.valueOf(e.getString("t")) }.getOrNull() ?: continue
-            val profileId = e.getLong("p")
-            val itemId = e.getLong("oid")
-            when (e.optString("kind")) {
-                "fav" -> favoriteDao.purgeSnapshotOrphan(profileId, type, itemId)
-                "his" -> historyDao.purgeSnapshotOrphan(profileId, type, itemId)
-                "prog" -> progressDao.purgeSnapshotOrphan(profileId, type, itemId)
-                "order" -> contentOrderDao.purgeSnapshotOrphan(profileId, type, itemId)
-                "member" -> customCategoryDao.purgeSnapshotOrphan(profileId, type, itemId)
-                "sort" -> seriesSortOrderDao.purgeSnapshotOrphan(profileId, itemId)
+            rows += SnapshotRow(e.optString("kind"), e.getLong("p"), type, e.getLong("oid"))
+        }
+        val batches = snapshotPurgeBatches(rows, setOf("order", "member"))
+        db.transaction {
+            // These tables have an index for one item. Folder-keyed tables below do not.
+            for (row in rows) {
+                when (row.kind) {
+                    "fav" -> favoriteDao.purgeSnapshotOrphan(row.profileId, row.type, row.itemId)
+                    "his" -> historyDao.purgeSnapshotOrphan(row.profileId, row.type, row.itemId)
+                    "prog" -> progressDao.purgeSnapshotOrphan(row.profileId, row.type, row.itemId)
+                    "sort" -> seriesSortOrderDao.purgeSnapshotOrphan(row.profileId, row.itemId)
+                }
+            }
+            // A batch avoids scanning a profile's folders once for every item in its snapshot.
+            for (batch in batches) {
+                when (batch.kind) {
+                    "order" -> contentOrderDao.purgeSnapshotOrphans(batch.profileId, batch.type, batch.itemIds)
+                    "member" -> customCategoryDao.purgeSnapshotOrphans(batch.profileId, batch.type, batch.itemIds)
+                }
             }
         }
     }

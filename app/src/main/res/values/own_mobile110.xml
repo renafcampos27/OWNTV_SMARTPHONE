@@ -1,0 +1,9 @@
+<resources>
+    <string name="own_previous_visible_channel">Previous channel in this list</string>
+    <string name="own_next_visible_channel">Next channel in this list</string>
+    <string name="own_search_channels_filter">TV</string>
+    <string name="own_search_all_filter">All</string>
+    <string name="own_search_programmes_filter">Programmes</string>
+    <string name="own_search_load_more">Show more results</string>
+    <string name="own_search_failed">Search failed. Try again.</string>
+</resources>

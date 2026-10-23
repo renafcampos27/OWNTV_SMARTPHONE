@@ -22,6 +22,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -114,6 +116,9 @@ fun PlayerControls(
     liveGaps: () -> List<LongRange> = { emptyList() },
     /** One Live-rewind-step back (false) or forward (true); null on a channel that cannot be rewound. */
     onSkipLive: ((forward: Boolean) -> Unit)? = null,
+    /** Adjacent channels in the current visible category, independent of VOD queue/history. */
+    onPreviousChannel: (() -> Unit)? = null,
+    onNextChannel: (() -> Unit)? = null,
     onOpenSheet: (PlayerSheet) -> Unit,
     /** Shrink into the app's own mini player, still playing. */
     onMini: () -> Unit,
@@ -144,8 +149,10 @@ fun PlayerControls(
         exit = fadeOut(fade),
         modifier = modifier,
     ) {
-        val offsetSec by offsetSecFlow.collectAsStateWithLifecycle()
-        val watchingWallMs by watchingWallMsFlow.collectAsStateWithLifecycle()
+        val offsetSec = offsetSecFlow.collectAsStateWithLifecycle()
+        val watchingWallMs = watchingWallMsFlow.collectAsStateWithLifecycle()
+        // Only a transition across the live edge affects transport/tools. Second ticks stay below.
+        val behindLive by remember(offsetSec) { derivedStateOf { (offsetSec.value ?: 0) > 1 } }
 
         Box(Modifier.fillMaxSize()) {
             Column(
@@ -163,13 +170,13 @@ fun PlayerControls(
                         subtitle = subtitle,
                         logoUrl = logoUrl,
                         channelNumber = channelNumber,
-                        showClock = isLive || watchingWallMs != null,
+                        showClock = isLive,
                         watchingWallMs = watchingWallMs,
                         onBack = onBack,
                     )
                     // Under the identity rather than beside it: the guide line is the longest text on
                     // the dock, and a phone has no width to spare on the row the title is already in.
-                    MobileNowNextCard(
+                    ProgrammeAtPlaybackTime(
                         epg = epg,
                         atMs = watchingWallMs,
                         modifier = Modifier.padding(top = MobileDimens.GapTiny),
@@ -181,8 +188,10 @@ fun PlayerControls(
                 player = engine,
                 isLive = isLive,
                 onSkipLive = onSkipLive,
+                onPreviousChannel = onPreviousChannel,
+                onNextChannel = onNextChannel,
                 // Forward only while behind live, as on the television: at the edge there is nothing ahead.
-                behindLive = (offsetSec ?: 0) > 1,
+                behindLive = behindLive,
                 modifier = Modifier.align(Alignment.Center),
             )
 
@@ -210,7 +219,7 @@ fun PlayerControls(
                         player = player,
                         engine = engine,
                         isLive = isLive,
-                        goLive = if (isLive && (offsetSec ?: 0) > 1) onGoLive else null,
+                        goLive = if (isLive && behindLive) onGoLive else null,
                         onOpenSheet = onOpenSheet,
                         onMini = onMini,
                         onCatchup = onCatchup,
@@ -222,7 +231,7 @@ fun PlayerControls(
                         recordingThis = recordingThis,
                         hasRecordingChapters = hasRecordingChapters,
                         liveOnExo = liveOnExo,
-                        onToggleLiveEngine = onToggleLiveEngine.takeIf { (offsetSec ?: 0) <= 1 || allowEngineSwapBehindLive },
+                        onToggleLiveEngine = onToggleLiveEngine.takeIf { !behindLive || allowEngineSwapBehindLive },
                     )
                 }
             }
@@ -238,7 +247,7 @@ private fun TopRow(
     logoUrl: String?,
     channelNumber: Int?,
     showClock: Boolean,
-    watchingWallMs: Long?,
+    watchingWallMs: State<Long?>,
     onBack: () -> Unit,
 ) {
     val engine by player.engineChip.collectAsStateWithLifecycle()
@@ -268,12 +277,7 @@ private fun TopRow(
                 )
             }
         }
-        if (showClock) {
-            MobilePlayerClock(
-                watchingMs = watchingWallMs,
-                modifier = Modifier.padding(horizontal = MobileDimens.GapTiny),
-            )
-        }
+        PlaybackClock(showClock, watchingWallMs)
         // Always light: this one sits over the picture, and the picture is never a light surface.
         // It shows itself only when a receiver is actually within reach — the SDK's own behaviour,
         // and the reason the bar does not carry a permanently dead button.
@@ -282,10 +286,26 @@ private fun TopRow(
 }
 
 @Composable
+private fun PlaybackClock(showLiveClock: Boolean, watchingWallMs: State<Long?>) {
+    val watching = watchingWallMs.value
+    if (showLiveClock || watching != null) MobilePlayerClock(
+        watchingMs = watching,
+        modifier = Modifier.padding(horizontal = MobileDimens.GapTiny),
+    )
+}
+
+@Composable
+private fun ProgrammeAtPlaybackTime(epg: EpgNowNext?, atMs: State<Long?>, modifier: Modifier = Modifier) {
+    MobileNowNextCard(epg = epg, atMs = atMs.value, modifier = modifier)
+}
+
+@Composable
 private fun TransportRow(
     player: PlaybackEngine,
     isLive: Boolean,
     onSkipLive: ((forward: Boolean) -> Unit)?,
+    onPreviousChannel: (() -> Unit)?,
+    onNextChannel: (() -> Unit)?,
     behindLive: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -298,7 +318,9 @@ private fun TransportRow(
         // The phone used to reach the next episode only through the card that appears in the last
         // thirty seconds — so skipping the end credits meant leaving the player, finding the series
         // and picking the episode. The television has had both of these beside play all along.
-        if (nav.hasPrev) {
+        if (isLive && onPreviousChannel != null) {
+            RoundControl(MobileIcons.SkipPrevious, tv.own.owntv.mobile.R.string.own_previous_visible_channel, onClick = onPreviousChannel)
+        } else if (!isLive && nav.hasPrev) {
             RoundControl(MobileIcons.SkipPrevious, R.string.settings_remote_button_previous) {
                 player.previous()
             }
@@ -320,7 +342,9 @@ private fun TransportRow(
         } else if (onSkipLive != null && behindLive) {
             RoundControl(MobileIcons.FastForward, R.string.player_skip_forward) { onSkipLive(true) }
         }
-        if (nav.hasNext) {
+        if (isLive && onNextChannel != null) {
+            RoundControl(MobileIcons.SkipNext, tv.own.owntv.mobile.R.string.own_next_visible_channel, onClick = onNextChannel)
+        } else if (!isLive && nav.hasNext) {
             RoundControl(MobileIcons.SkipNext, R.string.settings_remote_button_next) { player.next() }
         }
     }
@@ -397,17 +421,18 @@ private fun SeekBar(player: OwnTVPlayer, gestureDeltaMs: Long?) {
  */
 @Composable
 private fun LiveBar(
-    offsetSec: Int?,
+    offsetSec: State<Int?>,
     archiveWindowSec: Int,
     programmes: List<LiveProgramme>,
     onScrubLive: (Int) -> Unit,
     gaps: () -> List<LongRange>,
 ) {
+    val offset = offsetSec.value
     val liveEdgeMs by rememberClockTick()
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         if (archiveWindowSec > 0) {
             MobileLiveTimeline(
-                offsetSec = offsetSec ?: 0,
+                offsetSec = offset ?: 0,
                 programmes = programmes,
                 // Now, and it keeps being now. Read once per composition this stood still, so a
                 // player left open drew its programme ticks against the moment the controls last
@@ -421,7 +446,7 @@ private fun LiveBar(
         } else {
             Spacer(Modifier.weight(1f))
         }
-        LiveStateBadge(offsetSec)
+        LiveStateBadge(offset)
     }
 }
 

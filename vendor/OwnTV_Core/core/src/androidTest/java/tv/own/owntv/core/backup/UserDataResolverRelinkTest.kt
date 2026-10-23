@@ -15,6 +15,8 @@ import org.junit.runner.RunWith
 import tv.own.owntv.core.database.OwnTVDatabase
 import tv.own.owntv.core.database.entity.EpisodeEntity
 import tv.own.owntv.core.database.entity.FavoriteEntity
+import tv.own.owntv.core.database.entity.ContentOrderEntity
+import tv.own.owntv.core.database.entity.CustomCategoryMemberEntity
 import tv.own.owntv.core.database.entity.MovieEntity
 import tv.own.owntv.core.database.entity.PlaybackProgressEntity
 import tv.own.owntv.core.database.entity.ProfileEntity
@@ -259,6 +261,55 @@ class UserDataResolverRelinkTest {
         db.movieDao().clearSource(sourceId)
         db.favoriteDao().purgeSnapshotOrphan(profileId, MediaType.MOVIE, movieId)
         assertEquals("the movie is gone — the favorite must go with it", 0, db.favoriteDao().getAllOnce().size)
+    }
+
+    @Test
+    fun folderSnapshotsRelinkAndPurgeOnlyCapturedProfileItems() = runBlocking {
+        val gone = insertMovie("gone", "Removed")
+        val kept = insertMovie("kept", "Retained")
+        db.contentOrderDao().insertAll(listOf(
+            ContentOrderEntity(profileId = profileId, mediaType = MediaType.MOVIE, contextKey = "custom:a", itemId = gone, position = 0),
+            ContentOrderEntity(profileId = profileId, mediaType = MediaType.MOVIE, contextKey = "custom:b", itemId = gone, position = 1),
+            ContentOrderEntity(profileId = profileId, mediaType = MediaType.MOVIE, contextKey = "custom:a", itemId = kept, position = 2),
+        ))
+        db.customCategoryDao().insertAll(listOf(
+            CustomCategoryMemberEntity(profileId = profileId, mediaType = MediaType.MOVIE, contextKey = "custom:a", itemId = gone, position = 0),
+            CustomCategoryMemberEntity(profileId = profileId, mediaType = MediaType.MOVIE, contextKey = "custom:b", itemId = gone, position = 1),
+            CustomCategoryMemberEntity(profileId = profileId, mediaType = MediaType.MOVIE, contextKey = "custom:a", itemId = kept, position = 2),
+        ))
+        val snapshot = resolver.exportForSource(sourceId, setOf("order", "member"))
+        db.movieDao().clearSource(sourceId)
+        val replacement = insertMovie("kept", "Retained")
+        val otherProfile = db.profileDao().insert(ProfileEntity(name = "Other", avatarColor = 1))
+        // Added after capture: neither an unrelated orphan nor another profile belongs to this purge.
+        for ((pid, id) in listOf(profileId to 999_999L, otherProfile to gone)) {
+            db.contentOrderDao().insertAll(listOf(ContentOrderEntity(profileId = pid, mediaType = MediaType.MOVIE, contextKey = "custom:a", itemId = id, position = 5)))
+            db.customCategoryDao().insertAll(listOf(CustomCategoryMemberEntity(profileId = pid, mediaType = MediaType.MOVIE, contextKey = "custom:a", itemId = id, position = 5)))
+        }
+
+        resolver.relinkAfterSync(snapshot)
+
+        val orders = db.contentOrderDao().getAllOnce()
+        val members = db.customCategoryDao().getAllOnce()
+        assertEquals(3, orders.size); assertEquals(3, members.size)
+        assertEquals(setOf(profileId to replacement, profileId to 999_999L, otherProfile to gone), orders.map { it.profileId to it.itemId }.toSet())
+        assertEquals(orders.map { it.profileId to it.itemId }.toSet(), members.map { it.profileId to it.itemId }.toSet())
+        assertEquals(2, orders.single { it.itemId == replacement }.position)
+        assertEquals(2, members.single { it.itemId == replacement }.position)
+    }
+
+    @Test
+    fun failedSyncDoesNotPurgeFolderSnapshots() = runBlocking {
+        val oldId = insertMovie("partial", "Still expected")
+        db.contentOrderDao().insertAll(listOf(ContentOrderEntity(profileId = profileId, mediaType = MediaType.MOVIE, contextKey = "custom:a", itemId = oldId, position = 0)))
+        db.customCategoryDao().insertAll(listOf(CustomCategoryMemberEntity(profileId = profileId, mediaType = MediaType.MOVIE, contextKey = "custom:a", itemId = oldId, position = 0)))
+        val snapshot = resolver.exportForSource(sourceId, setOf("order", "member"))
+        db.movieDao().clearSource(sourceId)
+
+        resolver.relinkAfterSync(snapshot, purge = false)
+
+        assertEquals(oldId, db.contentOrderDao().getAllOnce().single().itemId)
+        assertEquals(oldId, db.customCategoryDao().getAllOnce().single().itemId)
     }
 
     // --- helpers ---

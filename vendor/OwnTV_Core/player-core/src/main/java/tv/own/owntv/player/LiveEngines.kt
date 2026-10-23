@@ -155,6 +155,7 @@ class EnginePair(private val exo: LivePreviewEngine, private val mpv: OwnTVPlaye
         muted = false,
         userAgent = request.userAgent,
         httpHeaders = request.httpHeaders,
+        manifestType = request.manifestType,
         // The same stable key ExoPlayer files this channel under, so a zoom or volume set on one
         // engine is not forgotten when the channel falls back to the other.
         contentKey = request.meta.contentKey,
@@ -163,6 +164,8 @@ class EnginePair(private val exo: LivePreviewEngine, private val mpv: OwnTVPlaye
         reserveBufferOverride = request.reserveBuffer,
         reserveExtraSecsOverride = request.reserveExtraSecs,
         audioDelayMsOverride = request.channelOptions?.audioDelayMs,
+        softwareAudioOverride = request.channelOptions?.softwareAudio,
+        preferSdrOverride = request.channelOptions?.preferSdr,
         strictHlsOverride = request.strictHls,
     )
 

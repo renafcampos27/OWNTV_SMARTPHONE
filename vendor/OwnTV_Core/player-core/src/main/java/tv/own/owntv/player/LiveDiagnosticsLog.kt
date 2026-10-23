@@ -67,6 +67,11 @@ object LiveDiagnosticsLog {
         }
     }
 
+    /** Expensive optional telemetry is constructed only while detailed diagnostics are enabled. */
+    fun detail(message: () -> String) {
+        if (enabled) event(message())
+    }
+
     /** Oldest-first snapshot of the in-memory ring buffer (e.g. for an in-app export action). */
     fun snapshot(): String = synchronized(lock) {
         "diagnostics_enabled=$enabled events=${ring.size} diagnostic_queue_dropped=${writer.dropped.get()} write_failures=${writer.failures.get()}\n" + ring.joinToString("\n")

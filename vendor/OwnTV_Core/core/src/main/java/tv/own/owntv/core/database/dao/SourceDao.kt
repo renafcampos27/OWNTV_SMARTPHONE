@@ -13,6 +13,9 @@ import tv.own.owntv.core.model.HlsSupport
 
 @Dao
 interface SourceDao {
+    @Query("UPDATE sources SET serverTimeZone = :zone WHERE id = :id")
+    suspend fun updateServerTimeZone(id: Long, zone: String?)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(source: SourceEntity): Long
 

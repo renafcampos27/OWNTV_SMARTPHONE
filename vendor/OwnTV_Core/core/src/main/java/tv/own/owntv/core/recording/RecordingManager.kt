@@ -499,7 +499,7 @@ class RecordingManager(
                 if (canRecordOn(row.sourceId) is StreamGrant.Refused || !engine.retainedArchiveAvailable(row)) return@withLock false
                 val programme = EpgProgrammeEntity(sourceId = source.id, epgChannelId = row.epgChannelId.orEmpty(),
                     title = row.title, startMs = row.programmeStartMs, stopMs = row.programmeStopMs)
-                val url = archiveUrl(channel, programme, source, settings.resolveCatchupTimeZone(), archiveXtream)
+                val url = archiveUrl(channel, programme, source, settings.resolveCatchupTimeZone(source), archiveXtream)
                     ?: return@withLock false
                 val latest = recordingDao.getById(row.id) ?: return@withLock false
                 if (latest != row || settings.activeProfileId.first() != row.profileId) return@withLock false
@@ -536,7 +536,7 @@ class RecordingManager(
                 startMs = original.programmeStartMs, stopMs = original.programmeStopMs,
             )
             val archive = mode == RecordingRecoveryPolicy.Mode.ARCHIVE
-            val url = if (archive) archiveUrl(channel, programme, source, settings.resolveCatchupTimeZone(), archiveXtream)
+            val url = if (archive) archiveUrl(channel, programme, source, settings.resolveCatchupTimeZone(source), archiveXtream)
                 ?: return@withContext false else channel.streamUrl
             val runWindow = if (archive) RecordingSchedule.catchUpWindowFor(programme.startMs, programme.stopMs, now)
                 else now..original.stopMs.coerceAtLeast(original.programmeStopMs)

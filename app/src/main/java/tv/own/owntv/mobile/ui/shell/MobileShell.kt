@@ -4,6 +4,10 @@ import androidx.compose.ui.graphics.luminance
 import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.cast.CastRouteButton
 import tv.own.owntv.mobile.ui.components.MobileIcons
+import android.app.Activity
+import androidx.core.view.WindowCompat
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,6 +47,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -211,6 +218,16 @@ fun MobileShell(
     // The full screen player is the one destination that owns the whole display: no bars, no rail,
     // and no mini player, because the thing the mini player would be showing is already on screen.
     val fullscreen = currentRoute == PLAYER_ROUTE || currentRoute == SETUP_ROUTE
+    val shellView = LocalView.current
+    val darkSystemIcons = !fullscreen && MaterialTheme.colorScheme.onSurface.luminance() < 0.5f
+    SideEffect {
+        (shellView.context as? Activity)?.window?.let { window ->
+            WindowCompat.getInsetsController(window, shellView).apply {
+                isAppearanceLightStatusBars = darkSystemIcons
+                isAppearanceLightNavigationBars = darkSystemIcons
+            }
+        }
+    }
     val tuner: LiveTuner = koinInject()
     val backDispatcher = androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val vodTuner: VodTuner = koinInject()
@@ -408,9 +425,7 @@ fun MobileShell(
                     // to let the wallpaper through it, and a container colour cannot.
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                     windowInsets = WindowInsets(0, 0, 0, 0),
-                    modifier = Modifier
-                        .glassSurface(GlassSurface.TOPBAR, MobileTopBarShape)
-                        .clip(MobileTopBarShape),
+                    modifier = Modifier.clip(MobileTopBarShape),
                     title = {
                         if (current != MobileDestination.LIVE) Text(
                             // Search belongs to no tab, so it names itself rather than inheriting Home's.
@@ -505,6 +520,13 @@ fun MobileShell(
                             destinations.forEach { destination ->
                                 NavigationBarItem(
                                     selected = destination == current,
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = .14f),
+                                    ),
                                     onClick = { navController.onNavClick(destination, current, shellViewModel) },
                                     icon = { NavIcon(destination) },
                                     label = { NavLabel(destination) },
@@ -573,6 +595,13 @@ fun MobileShell(
                             destinations.forEach { destination ->
                                 NavigationRailItem(
                                     selected = destination == current,
+                                    colors = NavigationRailItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = .14f),
+                                    ),
                                     onClick = { navController.onNavClick(destination, current, shellViewModel) },
                                     icon = { NavIcon(destination) },
                                     label = { NavLabel(destination) },
@@ -594,7 +623,6 @@ fun MobileShell(
                         end = if (fullscreen) 0.dp else shellInsetH,
                         bottom = shellBottom,
                     )
-                    .glassSurface(GlassSurface.PANELS, pageShape)
                     .clip(pageShape),
             ) {
                 // Every screen in the app is standing on this page panel, so a panel of its own
@@ -788,7 +816,7 @@ private fun NavIcon(destination: MobileDestination) {
 private fun NavLabel(destination: MobileDestination) {
     Text(
         text = stringResource(destination.labelRes),
-        style = MaterialTheme.typography.labelSmall,
+        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )

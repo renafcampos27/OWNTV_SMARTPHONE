@@ -244,32 +244,6 @@ class LiveStreamQuirksTest {
         assertFalse(OwnTVPlayer.BROKEN_PTS_RX.containsMatchIn("Using hardware decoding (mediacodec)."))
     }
 
-    // --- "this panel's catch-up archive needs a software decoder" ----------------------------------
-
-    @Test
-    fun `an archive that renders no video teaches the whole panel, not just that programme`() {
-        // Catch-up used to be pinned to software unconditionally, which cost every provider hardware
-        // decoding. It is learned instead: mid-GOP archives are a property of the panel's timeshift
-        // server, so one blank programme covers the rest of that panel's archive for this session…
-        val archive = "http://panel.example:80/timeshift/u/p/60/2026-08-03:10-00/12.ts"
-        val otherProgramme = "http://panel.example:80/timeshift/u/p/60/2026-08-03:22-00/9.ts"
-        val otherPanel = "http://second.example:8080/timeshift/u/p/60/2026-08-03:10-00/12.ts"
-        assertFalse(LiveStreamQuirks.archiveNeedsSoftware(archive))
-        LiveStreamQuirks.rememberArchiveNeedsSoftware(archive)
-        assertTrue(LiveStreamQuirks.archiveNeedsSoftware(otherProgramme))
-        // …and nothing beyond it: a healthy provider keeps hardware decoding.
-        assertFalse(LiveStreamQuirks.archiveNeedsSoftware(otherPanel))
-    }
-
-    @Test
-    fun `a software archive panel does not inherit the other panel-wide quirks`() {
-        val archive = "http://panel.example:80/timeshift/u/p/60/2026-08-03:10-00/12.ts"
-        LiveStreamQuirks.rememberArchiveNeedsSoftware(archive)
-        assertFalse(LiveStreamQuirks.isSingleSession(archive))
-        assertFalse(LiveStreamQuirks.refusesSegments(archive))
-        assertFalse(LiveStreamQuirks.isKnownHlsHost(archive))
-    }
-
     @Test
     fun `a URL-keyed lesson set forgets its oldest entries instead of growing forever`() {
         // These five sets are keyed by stream URL, so they grew with every channel ever tuned and never

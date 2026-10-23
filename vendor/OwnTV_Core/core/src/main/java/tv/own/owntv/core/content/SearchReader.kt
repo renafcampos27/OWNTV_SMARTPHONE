@@ -24,6 +24,8 @@ data class SearchResults(
     val movies: List<MovieEntity> = emptyList(),
     val series: List<SeriesEntity> = emptyList(),
     val programmes: List<ProgrammeSearchResult> = emptyList(),
+    /** More bounded candidates exist; hidden results must not make pagination stop prematurely. */
+    val hasMore: Boolean = false,
 ) {
     val isEmpty: Boolean get() = channels.isEmpty() && movies.isEmpty() && series.isEmpty() && programmes.isEmpty()
 }
@@ -72,23 +74,28 @@ class SearchReader(
         query: String,
         limit: Int = LIMIT,
         includeProgrammes: Boolean = true,
+        includeChannels: Boolean = true,
+        includeLibrary: Boolean = true,
     ): SearchResults {
         if (profileId < 0 || !sources.hasAny) return SearchResults()
         val fts = ftsQuery(query)
+        val boundedLimit = limit.coerceIn(1, 1_000)
         val custLive = customize.observe(profileId, MediaType.LIVE).first()
-        val custMovie = customize.observe(profileId, MediaType.MOVIE).first()
-        val custSeries = customize.observe(profileId, MediaType.SERIES).first()
+        val custMovie = if (includeLibrary) customize.observe(profileId, MediaType.MOVIE).first() else SectionCustomizations()
+        val custSeries = if (includeLibrary) customize.observe(profileId, MediaType.SERIES).first() else SectionCustomizations()
         val isKids = profileDao.getById(profileId)?.isKids == true
         val hiddenLiveCats = hiddenCategoryIds(sources.liveSourceIds, MediaType.LIVE, custLive, isKids)
-        val hiddenMovieCats = hiddenCategoryIds(sources.movieSourceIds, MediaType.MOVIE, custMovie, isKids)
-        val hiddenSeriesCats = hiddenCategoryIds(sources.seriesSourceIds, MediaType.SERIES, custSeries, isKids)
+        val hiddenMovieCats = if (includeLibrary) hiddenCategoryIds(sources.movieSourceIds, MediaType.MOVIE, custMovie, isKids) else emptySet()
+        val hiddenSeriesCats = if (includeLibrary) hiddenCategoryIds(sources.seriesSourceIds, MediaType.SERIES, custSeries, isKids) else emptySet()
+        val channelRows = if (!includeChannels || sources.liveSourceIds.isEmpty()) emptyList() else
+            if (fts != null) channelDao.searchListDetailedFts(fts, sources.liveSourceIds, boundedLimit + 1)
+            else channelDao.searchListDetailed(query, sources.liveSourceIds, boundedLimit + 1)
+        val programmes = if (includeProgrammes) programmes(query, sources.liveSourceIds, custLive, hiddenLiveCats, boundedLimit)
+            else ProgrammePage(emptyList(), false)
         return SearchResults(
-            programmes = if (includeProgrammes) programmes(query, sources.liveSourceIds, custLive, hiddenLiveCats) else emptyList(),
-            channels = if (sources.liveSourceIds.isEmpty()) emptyList() else
-                (
-                    if (fts != null) channelDao.searchListDetailedFts(fts, sources.liveSourceIds, limit)
-                    else channelDao.searchListDetailed(query, sources.liveSourceIds, limit)
-                    )
+            programmes = programmes.rows,
+            hasMore = channelRows.size > boundedLimit || programmes.hasMore,
+            channels = channelRows
                     .filter {
                         CustomizeKeys.channel(it.channel) !in custLive.hiddenItems &&
                             (it.channel.categoryId == null || it.channel.categoryId !in hiddenLiveCats)
@@ -96,8 +103,8 @@ class SearchReader(
                     .map { row ->
                         custLive.itemNames[CustomizeKeys.channel(row.channel)]
                             ?.let { row.copy(channel = row.channel.copy(name = it)) } ?: row
-                    },
-            movies = if (sources.movieSourceIds.isEmpty()) emptyList() else
+                    }.take(boundedLimit),
+            movies = if (!includeLibrary || sources.movieSourceIds.isEmpty()) emptyList() else
                 (
                     if (fts != null) movieDao.searchListFts(fts, sources.movieSourceIds, limit)
                     else movieDao.searchList(query, sources.movieSourceIds, limit)
@@ -107,7 +114,7 @@ class SearchReader(
                             (it.categoryId == null || it.categoryId !in hiddenMovieCats)
                     }
                     .map { m -> custMovie.itemNames[CustomizeKeys.movie(m)]?.let { m.copy(name = it) } ?: m },
-            series = if (sources.seriesSourceIds.isEmpty()) emptyList() else
+            series = if (!includeLibrary || sources.seriesSourceIds.isEmpty()) emptyList() else
                 (
                     if (fts != null) seriesDao.searchListFts(fts, sources.seriesSourceIds, limit)
                     else seriesDao.searchList(query, sources.seriesSourceIds, limit)
@@ -120,9 +127,11 @@ class SearchReader(
         )
     }
 
+    private data class ProgrammePage(val rows: List<ProgrammeSearchResult>, val hasMore: Boolean)
+
     private suspend fun programmes(query: String, sourceIds: List<Long>, cust: SectionCustomizations,
-        hiddenCats: Set<Long>): List<ProgrammeSearchResult> {
-        if (sourceIds.isEmpty()) return emptyList()
+        hiddenCats: Set<Long>, limit: Int): ProgrammePage {
+        if (sourceIds.isEmpty()) return ProgrammePage(emptyList(), false)
         val now = System.currentTimeMillis()
         val horizon = now + 12 * 60 * 60_000L
         val globalShift = settings.epgOffsetMinutes.first()
@@ -132,8 +141,10 @@ class SearchReader(
         val seen = mutableSetOf<Triple<String, Long, String>>()
         val pattern = ProgrammeSearchPolicy.literalPattern(query)
         var offset = 0
+        val scanLimit = maxOf(2_000, limit * 5).coerceAtMost(10_000)
+        var moreCandidates = false
         // Bounded pages allow hidden results to be skipped without unrelated feeds consuming the cap.
-        while (offset < 2_000 && found.size < 40) {
+        while (offset < scanLimit && found.size <= limit) {
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
             val rows = epgDao.searchProgrammeTitles(pattern, now-slack, horizon+slack, sourceIds, matchedKeys, 200, offset)
             if (rows.isEmpty()) break
@@ -147,15 +158,17 @@ class SearchReader(
                 val key = (cust.epgMatchResolver.epgIdFor(ch) ?: ch.epgChannelId)?.trim()?.lowercase() ?: return@forEach
                 val shift = tv.own.owntv.core.epg.EpgShift.minutesFor(cust, ch, globalShift)
                 val named = cust.itemNames[CustomizeKeys.channel(ch)]?.let { ch.copy(name=it) } ?: ch
-                val programmes = tv.own.owntv.core.epg.EpgShift.apply(tv.own.owntv.core.epg.EpgDedupe.collapse(byKey[key].orEmpty()), shift)
+                val programmes = tv.own.owntv.core.epg.EpgShift.apply(tv.own.owntv.core.epg.EpgDedupe.collapse(byKey[key].orEmpty(), ch.sourceId), shift)
                 programmes.filter { it.stopMs > now && it.startMs < horizon }.forEach { programme ->
                     if (seen.add(Triple(key, programme.startMs, programme.title))) found += ProgrammeSearchResult(programme, named)
                 }
             }
             offset += rows.size
+            moreCandidates = rows.size == 200
             if (rows.size < 200) break
         }
-        return found.sortedWith(compareBy({ it.programme.startMs > now }, { it.programme.startMs })).take(40)
+        return ProgrammePage(found.sortedWith(compareBy({ it.programme.startMs > now }, { it.programme.startMs })).take(limit),
+            found.size > limit || (offset >= scanLimit && moreCandidates))
     }
 
     /** One of the curated lists shown before anything is typed. Bounded, and already source-filtered. */

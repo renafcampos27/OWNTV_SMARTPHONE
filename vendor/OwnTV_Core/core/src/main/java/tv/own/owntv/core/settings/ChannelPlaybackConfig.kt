@@ -19,6 +19,7 @@ data class ChannelPlaybackOptions(
     val hlsDetectAccessUnits: Boolean? = null,
     val hlsAllowNonIdrKeyframes: Boolean? = null,
     val hlsPrepareFromSegments: Boolean? = null,
+    val preferSdr: Boolean? = null,
 ) {
     val isDefault: Boolean get() = this == ChannelPlaybackOptions()
     fun directTs(legacyTs: Boolean = false): Boolean = when (format) {
@@ -63,6 +64,7 @@ data class ChannelPlaybackConfig(val channel: ManualTsChannel, val options: Chan
                     hlsDetectAccessUnits = p.opt("hlsDetectAccessUnits") as? Boolean,
                     hlsAllowNonIdrKeyframes = p.opt("hlsAllowNonIdrKeyframes") as? Boolean,
                     hlsPrepareFromSegments = p.opt("hlsPrepareFromSegments") as? Boolean,
+                    preferSdr = p.opt("preferSdr") as? Boolean,
                 ).normalized()
                 ChannelPlaybackConfig(channel, options).takeUnless { options.isDefault }
             }.distinctBy { it.channel.sourceId to (it.channel.remoteId ?: it.channel.name) }
@@ -79,7 +81,8 @@ data class ChannelPlaybackConfig(val channel: ManualTsChannel, val options: Chan
                     .putOpt("softwareAudio", o.softwareAudio).putOpt("audioDelayMs", o.audioDelayMs)
                     .putOpt("hlsDetectAccessUnits", o.hlsDetectAccessUnits)
                     .putOpt("hlsAllowNonIdrKeyframes", o.hlsAllowNonIdrKeyframes)
-                    .putOpt("hlsPrepareFromSegments", o.hlsPrepareFromSegments)))
+                    .putOpt("hlsPrepareFromSegments", o.hlsPrepareFromSegments)
+                    .putOpt("preferSdr", o.preferSdr)))
             }
         }.toString()
 

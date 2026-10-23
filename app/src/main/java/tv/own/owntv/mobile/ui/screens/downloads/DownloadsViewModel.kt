@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -86,30 +87,34 @@ class DownloadsViewModel(
                     ) {
                         list
                     } else {
-                        list.filterNot { isHidden(it, custMovie, custSeries, profile?.isKids == true) }
+                        visibleDownloads(list, custMovie, custSeries, profile?.isKids == true)
                     }
                 }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private suspend fun isHidden(
-        d: DownloadEntity,
-        custMovie: SectionCustomizations,
-        custSeries: SectionCustomizations,
-        isKidsProfile: Boolean,
-    ): Boolean = when (d.mediaType) {
-        MediaType.MOVIE -> movieDao.getById(d.itemId)?.let { movie ->
-            CustomizeKeys.movie(movie) in custMovie.hiddenItems ||
-                (isKidsProfile && AdultCategoryClassifier.isAdult(movie.categoryId?.let { categoryDao.getById(it)?.name }))
-        } ?: isKidsProfile
-        MediaType.EPISODE -> seriesDao.getEpisodeById(d.itemId)
-            ?.let { ep -> seriesDao.getSeriesById(ep.seriesId) }
-            ?.let { series ->
-                CustomizeKeys.series(series) in custSeries.hiddenItems ||
-                    (isKidsProfile && AdultCategoryClassifier.isAdult(series.categoryId?.let { categoryDao.getById(it)?.name }))
-            } ?: isKidsProfile
-        else -> false
+    /** Bulk metadata reads: transfer progress must not create one query per file/category. */
+    private suspend fun visibleDownloads(list: List<DownloadEntity>, movies: SectionCustomizations,
+        series: SectionCustomizations, kids: Boolean): List<DownloadEntity> {
+        val movieRows = list.filter { it.mediaType == MediaType.MOVIE }.map { it.itemId }.distinct()
+            .chunked(400).flatMap { movieDao.getByIds(it) }.associateBy { it.id }
+        val episodes = list.filter { it.mediaType == MediaType.EPISODE }.map { it.itemId }.distinct()
+            .chunked(400).flatMap { seriesDao.getEpisodesByIds(it) }.associateBy { it.id }
+        val shows = episodes.values.map { it.seriesId }.distinct().chunked(400)
+            .flatMap { seriesDao.getSeriesByIds(it) }.associateBy { it.id }
+        val categoryNames = if (!kids) emptyMap() else (movieRows.values.mapNotNull { it.categoryId } +
+            shows.values.mapNotNull { it.categoryId }).distinct().chunked(400)
+            .flatMap { categoryDao.getByIds(it) }.associate { it.id to it.name }
+        return list.filter { item -> when (item.mediaType) {
+            MediaType.MOVIE -> movieRows[item.itemId]?.let {
+                CustomizeKeys.movie(it) !in movies.hiddenItems && (!kids || !AdultCategoryClassifier.isAdult(it.categoryId?.let(categoryNames::get)))
+            } ?: !kids
+            MediaType.EPISODE -> episodes[item.itemId]?.let { shows[it.seriesId] }?.let {
+                CustomizeKeys.series(it) !in series.hiddenItems && (!kids || !AdultCategoryClassifier.isAdult(it.categoryId?.let(categoryNames::get)))
+            } ?: !kids
+            else -> true
+        } }
     }
 
     /**
@@ -120,21 +125,32 @@ class DownloadsViewModel(
      * nothing downloaded yet the list never changes, so it never refreshed at all.
      */
     val storage: StateFlow<DownloadStorageInfo?> =
-        combine(downloads, settings.downloadRoot) { _, _ -> Unit }
-            .mapLatest { downloadManager.storageInfo() }
+        combine(downloads.map { rows -> rows.map { Triple(it.id, it.status, it.filePath) } }.distinctUntilChanged(),
+            settings.downloadRoot) { rows, _ -> rows.any { it.second == DownloadStatus.RUNNING } }
+            .flatMapLatest { active -> flow {
+                emit(downloadManager.storageInfo())
+                // Keep free-space accurate during a transfer without stat/SAF work on every progress tick.
+                while (active) {
+                    delay(10_000L)
+                    emit(downloadManager.storageInfo())
+                }
+            } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
      * How fast the queue is moving, in megabits per second, from the growth of the running rows.
      * Zero whenever nothing is running, and after a pause, so a stale figure never lingers.
      */
-    val speedMbps: StateFlow<Double> = flow {
+    val speedMbps: StateFlow<Double> = downloads.map { rows -> rows.filter { it.status == DownloadStatus.RUNNING }.map { it.id }.toSet() }
+        .distinctUntilChanged().flatMapLatest { runningIds ->
+        if (runningIds.isEmpty()) return@flatMapLatest flowOf(0.0)
+        flow {
         var lastBytes = -1L
         var lastAt = 0L
         while (true) {
             val running = downloads.value.filter { it.status == DownloadStatus.RUNNING }
             val bytes = running.sumOf { it.downloadedBytes }
-            val now = System.currentTimeMillis()
+            val now = android.os.SystemClock.elapsedRealtime()
             emit(
                 if (running.isEmpty() || lastBytes < 0 || now <= lastAt) 0.0
                 else (bytes - lastBytes).coerceAtLeast(0L) * 8.0 / (now - lastAt) / 1_000.0,
@@ -143,7 +159,8 @@ class DownloadsViewModel(
             lastAt = now
             delay(SPEED_SAMPLE_MS)
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0.0)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), 0.0)
 
     /**
      * The volumes downloads can go to without asking for anything: this app's own folder on internal

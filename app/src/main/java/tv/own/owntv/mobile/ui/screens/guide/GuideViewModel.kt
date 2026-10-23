@@ -17,12 +17,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -138,6 +139,8 @@ class GuideViewModel(
 
     private val ctx: StateFlow<ActiveProfileSources> = activeProfileSources(settings, sourceDao)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ActiveProfileSources(-1L, emptyList()))
+
+    internal val listContext: StateFlow<ActiveProfileSources> get() = ctx
 
     private val custom: StateFlow<SectionCustomizations> = ctx
         .flatMapLatest { c ->
@@ -279,14 +282,14 @@ class GuideViewModel(
     /** Grid, on-now list or one channel's schedule. Null until the user picks: the screen then
      *  decides from its own width, which is the only thing that knows whether a grid fits. */
     val viewMode: StateFlow<SettingsRepository.GuideView?> = settings.guideView
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun setViewMode(view: SettingsRepository.GuideView) {
         viewModelScope.launch { settings.setGuideView(view) }
     }
 
     val densityPct: StateFlow<Int> = settings.guideDensityPct
-        .stateIn(viewModelScope, SharingStarted.Eagerly, 100)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 100)
 
     fun setDensityPct(pct: Int) {
         viewModelScope.launch { settings.setGuideDensityPct(pct) }
@@ -310,9 +313,9 @@ class GuideViewModel(
      * choice comes back on its own.
      */
     val sortGuide: StateFlow<SettingsRepository.GuideSort> = settings.sortGuide
-        .stateIn(viewModelScope, SharingStarted.Eagerly, SettingsRepository.GuideSort.LIVE_TV)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsRepository.GuideSort.LIVE_TV)
 
-    val replayOnly = settings.guideReplayOnly.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val replayOnly = settings.guideReplayOnly.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
     fun setReplayOnly(enabled: Boolean) { viewModelScope.launch { settings.setGuideReplayOnly(enabled) } }
 
     fun setSortGuide(sort: SettingsRepository.GuideSort) {
@@ -353,6 +356,8 @@ class GuideViewModel(
                         PagingConfig(
                             pageSize = PAGE_SIZE,
                             prefetchDistance = PAGE_SIZE / 2,
+                            initialLoadSize = PAGE_SIZE * 2,
+                            maxSize = 300,
                             enablePlaceholders = false,
                         ),
                     ) {
@@ -426,8 +431,13 @@ class GuideViewModel(
             size > MAX_CACHED_ROWS
     }
 
-    /** Read straight from the cache, so a row scrolled back into view draws without a blank frame. */
-    fun cachedRow(channelId: Long): List<EpgProgrammeEntity>? = synchronized(rowCache) { rowCache[channelId] }
+    private var rowCacheContext: Any? = null
+    private fun currentRowContext(): Any = listOf(ctx.value, custom.value, epgOffset.value, window.value)
+
+    /** A StateFlow may change before its invalidation collector runs. Never serve a foreign context. */
+    fun cachedRow(channelId: Long): List<EpgProgrammeEntity>? = synchronized(rowCache) {
+        if (rowCacheContext == currentRowContext()) rowCache[channelId] else null
+    }
 
     /** This channel's programmes for the selected day, read as the row comes into view. */
     suspend fun row(channel: ChannelEntity): List<EpgProgrammeEntity> {
@@ -441,7 +451,11 @@ class GuideViewModel(
         if (generation != rowGeneration || w != window.value || c != custom.value ||
             profile != ctx.value || offset != epgOffset.value
         ) throw CancellationException("Guide context changed")
-        synchronized(rowCache) { rowCache[channel.id] = rows }
+        synchronized(rowCache) {
+            val context = currentRowContext()
+            if (context != rowCacheContext) { rowCache.clear(); rowCacheContext = context }
+            rowCache[channel.id] = rows
+        }
         return rows
     }
 
@@ -452,25 +466,59 @@ class GuideViewModel(
     private var onNowJob: Job? = null
     private var pendingOnNowIds: Set<Long> = emptySet()
     private var rowGeneration = 0
+    private var onNowRequest = 0L
+    private val guideActive = MutableStateFlow(false)
+    private val guideRefresh = GuideRefreshPolicy(GUIDE_DATA_SETTLE_MS)
+    private var lastGuideContext: Any? = null
+    private var statsJob: Job? = null
+    private val _onNowLoading = MutableStateFlow<Set<Long>>(emptySet())
+    val onNowLoading: StateFlow<Set<Long>> = _onNowLoading
+    private val _onNowErrors = MutableStateFlow<Set<Long>>(emptySet())
+    val onNowErrors: StateFlow<Set<Long>> = _onNowErrors
+    private val _statsFailed = MutableStateFlow(false)
+    val statsFailed: StateFlow<Boolean> = _statsFailed
+
+    fun setActive(active: Boolean) {
+        if (guideActive.value == active) return
+        guideActive.value = active
+        if (!active) { cancelOnNowLoad(); statsJob?.cancel() }
+    }
+
+    fun retryOnNow(channel: ChannelEntity) {
+        _onNowErrors.value = _onNowErrors.value - channel.id
+        loadOnNow(listOf(channel))
+    }
+
+    fun retryStats() = requestStats()
+
+    private fun requestStats() {
+        statsJob?.cancel()
+        statsJob = viewModelScope.launch { if (guideActive.value && ctx.value.profileId >= 0) loadStats() }
+    }
+
 
     /** Refresh visible entries at programme boundaries; empty results are retried after a short TTL. */
     fun loadOnNow(visible: List<ChannelEntity>) {
+        if (!guideActive.value) return
         val atMs = System.currentTimeMillis()
         val missing = visible.distinctBy { it.id }.filter { channel ->
-            onNowFreshness[channel.id]?.let {
+            channel.id !in _onNowErrors.value && onNowFreshness[channel.id]?.let {
                 GuideTimePolicy.isFresh(it.loadedAt, it.expiresAt, atMs)
             } != true
         }
         val ids = missing.map { it.id }.toSet()
         if (onNowJob?.isActive == true && ids == pendingOnNowIds) return
         onNowJob?.cancel()
+        val request = ++onNowRequest
         pendingOnNowIds = ids
+        _onNowLoading.value = ids
         if (missing.isEmpty()) return
         val generation = rowGeneration
         val c = custom.value
         val profile = ctx.value
         val offset = epgOffset.value
         onNowJob = viewModelScope.launch {
+            try {
             val found = guide.onNow(
                 channels = missing,
                 cust = c,
@@ -478,7 +526,7 @@ class GuideViewModel(
                 atMs = atMs,
                 lookAheadMs = ON_NOW_LOOK_AHEAD_MS,
             )
-            if (generation != rowGeneration || c != custom.value ||
+            if (request != onNowRequest || !guideActive.value || generation != rowGeneration || c != custom.value ||
                 profile != ctx.value || offset != epgOffset.value
             ) return@launch
             val answered = missing.associate { it.id to (found[it.id] ?: GuideSlot(null, null)) }
@@ -490,22 +538,32 @@ class GuideViewModel(
                 .entries.toList().takeLast(MAX_CACHED_ROWS).associate { it.toPair() }
             onNowFreshness.keys.retainAll(retained.keys)
             _onNow.value = retained
+            _onNowErrors.value = _onNowErrors.value - ids
+            } catch (cancelled: CancellationException) { throw cancelled
+            } catch (_: Exception) {
+                if (request == onNowRequest) _onNowErrors.value = (_onNowErrors.value + ids).toList().takeLast(MAX_CACHED_ROWS).toSet()
+            } finally {
+                if (request == onNowRequest) { pendingOnNowIds = emptySet(); _onNowLoading.value = emptySet() }
+            }
         }
     }
 
     fun cancelOnNowLoad() {
+        ++onNowRequest
         onNowJob?.cancel()
         pendingOnNowIds = emptySet()
+        _onNowLoading.value = emptySet()
     }
 
     private fun invalidateRows() {
         rowGeneration++
-        onNowJob?.cancel()
-        pendingOnNowIds = emptySet()
-        synchronized(rowCache) { rowCache.clear() }
+        cancelOnNowLoad()
+        _onNowErrors.value = emptySet()
+        synchronized(rowCache) { rowCache.clear(); rowCacheContext = null }
         onNowFreshness.clear()
         _onNow.value = emptyMap()
         _revision.value++
+        _stats.value = null
     }
 
     /** The synopsis, fetched when a programme is opened — the list queries leave it out. */
@@ -554,7 +612,7 @@ class GuideViewModel(
                     channel = channel,
                     programme = programme,
                     source = source,
-                    timeZone = settings.resolveCatchupTimeZone(),
+                    timeZone = settings.resolveCatchupTimeZone(source),
                     xtream = xtream,
                 )
                 return@launch
@@ -652,43 +710,51 @@ class GuideViewModel(
 
     init {
         viewModelScope.launch {
-            combine(ctx, custom, epgOffset) { c, cust, offset -> Triple(c, cust, offset) }
-                .distinctUntilChanged().collect {
-                    invalidateRows()
-                    if (it.first.profileId >= 0) loadStats()
-                }
+            guideActive.collectLatest { active ->
+                if (!active) return@collectLatest
+                combine(ctx, custom, epgOffset) { c, cust, offset -> Triple(c, cust, offset) }
+                    .distinctUntilChanged().collect { context ->
+                        val dataChanged = guideRefresh.takeOnReturn()
+                        if (context != lastGuideContext || dataChanged) {
+                            invalidateRows()
+                            epgReader.clearCache()
+                            lastGuideContext = context
+                        } else { _revision.value++ }
+                        requestStats()
+                    }
+            }
         }
-        // The guide's own data changing under the screen — a feed added, re-synced or deleted — is
-        // not something the rows can notice by themselves: each one keeps what it read. Room reports
-        // every write to the programme table, so waiting for those writes to stop and redrawing once
-        // covers all four cases without the app having to be restarted to see a new guide.
         viewModelScope.launch {
-            epgSourceStore.sources
-                .map { sources -> sources.map { it.id } }
-                .distinctUntilChanged()
-                .flatMapLatest { ids ->
-                    if (ids.isEmpty()) flowOf(0)
-                    else combine(ids.map { epgDao.countForSource(it) }) { counts -> counts.sum() }
-                }
+            // Table invalidation also reports same-count edits. Do not drop the first real change.
+            epgRepository.observeGuideChanges()
+                .onEach { guideRefresh.changed(android.os.SystemClock.elapsedRealtime()) }
                 .debounce(GUIDE_DATA_SETTLE_MS)
-                .drop(1) // The first is the guide as it already stands on screen.
-                .collect { refreshRows() }
+                .collect {
+                    if (guideRefresh.takeReady(android.os.SystemClock.elapsedRealtime(), guideActive.value)) refreshRows()
+                }
         }
+
     }
 
     private suspend fun loadStats() {
+        val context = ctx.value
+        val generation = rowGeneration
+        _statsFailed.value = false
+        try {
         val startedAt = android.os.SystemClock.elapsedRealtime()
         val ids = guide.guideSourceIds()
         val programmes = epgDao.countForSources(ids)
         val guideChannels = if (programmes > 0) epgDao.countGuideChannels(ids) else 0
-        _stats.value = GuideStats(
+        val result = GuideStats(
             guideChannels = guideChannels,
             programmes = programmes,
-            catchupChannels = channelDao.countCatchup(ctx.value.liveSourceIds),
+            catchupChannels = channelDao.countCatchup(context.liveSourceIds),
             hasEpgSources = epgSourceStore.getAll().isNotEmpty(),
             // One row is enough to answer it, and one row is all that is read.
             mismatchedIds = programmes > 0 && channelDao.channelsWithGuide(ids, "", 1).isEmpty(),
         )
+        if (context != ctx.value || generation != rowGeneration || !guideActive.value) return
+        _stats.value = result
         // The phone loads guide rows one at a time (see [row]) — core's own guide_row line covers
         // those. What is only measurable here is the cold-open stats pass and how much the row cache
         // is actually holding, which is what Phase 6's per-row work on the television is compared to.
@@ -696,6 +762,10 @@ class GuideViewModel(
             "guide_stats programmes=$programmes guideChannels=$guideChannels " +
                 "sources=${ids.size} cachedRows=${synchronized(rowCache) { rowCache.size }} " +
                 "totalMs=${android.os.SystemClock.elapsedRealtime() - startedAt}"
+        }
+        } catch (cancelled: CancellationException) { throw cancelled
+        } catch (_: Exception) {
+            if (context == ctx.value && generation == rowGeneration && guideActive.value) _statsFailed.value = true
         }
     }
 
@@ -920,7 +990,7 @@ class GuideViewModel(
         // The reader keeps its own now/next for five minutes, keyed by channel — stale the moment a
         // match changes, so it goes too.
         epgReader.clearCache()
-        loadStats()
+        requestStats()
     }
 
     private companion object {

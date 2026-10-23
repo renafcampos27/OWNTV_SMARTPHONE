@@ -90,7 +90,6 @@ class SettingsViewModel(
     private val okHttpClient: OkHttpClient,
     private val vodEngineStore: VodEngineStore,
     private val forceMpvStore: tv.own.owntv.core.player.ForceMpvStore,
-    private val archiveDecodeStore: tv.own.owntv.core.player.ArchiveDecodeStore,
     private val playbackPrefs: PlaybackPrefsStore,
     private val metadataProvider: MetadataProvider,
     private val metadataBudget: MetadataBudget,
@@ -479,7 +478,6 @@ class SettingsViewModel(
     fun clearLivePins() { viewModelScope.launch { (forceMpvStore.urls.first() + forceMpvStore.exoUrls.first()).forEach { forceMpvStore.forget(it) } } }
 
     /** N15 — forget the stream lessons of this session and the stored catch-up decode list. */
-    fun forgetStreamFixes() { viewModelScope.launch { archiveDecodeStore.clearLearned() } }
 
     fun clearSavedZoom() { viewModelScope.launch { playbackPrefs.clearZoom() } }
 

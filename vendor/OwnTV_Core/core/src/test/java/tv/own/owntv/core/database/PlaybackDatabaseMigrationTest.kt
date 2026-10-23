@@ -305,4 +305,33 @@ class PlaybackDatabaseMigrationTest {
         }
     }
 
+    @Test fun private51To52AddsOnlyArchiveMetadataAndPreservesAllExistingValues() {
+        Class.forName("org.sqlite.JDBC")
+        DriverManager.getConnection("jdbc:sqlite::memory:").use { connection ->
+            bootstrap(connection, 51)
+            connection.createStatement().use { q ->
+                q.execute("INSERT INTO profiles (id,name,avatarColor,avatarId,isKids,createdAt) VALUES (1,'Primary',1,1,0,1)")
+                q.execute("INSERT INTO sources (id,name,type,url,syncLive,syncMovies,syncSeries,hlsSupported,preferHls,livePrerollSecs,liveLatencyCustomSecs,maxConnections,maxConnectionsProbedAt,createdAt,catchupTimezone,catchupOffsetMin,liveReserveMode) VALUES (1,'Account','XTREAM','https://example.invalid',1,0,0,0,1,5,-1,1,0,1,'MANUAL',60,'CUSTOM')")
+                q.execute("INSERT INTO channels (id,sourceId,name,streamUrl,sortOrder,catchup,catchupDays,contentHash) VALUES (3,1,'Original channel','https://example.invalid/live',0,1,7,123)")
+                q.execute("INSERT INTO epg_programmes (id,sourceId,epgChannelId,title,description,startMs,stopMs,contentHash,categories) VALUES (7,9,'sic','Original','Description',1000,2000,123,'News')")
+            }
+            val db = driver(connection)
+            OwnTVDatabase.MIGRATION_51_52.migrate(db)
+            OwnTVDatabase.MIGRATION_51_52.migrate(db)
+            verifyCurrentSchema(connection)
+            connection.createStatement().use { q ->
+                q.executeQuery("SELECT title,contentHash,categories FROM epg_programmes WHERE id=7").use { row ->
+                    assertTrue(row.next()); assertEquals("Original", row.getString(1)); assertEquals(123, row.getInt(2)); assertEquals("News", row.getString(3))
+                }
+                q.executeQuery("SELECT catchupTimezone,catchupOffsetMin,liveReserveMode,serverTimeZone FROM sources WHERE id=1").use { row ->
+                    assertTrue(row.next()); assertEquals("MANUAL", row.getString(1)); assertEquals(60, row.getInt(2)); assertEquals("CUSTOM", row.getString(3)); assertNull(row.getString(4))
+                }
+                q.executeQuery("SELECT name,contentHash,catchupCorrectionMin FROM channels WHERE id=3").use { row ->
+                    assertTrue(row.next()); assertEquals("Original channel", row.getString(1)); assertEquals(123, row.getInt(2)); assertEquals(0, row.getInt(3))
+                }
+                q.executeQuery("PRAGMA integrity_check").use { row -> assertTrue(row.next()); assertEquals("ok", row.getString(1)) }
+            }
+        }
+    }
+
 }

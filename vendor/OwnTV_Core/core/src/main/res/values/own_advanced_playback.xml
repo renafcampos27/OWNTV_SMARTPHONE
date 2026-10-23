@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="own_frame_health">Perdas de vídeo nesta janela</string>
+    <string name="own_frame_health_value">Apresentados: %1$d; perdidos: %2$d (%3$s%%); janela: %4$s s</string>
+    <string name="own_audio_sync">Sincronismo configurado para esta reprodução</string>
+    <string name="own_audio_sync_value">Base %1$d ms + saída %2$d ms = %3$d ms</string>
+</resources>

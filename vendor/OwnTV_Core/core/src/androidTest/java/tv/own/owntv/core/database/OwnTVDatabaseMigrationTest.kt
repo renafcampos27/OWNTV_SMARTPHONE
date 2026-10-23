@@ -49,7 +49,7 @@ class OwnTVDatabaseMigrationTest {
         val migrated = openWithAllMigrations()
         try {
             withConnection(migrated) { sqlite ->
-                assertEquals(51, userVersionOf(sqlite))
+                assertEquals(52, userVersionOf(sqlite))
                 assertColumnExists(sqlite, "sources", "liveReserveMode")
                 assertColumnExists(sqlite, "recordings", "archivePaused")
                 sqlite.prepare("SELECT categories, year, rating, lengthMin, episode FROM epg_programmes WHERE id=1").use { row ->
@@ -74,7 +74,7 @@ class OwnTVDatabaseMigrationTest {
         val migrated = openWithAllMigrations()
         try {
             withConnection(migrated) { sqlite ->
-                assertEquals(51, userVersionOf(sqlite))
+                assertEquals(52, userVersionOf(sqlite))
                 assertCount(sqlite, "epg_programmes", 1)
                 assertColumnExists(sqlite, "epg_programmes", "categories")
                 assertColumnExists(sqlite, "epg_programmes", "episode")

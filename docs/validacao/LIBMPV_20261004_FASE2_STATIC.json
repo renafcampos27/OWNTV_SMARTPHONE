@@ -1,0 +1,464 @@
+{
+  "artifact_sha256": "30da5e483342ee7c44ac57a694050279a1a69a5a0d55876ebf94cfdd90fbbfe4",
+  "abis": {
+    "arm64-v8a": [
+      {
+        "machine": 183,
+        "load_alignment": 16384,
+        "needed": [
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libz.so",
+          "libandroid.so",
+          "libmediandk.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "7cf4c2d847d7ccf2913dd76d4f0f4956412b4066",
+        "name": "libavcodec.so",
+        "sha256": "8f2afecf16a1c9630061da6ca9c31c0334fe77e6f38052dad404e515294cc054"
+      },
+      {
+        "machine": 183,
+        "load_alignment": 16384,
+        "needed": [
+          "libswscale.so",
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "build_id": "e8160e384442107e0eca958f31a33e55e379a3cf",
+        "name": "libavfilter.so",
+        "sha256": "3f77aeef90b00a93e13cad231326ffddac308a1ad2d2fdbd8eded0c3e9368bab"
+      },
+      {
+        "machine": 183,
+        "load_alignment": 16384,
+        "needed": [
+          "libavcodec.so",
+          "libavutil.so",
+          "libm.so",
+          "libz.so",
+          "libc.so"
+        ],
+        "build_id": "9fd6a9bcb3c5d2d13b00561a30157b007abed58e",
+        "name": "libavformat.so",
+        "sha256": "4b30f1b14026f3bcd4075596fa67ff341951f4fe006ac1f32c6e5674e64ba080"
+      },
+      {
+        "machine": 183,
+        "load_alignment": 16384,
+        "needed": [
+          "libm.so",
+          "libandroid.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "06b56733ee2de7f37d6d0d621c5c638d22a98404",
+        "name": "libavutil.so",
+        "sha256": "4cbe59a160f0c2502824dd441082c7f7efc15a75ab24a707f590b5bd17d8f23d"
+      },
+      {
+        "machine": 183,
+        "load_alignment": 16384,
+        "needed": [
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "build_id": "48896bc02543d915439f872cc76d2a751e62fd98",
+        "name": "libc++_shared.so",
+        "sha256": "b5d97c38a728afe28d341cda3369f512d35eaf9c680c1b0563cd6a63e395230f"
+      },
+      {
+        "machine": 183,
+        "load_alignment": 16384,
+        "needed": [
+          "libm.so",
+          "libz.so",
+          "libdl.so",
+          "libavcodec.so",
+          "libavfilter.so",
+          "libavformat.so",
+          "libavutil.so",
+          "libc++_shared.so",
+          "libswresample.so",
+          "libswscale.so",
+          "libandroid.so",
+          "libOpenSLES.so",
+          "libEGL.so",
+          "libc.so"
+        ],
+        "build_id": "3155aa663cc65cad05ab4c900b7d319ea1688faa",
+        "name": "libmpv.so",
+        "sha256": "877aa65152cc09b8e9da3111c04a0ba4bd22fffd4616d5a1102e97262bd639a7"
+      },
+      {
+        "machine": 183,
+        "load_alignment": 16384,
+        "needed": [
+          "libavcodec.so",
+          "libswresample.so",
+          "libavutil.so",
+          "liblog.so",
+          "libm.so",
+          "libc++_shared.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "53bab7f6220501e8cbf0836b7ba8e51f51767078",
+        "name": "libowntvffmpeg.so",
+        "sha256": "4bcf296a7ae13f75c7ec75e741537136a170be245463ae412c8f883c4d3b5df6"
+      },
+      {
+        "machine": 183,
+        "load_alignment": 16384,
+        "needed": [
+          "libmpv.so",
+          "libavcodec.so",
+          "liblog.so",
+          "libm.so",
+          "libc++_shared.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "941fef3d897c07a77f06fb6468a7f36a75f5b4aa",
+        "name": "libplayer.so",
+        "sha256": "72389830ac3db3b14dbd28463eaed0e017309833dd63b08c9eda4abaeee449bf"
+      },
+      {
+        "machine": 183,
+        "load_alignment": 16384,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "build_id": "88ce8b7a0bea8a12d13baacbc4805fd354259651",
+        "name": "libswresample.so",
+        "sha256": "ef9411ad401a209c4a6f6dbf829b949df89089c7382c01266c216cf7345b30ad"
+      },
+      {
+        "machine": 183,
+        "load_alignment": 16384,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "build_id": "eb31ba0dfd52720d49505b0d1dce9652462aafee",
+        "name": "libswscale.so",
+        "sha256": "998c189e6da106d10601b935bc668e8c42588605bec252fc991256249d63d173"
+      }
+    ],
+    "armeabi-v7a": [
+      {
+        "machine": 40,
+        "load_alignment": 16384,
+        "needed": [
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libz.so",
+          "libandroid.so",
+          "libmediandk.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "a324ca5753ffac29f477419cb6d9f20bf1215ee8",
+        "name": "libavcodec.so",
+        "sha256": "8286091a8b6ef0a5f014badc724e5aa4c65b48196a1c8c71da5d1faaadfad37d"
+      },
+      {
+        "machine": 40,
+        "load_alignment": 16384,
+        "needed": [
+          "libswscale.so",
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "build_id": "03d70f1a1dbe71adfa38ad282185ed4e2536ec51",
+        "name": "libavfilter.so",
+        "sha256": "995bc805a751a1bc6ae36d2ac450bc9439aed59223193e0cad792dd4c0e87ea5"
+      },
+      {
+        "machine": 40,
+        "load_alignment": 16384,
+        "needed": [
+          "libavcodec.so",
+          "libavutil.so",
+          "libm.so",
+          "libz.so",
+          "libc.so"
+        ],
+        "build_id": "ab2070abac3459fc17ade3138510b99cbdb956c1",
+        "name": "libavformat.so",
+        "sha256": "60ae84175c7761e2eb8abab3d0bdf84530d4fd9311c9e1754a1364b3c53f7631"
+      },
+      {
+        "machine": 40,
+        "load_alignment": 16384,
+        "needed": [
+          "libm.so",
+          "libandroid.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "62d9b428ab406624179e0c0a584c2ed6e5b09c19",
+        "name": "libavutil.so",
+        "sha256": "9e80e664c4dee4d034e4b3461fb4e1cd6abfba6ae1df67545e52d75ab2c8c318"
+      },
+      {
+        "machine": 40,
+        "load_alignment": 4096,
+        "needed": [
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "build_id": "d252170f31e68f9808ad8c040a286fb3e3fac856",
+        "name": "libc++_shared.so",
+        "sha256": "38331a1efcb446eb1a0db440a8db8f41fa4fb698d15c061ab8c491426531c2c0"
+      },
+      {
+        "machine": 40,
+        "load_alignment": 16384,
+        "needed": [
+          "libm.so",
+          "libz.so",
+          "libdl.so",
+          "libavcodec.so",
+          "libavfilter.so",
+          "libavformat.so",
+          "libavutil.so",
+          "libc++_shared.so",
+          "libswresample.so",
+          "libswscale.so",
+          "libandroid.so",
+          "libOpenSLES.so",
+          "libEGL.so",
+          "libc.so"
+        ],
+        "build_id": "796f98279a690e146a9e634dfc8c560014fca758",
+        "name": "libmpv.so",
+        "sha256": "a80a275d063643359d9d0886cfb9e240972338ae12d8c6a7d4cfd5ca52b7ab1c"
+      },
+      {
+        "machine": 40,
+        "load_alignment": 4096,
+        "needed": [
+          "libavcodec.so",
+          "libswresample.so",
+          "libavutil.so",
+          "liblog.so",
+          "libm.so",
+          "libc++_shared.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "0cbd0f0b66251ef509cc3e55ae27d1d53c4d0c3a",
+        "name": "libowntvffmpeg.so",
+        "sha256": "7afbbb32a2f9da95047b992146d04c7f56a93258e617918f6a0a635e7f5abec2"
+      },
+      {
+        "machine": 40,
+        "load_alignment": 4096,
+        "needed": [
+          "libmpv.so",
+          "libavcodec.so",
+          "liblog.so",
+          "libm.so",
+          "libc++_shared.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "4a88fd0bd525cc53cfae05f2a35ee04dbf7b5223",
+        "name": "libplayer.so",
+        "sha256": "c0715c35e727eb61bf21a7b31c7dc4f9ef9ad5d52d6778114d84e9091657855b"
+      },
+      {
+        "machine": 40,
+        "load_alignment": 16384,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "build_id": "7e5f7932cc37b53aafb8bc077d6f8a043fa6c2ca",
+        "name": "libswresample.so",
+        "sha256": "5a998aadd3f931f7c1a44c252b0a6f5bdc34894c27f97e43e84b336eb3d6a610"
+      },
+      {
+        "machine": 40,
+        "load_alignment": 16384,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "build_id": "e7df78a41022e91730600e63c6505b828d6300af",
+        "name": "libswscale.so",
+        "sha256": "b8ac43fb6c7eb4de9515b0c08e1eaaf196ba513f1495b0c95d01419bb362be63"
+      }
+    ],
+    "x86_64": [
+      {
+        "machine": 62,
+        "load_alignment": 16384,
+        "needed": [
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libz.so",
+          "libandroid.so",
+          "libmediandk.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "830b889961f05c6f92e34e550bb4f3c97afd697d",
+        "name": "libavcodec.so",
+        "sha256": "8066efe284e1a10bdfdaabab7398e823acc76b17b8037981e4def59c47cfd588"
+      },
+      {
+        "machine": 62,
+        "load_alignment": 16384,
+        "needed": [
+          "libswscale.so",
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "build_id": "71b555354ba46bde95bfb5862170b2cff14f3409",
+        "name": "libavfilter.so",
+        "sha256": "d7b6ef23f13fb92fb5fef94bef59e51b46f9598ab44682babe664c5cc3d1c732"
+      },
+      {
+        "machine": 62,
+        "load_alignment": 16384,
+        "needed": [
+          "libavcodec.so",
+          "libavutil.so",
+          "libm.so",
+          "libz.so",
+          "libc.so"
+        ],
+        "build_id": "2740149d7281278bb5cc249881f59564a5d2cb11",
+        "name": "libavformat.so",
+        "sha256": "67409f5d67df7cbd009bda98b8d7adea42daa151c4ca64f9a8cb5d7ee4c3602f"
+      },
+      {
+        "machine": 62,
+        "load_alignment": 16384,
+        "needed": [
+          "libm.so",
+          "libandroid.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "ef471531c628e22650a34d613bc86f21d276db2e",
+        "name": "libavutil.so",
+        "sha256": "ffaf0a1cae03c142b60d0562caee4d636f29131ec488c79ea8319dc1f152d046"
+      },
+      {
+        "machine": 62,
+        "load_alignment": 16384,
+        "needed": [
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "build_id": "cf5fec16118f66122c5c304ea1b96ecc9dddc285",
+        "name": "libc++_shared.so",
+        "sha256": "39faf2d59346e65a18980f207794fab2f1faff8a8de3f087b8319a181fa16fbd"
+      },
+      {
+        "machine": 62,
+        "load_alignment": 16384,
+        "needed": [
+          "libm.so",
+          "libz.so",
+          "libdl.so",
+          "libavcodec.so",
+          "libavfilter.so",
+          "libavformat.so",
+          "libavutil.so",
+          "libc++_shared.so",
+          "libswresample.so",
+          "libswscale.so",
+          "libandroid.so",
+          "libOpenSLES.so",
+          "libEGL.so",
+          "libc.so"
+        ],
+        "build_id": "77e2f0d50b712cdd364fdcd92b1b6c98a7257ffb",
+        "name": "libmpv.so",
+        "sha256": "b96dd6c9f017aa99c2e667b18807599f3169f17bdfcc103ee739bf7868e63029"
+      },
+      {
+        "machine": 62,
+        "load_alignment": 16384,
+        "needed": [
+          "libavcodec.so",
+          "libswresample.so",
+          "libavutil.so",
+          "liblog.so",
+          "libm.so",
+          "libc++_shared.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "8fd7558143bf5437fdf0acde783c6f6f0207e1dc",
+        "name": "libowntvffmpeg.so",
+        "sha256": "58b77447046f1887ad842c52293d62bc625d86df3ef2ec8e83b182a876353474"
+      },
+      {
+        "machine": 62,
+        "load_alignment": 16384,
+        "needed": [
+          "libmpv.so",
+          "libavcodec.so",
+          "liblog.so",
+          "libm.so",
+          "libc++_shared.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "build_id": "ea00673682b4c75cb335662bb3652a6d95972842",
+        "name": "libplayer.so",
+        "sha256": "16b1a0919443cc2249779bda3305c5268b8a4d625200652d4d24666565485d09"
+      },
+      {
+        "machine": 62,
+        "load_alignment": 16384,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "build_id": "7d5d3815a3bc17e6f6910a7683f394b7acc47a40",
+        "name": "libswresample.so",
+        "sha256": "41bc8be06f3925e83070bb65754c094f23ab0f4118272d2063325d89d72da7aa"
+      },
+      {
+        "machine": 62,
+        "load_alignment": 16384,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "build_id": "ac102c4203006cfee69a45f582577c401bf464b8",
+        "name": "libswscale.so",
+        "sha256": "6795227d93769b8b7509410d2ddff6cc7deadb19eac48e1154966f237d683184"
+      }
+    ]
+  },
+  "java_class_set_unchanged": true,
+  "changed_java_bytecode": [],
+  "checks": "ELF architecture, 16KiB alignment on 64bit, build IDs, JNI exports and FFmpeg dependencies; not runtime decoder/stream testing"
+}

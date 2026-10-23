@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import tv.own.owntv.core.content.SearchIntent
 import tv.own.owntv.core.content.SearchReader
 import tv.own.owntv.core.content.SearchResults
@@ -27,8 +28,15 @@ import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.ui.screens.ContentActions
 
+enum class SearchFilter { ALL, TV, PROGRAMMES }
+internal data class SearchRequest(val query: String = "", val filter: SearchFilter = SearchFilter.ALL, val limit: Int = 40, val revision: Int = 0)
+data class SearchPageState(
+    val query: String = "", val filter: SearchFilter = SearchFilter.ALL, val limit: Int = 40,
+    val results: SearchResults = SearchResults(), val loading: Boolean = false, val failed: Boolean = false,
+)
+
 /**
- * One field that searches channels, films and shows at once.
+ * Touch search across visible TV channels and EPG programmes.
  *
  * The searching itself is core's [SearchReader] — the same rules the television searches by, so a
  * hidden title stays hidden and a renamed channel keeps its new name on both. What is here is the
@@ -54,23 +62,37 @@ class SearchViewModel(
 
     /** How many rows of each kind to ask for. Grows as the list is scrolled to its end. */
     private val _limit = MutableStateFlow(PAGE)
+    private val request = MutableStateFlow(SearchRequest())
+    private val _filter = MutableStateFlow(SearchFilter.ALL)
+    val filter: StateFlow<SearchFilter> = _filter.asStateFlow()
 
     /** Total of the last page that was asked for, so a query that has run dry stops asking again. */
-    private var lastTotal = -1
 
     /**
      * What the query found. Debounced, because every keystroke otherwise costs three queries over a
      * catalogue that can hold a quarter of a million rows.
      */
-    val results: StateFlow<SearchResults> = combine(
-        _query.map { it.trim() }.debounce(DEBOUNCE_MS).distinctUntilChanged(),
+    val page: StateFlow<SearchPageState> = combine(
+        request.debounce(DEBOUNCE_MS).distinctUntilChanged(),
         ctx,
-        _limit,
-    ) { q, c, limit -> Triple(q, c, limit) }
-        .flatMapLatest { (q, c, limit) ->
-            if (q.length < MIN_QUERY) flowOf(SearchResults())
-            else flow { emit(searchReader.search(c.profileId, c, q, limit)) }
+    ) { request, context -> request to context }
+        .flatMapLatest { (r, c) ->
+            if (r.query.length < MIN_QUERY) flowOf(SearchPageState(r.query, r.filter, r.limit))
+            else flow {
+                val loading = SearchPageState(r.query, r.filter, r.limit, loading = true)
+                emit(loading)
+                try {
+                    emit(loading.copy(loading = false, results = searchReader.search(c.profileId, c, r.query, r.limit,
+                        includeProgrammes = r.filter != SearchFilter.TV,
+                        includeChannels = r.filter != SearchFilter.PROGRAMMES,
+                        includeLibrary = false)))
+                } catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { emit(loading.copy(loading = false, failed = true)) }
+            }
         }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchPageState())
+
+    val results: StateFlow<SearchResults> = page.map { it.results }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchResults())
 
     /** The list behind an empty-state chip: Continue watching, Unwatched favourites, or Channels. */
@@ -105,22 +127,32 @@ class SearchViewModel(
      * page has arrived.
      */
     fun loadMore() {
-        if (_limit.value >= MAX_LIMIT) return
-        val r = results.value
-        val total = r.channels.size + r.movies.size + r.series.size
-        if (total == lastTotal) return
-        lastTotal = total
-        _limit.value += PAGE
+        val current = page.value
+        _limit.value = SearchPaging.nextLimit(current, _query.value, _filter.value, _limit.value) ?: return
+        publishRequest()
     }
 
     private fun resetPaging() {
-        lastTotal = -1
         _limit.value = PAGE
+    }
+
+    private fun publishRequest() { request.value = SearchRequest(_query.value.trim(), _filter.value, _limit.value) }
+
+    fun setFilter(filter: SearchFilter) {
+        if (_filter.value == filter) return
+        _filter.value = filter
+        resetPaging()
+        publishRequest()
+    }
+
+    fun retrySearch() {
+        request.value = request.value.copy(revision = request.value.revision + 1)
     }
 
     fun setQuery(q: String) {
         if (q.trim() != _query.value.trim()) resetPaging()
         _query.value = q
+        publishRequest()
         // Typing is the user leaving the launcher behind; the curated list would otherwise stay up
         // underneath the results.
         if (q.isNotBlank()) _intent.value = null
@@ -130,6 +162,7 @@ class SearchViewModel(
     fun setIntent(i: SearchIntent?) {
         _intent.value = i
         if (i != null) _query.value = ""
+        publishRequest()
     }
 
     /** Remembered only when a result is actually opened — a term nobody used is not a search. */

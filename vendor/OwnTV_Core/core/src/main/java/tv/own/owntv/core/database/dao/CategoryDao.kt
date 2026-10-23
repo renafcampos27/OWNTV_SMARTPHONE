@@ -11,6 +11,8 @@ import tv.own.owntv.core.model.MediaType
 
 @Dao
 interface CategoryDao {
+    @Query("SELECT * FROM categories WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<Long>): List<CategoryEntity>
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(categories: List<CategoryEntity>): List<Long>
 

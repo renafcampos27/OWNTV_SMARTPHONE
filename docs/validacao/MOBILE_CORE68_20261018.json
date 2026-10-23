@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-18",
+  "result": "BUILD SUCCESSFUL",
+  "tests": {
+    "Mobile": {
+      "tests": 116,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "Core privado": {
+      "tests": 1180,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "Reprodutor": {
+      "tests": 459,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "unit_total": 1755,
+  "checked": [
+    "compileStandardReleaseKotlin",
+    "testStandardDebugUnitTest",
+    "OwnTV_Core:core:testDebugUnitTest",
+    "OwnTV_Core:player-core:testDebugUnitTest",
+    "OwnTV_Core:core:compileDebugAndroidTestKotlin",
+    "lintVitalStandardRelease",
+    "i18n Mobile e Core",
+    "XML resources",
+    "git diff --check"
+  ],
+  "lint_vital": "No issues found.",
+  "room_schema": 52,
+  "apk_generated": false,
+  "android_devices": [],
+  "not_tested": [
+    "Android instrumented execution",
+    "Physical playback and provider sessions",
+    "Touch/rotation/tablet UI",
+    "CPU/RAM/frame benchmark"
+  ],
+  "validation_log_sha256": "ce2f2b025c737d09cdfc7c9edac0d63332d8f3734bbb09ab63b1d41f62616207"
+}

@@ -42,8 +42,8 @@ fun SectionHeader(
             // Small and heavy, not big and light: the heading labels the rail below it, and the
             // artwork in that rail is what the eye is meant to land on.
             style = MaterialTheme.typography.titleMedium,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-23",
+  "phase": "4.1",
+  "project": "C:\\Users\\renat\\Downloads\\OwnTV_Mobile-main\\OwnTV_Mobile-main",
+  "status": "implemented_automated_checks_passed_device_pending",
+  "tests": {
+    "mobile": {
+      "tests": 119,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "core": {
+      "tests": 1193,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "player": {
+      "tests": 508,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "testsTotal": 1820,
+  "newTests": 14,
+  "finalBuildLog": "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-111-phase4-1-final-validation-20261023.log",
+  "buildDuration": "43s",
+  "lintResult": "No issues found.",
+  "i18n": {
+    "mobileBaselineKeys": 0,
+    "mobileSafeKeys": 585,
+    "coreBaselineKeys": 310,
+    "coreSafeKeys": 5715,
+    "noDebtIncrease": true
+  },
+  "snapshot": "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-before-phase4-1-111-20261023",
+  "snapshotInputs": 533,
+  "changedOriginals": [
+    "app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt",
+    "app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsChannelPlaybackPage.kt",
+    "app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLiveCustomPage.kt",
+    "app/src/main/res/values/own_custom_settings.xml",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/AudioOutputPolicy.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/ExoAudioGate.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/ExoRenderers.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/ExoSubtitleEngine.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/HeroPreviewEngine.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/LiveEngines.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/LivePreviewEngine.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/ffmpeg/FfmpegAudioRenderer.java",
+    "vendor/OwnTV_Core/tools/i18n/safe_literals.txt",
+    "docs/ANALISE_MOBILE_1_1_1_CORE_1_0_69_2026_10_23.md",
+    "docs/ATUALIZACOES_OWNCORE_PENDENTES_DE_IMPLEMENTACAO.md"
+  ],
+  "newPlayerFiles": [
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/AudioDecodeRecoveryTest.kt",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/FfmpegAudioPreferenceTest.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/AudioDecodeRecovery.kt"
+  ],
+  "protectedHashesVerified": [
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/PlaybackSession.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/PlaybackSettings.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/LiveTuneController.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/SourceDrain.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/PlaybackHttpCalls.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/NativeSurfaceBinding.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/VideoOutputReady.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/BufferUiSample.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/AudioTrackRetention.kt",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/ffmpeg/FfmpegLibrary.java",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/ffmpeg/FfmpegAudioDecoder.java",
+    "vendor/OwnTV_Core/core/src/main/java/tv/own/owntv/core/settings/SettingsRepository.kt",
+    "vendor/OwnTV_Core/core/src/main/java/tv/own/owntv/core/settings/ChannelPlaybackConfig.kt"
+  ],
+  "originalCopiesVerified": true,
+  "sourceHashes": {
+    "app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt": "08ae1d154714e0db1123153f8626650aa261f8cd1f63dcc761e4c6226c057bb3",
+    "app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsChannelPlaybackPage.kt": "ed1c09a71208cdd60aa4adee2bb4a2163003037f9731224c1f7bcb31ed04b8d1",
+    "app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLiveCustomPage.kt": "143e570549a8a68fefab8d5fa2fd32c18bcbdd0430d400bf4a8f7c2880ee9c90",
+    "app/src/main/res/values/own_custom_settings.xml": "436c4027487b76d0be092b003dc53701da359aeed73daf87216749eef07043a1",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/AudioOutputPolicy.kt": "cdd5ff041ad61b9f2beb506fb721627b1dd5a2d5556e19ed2747487902f1571a",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/ExoAudioGate.kt": "ae2528f6aaf12e1584211cc8a78cfe4cb22a57baf2e5426e6a4fffcf92a4b0fb",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/ExoRenderers.kt": "bf81307bde854da14132095788e6923c2d6c4fd586b1a45a9ab6ab4c05408af0",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/ExoSubtitleEngine.kt": "6900d2948de227182b5fd2de34f704879b75dae7fac8aa369a7e1af3fd1163c4",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/HeroPreviewEngine.kt": "753c7bfc28c8d2d573c8440c25be84970fb2f77b22724294447a2f17966dbec8",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/LiveEngines.kt": "bb1d80724a293a60befc7ac460fee97e8127fc499258835ae60e875ad888df9d",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/LivePreviewEngine.kt": "a9401f29b4e8be04e42b9391aef40a525c5c73233796c8041191c34cb6a5ede8",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt": "8b88f78317aa001e29c802dc6d6f5bcd1cb9aed1594afc88fc8cd1dc877266fe",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/ffmpeg/FfmpegAudioRenderer.java": "0289081b1dd367edfc525a0bc1cf4bcd774cd675732a80df5cedfefc9346c478",
+    "vendor/OwnTV_Core/tools/i18n/safe_literals.txt": "47092b2d19c9691b4f5d7587af4ccbebec2c25d7e39114684510d6504d5fd5a2",
+    "docs/ANALISE_MOBILE_1_1_1_CORE_1_0_69_2026_10_23.md": "41429f972ed42f7476314a0e21916177266a6bfb4daf1f7dc2d31b1d989be14e",
+    "docs/ATUALIZACOES_OWNCORE_PENDENTES_DE_IMPLEMENTACAO.md": "5c838b33df7745118eac691b9391aed4d708bd5f314fd88e58436d00af5480a3",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/AudioDecodeRecoveryTest.kt": "294c31dc8fc99b1cf6280b09f00cc06f052b86984087066ea79b6b5b19d1b45c",
+    "vendor/OwnTV_Core/player-core/src/test/java/tv/own/owntv/player/FfmpegAudioPreferenceTest.kt": "ac1240fa57471232bd736178e886cf66525ba0bc39ab2c03d44afe6d03a0b35d",
+    "vendor/OwnTV_Core/player-core/src/main/java/tv/own/owntv/player/AudioDecodeRecovery.kt": "17620498ce77eb3fea4747735088ff18c4086bb2ee833118ba95b07cfbef597a"
+  },
+  "contracts": {
+    "schema": 52,
+    "media3": "1.11.1",
+    "libmpv": "2026.10.4",
+    "internalGainPercent": 100,
+    "audioRescuePerSelection": 1,
+    "preferencesUnchanged": [
+      "software_audio",
+      "channel_playback_configs"
+    ],
+    "noNewFocusOwner": true,
+    "hlsAndExclusiveEnginePoliciesPreserved": true
+  },
+  "deviceAcceptance": "not executed; adb devices empty",
+  "apkGenerated": false,
+  "tvAndSharedCoreModified": false,
+  "nextSubphase": "4.2; not implemented"
+}

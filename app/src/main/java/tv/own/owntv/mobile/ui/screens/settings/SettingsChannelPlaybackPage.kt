@@ -110,6 +110,7 @@ private fun ChannelOptionsEditor(channel: ChannelEntity, initial: ChannelPlaybac
     val globalLatency = s.liveBufferSeconds.pref(null)
     val globalPreroll = s.livePrerollSecs.pref(0)
     val globalSoftware = s.softwareAudio.pref(false)
+    val globalSdr = s.preferSdr.pref(false)
     val globalAudioDelay = s.audioDelayMs.pref(0)
     val profileId = s.activeProfileId.pref(-1L)
     val rememberedDelay by produceState<Int?>(null, channel.id, profileId) {
@@ -155,6 +156,7 @@ private fun ChannelOptionsEditor(channel: ChannelEntity, initial: ChannelPlaybac
         }
         item { Text(stringResource(R.string.own_compat_hint)) }
         settingsGroup("channel-hls") {
+            OptionalFlag(R.string.own_prefer_sdr, draft.preferSdr, globalSdr, false) { draft = draft.copy(preferSdr = it) }
             OptionalFlag(R.string.own_hls_boundaries, draft.hlsDetectAccessUnits, false, false) { draft = draft.copy(hlsDetectAccessUnits = it) }
             OptionalFlag(R.string.own_hls_keyframes, draft.hlsAllowNonIdrKeyframes, false, false) { draft = draft.copy(hlsAllowNonIdrKeyframes = it) }
             OptionalFlag(R.string.own_hls_segments, draft.hlsPrepareFromSegments, false, false) { draft = draft.copy(hlsPrepareFromSegments = it) }
@@ -177,7 +179,7 @@ private fun OptionalFlag(titleRes: Int, value: Boolean?, inherited: Boolean, aud
     var open by remember { mutableStateOf(false) }
     val inherit = stringResource(R.string.own_inherit)
     val yes = stringResource(if (audio) R.string.own_software_audio else R.string.own_enabled)
-    val no = stringResource(if (audio) R.string.own_hardware else R.string.own_disabled)
+    val no = stringResource(if (audio) R.string.own_auto else R.string.own_disabled)
     SettingRow(title = stringResource(titleRes), value = value?.let { if (it) yes else no }
         ?: stringResource(R.string.own_inherited_value, if (inherited) yes else no, stringResource(R.string.own_global_origin)), onClick = { open = true })
     if (open) SettingsChoiceSheet(title = stringResource(titleRes), choices = listOf(SettingsChoice<Boolean?>(null, inherit), SettingsChoice<Boolean?>(false, no), SettingsChoice<Boolean?>(true, yes)), selected = value, onSelect = onValue, onDismiss = { open = false })

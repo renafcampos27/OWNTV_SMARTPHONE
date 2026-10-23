@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.sp
 
 /**
  * Typography for a 30 cm viewing distance. The TV app's body text is 18 sp and its titles 28–32;
- * here body is 14, titles 20 and labels 11, per the mockup's token table.
+ * Stage uses 14.5 sp body text, 24 sp page titles and 11.5 sp labels.
  *
  * The user's font-size setting is not applied here — it scales the whole UI through
  * `LocalDensity.fontScale` in [MobileTheme], so a 120% choice grows text and the boxes around it
@@ -25,9 +25,9 @@ fun mobileTypography(fontFamily: FontFamily = FontFamily.SansSerif): Typography 
         headlineSmall = defaults.headlineSmall.copy(fontFamily = fontFamily),
         titleLarge = TextStyle(
             fontFamily = fontFamily,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 20.sp,
-            lineHeight = 26.sp,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 24.sp,
+            lineHeight = 32.sp,
         ),
         titleMedium = TextStyle(
             fontFamily = fontFamily,
@@ -49,8 +49,8 @@ fun mobileTypography(fontFamily: FontFamily = FontFamily.SansSerif): Typography 
         ),
         bodyMedium = TextStyle(
             fontFamily = fontFamily,
-            fontWeight = FontWeight.Normal,
-            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.5.sp,
             lineHeight = 20.sp,
         ),
         bodySmall = TextStyle(
@@ -74,8 +74,8 @@ fun mobileTypography(fontFamily: FontFamily = FontFamily.SansSerif): Typography 
         labelSmall = TextStyle(
             fontFamily = fontFamily,
             fontWeight = FontWeight.Medium,
-            fontSize = 11.sp,
-            lineHeight = 15.sp,
+            fontSize = 11.5.sp,
+            lineHeight = 16.sp,
         ),
     )
 }

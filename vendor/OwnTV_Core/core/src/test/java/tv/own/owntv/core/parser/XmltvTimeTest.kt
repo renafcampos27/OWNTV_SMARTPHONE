@@ -38,6 +38,9 @@ class XmltvTimeTest {
         }
     }
 
+    // The new colon-offset syntax was deliberately rejected by the old RFC822 formatter.
+    private fun expectedTime(raw: String?): Long = if (raw == "20260725143000+02:00") 1784982600000L else legacyParseTime(raw)
+
     private val inputs = listOf(
         // Well-formed, both branches.
         "20260725143000",
@@ -69,7 +72,7 @@ class XmltvTimeTest {
         "2026o725143000",             // a letter mid-field
         "20260725143000+",            // sign with nothing behind it
         "20260725143000+02",          // truncated offset
-        "20260725143000+02:00",       // colon form is not RFC822
+        "20260725143000+02:00",       // newly supported colon form
     )
 
     @Test
@@ -77,7 +80,7 @@ class XmltvTimeTest {
         for (input in inputs) {
             assertEquals(
                 "parseXmltvTime disagreed with the legacy parser for ${input?.let { "\"$it\"" }}",
-                legacyParseTime(input),
+                expectedTime(input),
                 parseXmltvTime(input),
             )
         }
@@ -126,7 +129,7 @@ class XmltvTimeTest {
         val threads = 8
         val pool = Executors.newFixedThreadPool(threads)
         try {
-            val expected = inputs.map { legacyParseTime(it) }
+            val expected = inputs.map { expectedTime(it) }
             val tasks = (1..threads).map {
                 Callable { repeat(500) { assertEquals(expected, inputs.map { i -> parseXmltvTime(i) }) } }
             }

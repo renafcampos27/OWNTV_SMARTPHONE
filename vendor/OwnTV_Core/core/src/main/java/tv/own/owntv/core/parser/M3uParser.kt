@@ -37,6 +37,7 @@ data class M3uEntry(
      *  [tv.own.owntv.core.player.ManifestType]. Independent of [drm]: an unprotected entry may declare
      *  one too. Null when the entry says nothing, which is the overwhelming majority. */
     val manifestType: tv.own.owntv.core.player.ManifestType? = null,
+    val catchupCorrectionMin: Int = 0,
 ) {
     /** Tagged as series content — per-episode entries like "Show S01E05" grouped into shows. */
     val isSeries: Boolean get() = type == "series" || tvgType == "series"
@@ -70,6 +71,7 @@ class M3uParser {
         var entries = 0
         val metrics = ParseMetrics()
         var header = M3uHeader(urlTvg = null)
+        var headerCorrectionMin = 0
         var pending: PendingExtInf? = null
         // Per-channel HTTP options arrive on their own lines BETWEEN the #EXTINF and the URL, so they
         // are collected separately and consumed by the URL line (F16).
@@ -94,6 +96,7 @@ class M3uParser {
 
                 line.startsWith("#EXTM3U") -> {
                     val attrs = parseAttrs(line)
+                    headerCorrectionMin = correctionMinutes(attrs.attr("catchup-correction")) ?: 0
                     header = M3uHeader(urlTvg = attrs.attr("url-tvg") ?: attrs.attr("x-tvg-url"))
                 }
 
@@ -112,6 +115,7 @@ class M3uParser {
                         catchup = attrs.attr("catchup") ?: attrs.attr("catchup-type"),
                         catchupSource = attrs.attr("catchup-source"),
                         catchupDays = attrs.attr("catchup-days")?.toIntOrNull(),
+                        catchupCorrectionMin = correctionMinutes(attrs.attr("catchup-correction")) ?: headerCorrectionMin,
                     )
                 }
 
@@ -160,6 +164,7 @@ class M3uParser {
                                     catchup = p.catchup,
                                     catchupSource = p.catchupSource,
                                     catchupDays = p.catchupDays,
+                                    catchupCorrectionMin = p.catchupCorrectionMin,
                                     headers = pendingHeaders ?: emptyMap(),
                                     drm = pendingKodiProps?.let { tv.own.owntv.core.drm.DrmConfig.fromKodiProps(it) },
                                     manifestType = pendingKodiProps?.let {
@@ -216,7 +221,12 @@ class M3uParser {
         val catchup: String?,
         val catchupSource: String?,
         val catchupDays: Int?,
+        val catchupCorrectionMin: Int,
     )
+
+    /** Provider correction is hours; reject non-finite/out-of-range values rather than overflow. */
+    private fun correctionMinutes(hours: String?): Int? = hours?.trim()?.toDoubleOrNull()
+        ?.takeIf { it.isFinite() && it in -24.0..24.0 }?.let { Math.round(it * 60).toInt() }
 
     private data class ParseMetrics(
         var parseOrReadMs: Long = 0L,

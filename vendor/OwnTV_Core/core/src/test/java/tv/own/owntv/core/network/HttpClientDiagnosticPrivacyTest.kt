@@ -12,6 +12,23 @@ import java.net.InetAddress
 import java.net.ServerSocket
 
 class HttpClientDiagnosticPrivacyTest {
+    @Test fun `reused redaction patterns preserve masking for live archive and embedded credentials`() {
+        val urls = listOf(
+            "https://edge.invalid/live/alice/private-pass/1.m3u8?token=private-token&mode=hls",
+            "https://viewer:private-basic@edge.invalid/timeshift/alice/private-pass/60/date/1.ts?SIGNATURE=private-signature&mode=hls",
+        )
+        for (url in urls) {
+            repeat(3) {
+                val redacted = HttpClient.redactUrl(url)
+                assertFalse(redacted.contains("alice"))
+                assertFalse(redacted.contains("private-"))
+                assertFalse(redacted.contains("viewer"))
+                assertTrue(redacted.contains("edge.invalid"))
+                assertTrue(redacted.contains("mode=hls"))
+            }
+        }
+    }
+
     @Test fun `unknown response encoding values cannot inject private diagnostic data`() {
         assertEquals("gzip,chunked", HttpClient.diagnosticEncoding("GZIP, chunked"))
         assertEquals("other", HttpClient.diagnosticEncoding("private-token=https://user:secret@host"))

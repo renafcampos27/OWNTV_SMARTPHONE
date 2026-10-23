@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-23",
+  "scope": "C:\\Users\\renat\\Downloads\\OwnTV_Mobile-main\\OwnTV_Mobile-main",
+  "subphases": [
+    "4.2",
+    "4.3",
+    "4.4",
+    "4.5",
+    "4.6",
+    "4.7"
+  ],
+  "build": "BUILD SUCCESSFUL",
+  "elapsedSeconds": 51,
+  "log": "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-111-phase4-rest-verified-20261023.log",
+  "jvm": {
+    "mobile": {
+      "tests": 119,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "core": {
+      "tests": 1198,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "player": {
+      "tests": 526,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "newJvmTests": 23,
+  "lintVital": "No issues found",
+  "androidBackupContract": "compiled, not executed",
+  "snapshot": "C:\\Users\\renat\\AppData\\Local\\Temp\\owntv-mobile-before-phase4-rest-111-20261023",
+  "snapshotInputs": 1468,
+  "protectedUnchanged": 67,
+  "changedExisting": {
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\live\\LiveTuner.kt": "7877ce31263b720e1ae4e22e92ed5e23211aa4c6cc9dac8e3812898283861982",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\BackupViewModel.kt": "39fa2e5d842f2ba7001c565a3e24c74a12aec850657414756b59c986fc9ea5fd",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsBackupPage.kt": "1030a7f86784b928cefeed6549b136adf0190b64054b05bab8cd5760347ce721",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsChannelPlaybackPage.kt": "327bf30ab048d2e9a4687dadd600af702658612a2a962a0175ac049d9c00bb1f",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsPlaybackPage.kt": "dbdb2e7429633db70d5cdd3aebd349d855c63740082b7c30ed8c70ac8b446016",
+    "app\\src\\main\\java\\tv\\own\\owntv\\mobile\\ui\\screens\\settings\\SettingsSearch.kt": "1fa99497d65d0b659352739d354feb7bc22ba96ef0d8c45fced076e2b4588137",
+    "docs\\ANALISE_MOBILE_1_1_1_CORE_1_0_69_2026_10_23.md": "3716e7646f998285c95adaf3bd449fe1aee1a7d2ceee0625e3178e4f6b9180f3",
+    "docs\\ATUALIZACOES_OWNCORE_PENDENTES_DE_IMPLEMENTACAO.md": "098e00e7b70948c5b7b40893d92313eba9888e20d75510374d5a60edc47256cf",
+    "docs\\IMPLEMENTACAO_MOBILE_1_1_1_SUBFASE_4_1_2026_10_23.md": "6a7cb1c65f80bd1ae2384c61cfbf6a4f6f8bd85d6faf2edb91f811ccbf7aa648",
+    "vendor\\OwnTV_Core\\core\\src\\androidTest\\java\\tv\\own\\owntv\\core\\backup\\SettingsBackupContractTest.kt": "1b46b5b6e2ad69e8a9e635da1448b5c8986e046842906a4d6d0af3e1dd1d728b",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\backup\\BackupManager.kt": "67598948cd6fdb18fdcad3e43580030d82d751e13090ca70775f36a6deb67322",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\settings\\ChannelPlaybackConfig.kt": "f9573c2aa8fe0182232ce1718e78d9974599e37a1faf808f14cd0666aa5c83da",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\settings\\SettingsRepository.kt": "14c5019e2e5907d33217a6709e0bfb9c5fc419f676911b9aa7a0e2567622bf77",
+    "vendor\\OwnTV_Core\\core\\src\\test\\java\\tv\\own\\owntv\\core\\settings\\ChannelPlaybackConfigTest.kt": "9bc6e5b242ef122bfdc4985683289f13a2a21b481a92c1852f4eb6e5e25fc792",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\AudioOutputPolicy.kt": "fbc947c976bf53bae05e77d01f37af62ded6b2c6197e3ab09acddd154ef0ce55",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\ExoSubtitleEngine.kt": "c60ba1daafb228931270f4c2708181975c0a7581a076f2f9083dfe728ca0690a",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\LiveEngines.kt": "77eac0f99965f83234ae67370e4c76add9339b6bd1bc6d0ed1fc47946a5f0000",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\LivePreviewEngine.kt": "a1a30302ecf9b6690cf00b12894150e0fcac29e4fd6662ca6e1e545cd0e3aaef",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\OwnTVPlayer.kt": "49f7e5514a83ebba9355869062581cbbe13aecaba585d52282f506b5c88c9c5b",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\PlaybackSettings.kt": "9d9daa94386194c9d33af797b6b31ae33c478b729bedaa0ab1118a1eba2c3a2a",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\StreamInfo.kt": "7d5075ef2ee91aea793a0d4e98c2371dc31f5e5a184515127a2e93e80a6d8336",
+    "vendor\\OwnTV_Core\\tools\\i18n\\safe_literals.txt": "77a185ac8169de62c22e57a68fd6f024a4eb6ddfa205a6bc23e0d5f2a5d58e6e"
+  },
+  "newFiles": {
+    "app\\src\\main\\res\\values\\own_advanced_playback.xml": "f39d6e6ce678cd8b6fef94cde69994bfbf3dcad8aabbc3b36330b527d3a07e7d",
+    "vendor\\OwnTV_Core\\core\\src\\test\\java\\tv\\own\\owntv\\core\\player\\OutputAudioDelaysTest.kt": "a1c000358ec33f3ec2f4fefe593f957e4cf31592889ed3b1bec6d131b81bb690",
+    "vendor\\OwnTV_Core\\core\\src\\main\\res\\values\\own_advanced_playback.xml": "d69004568c347a29a6456640a43f078a3e49b83b135712285fce26b84d93bde0",
+    "vendor\\OwnTV_Core\\core\\src\\main\\java\\tv\\own\\owntv\\core\\player\\OutputAudioDelays.kt": "e3454417b3404f2683df1e6c2c142342501b618ec0908cae4b80498f3f3fce78",
+    "vendor\\OwnTV_Core\\player-core\\src\\test\\java\\tv\\own\\owntv\\player\\PtsFrameRateTest.kt": "41f1d50291357be950d15fd472d161d1d42d4e100b56fdccfe5130e2e3ab2050",
+    "vendor\\OwnTV_Core\\player-core\\src\\test\\java\\tv\\own\\owntv\\player\\SdrVariantsTest.kt": "775d09aa7b922338580e175b15c1ff2ec7903a5a64a074626a6b21df410cbbad",
+    "vendor\\OwnTV_Core\\player-core\\src\\test\\java\\tv\\own\\owntv\\player\\VideoFrameHealthTest.kt": "c2d37c2aa05540485680d968feb4bf8ebf1b8a909ff40507828ec70a1bd2d211",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\AudioOutputRoute.kt": "191fc1e52872472e97e24fdc9c7d8dd99a16fdf1c93aae90472d785ea4bc3faa",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\PtsFrameRate.kt": "14b65e6582c406801642a762ac00e026f83f43a0ff9dfe6aa8ec02cc52b9dd88",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\SdrHlsRouting.kt": "2a66770b4129d750773b86b24a82072a902f436b22f9b6b0e1a1274402041551",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\SdrVariants.kt": "cdb5719ec26f6d7da115c9ef256dd39ed6ebb1dd68b029cece08d8fa3591eb70",
+    "vendor\\OwnTV_Core\\player-core\\src\\main\\java\\tv\\own\\owntv\\player\\VideoFrameHealth.kt": "e26fa5e85186a49061f2d2f709823f9bee0b641d3032361b15125f15c8f95725",
+    "docs\\IMPLEMENTACAO_MOBILE_1_1_1_SUBFASES_4_2_A_4_7_2026_10_23.md": "6f44abd27363a3ba4b38c2b5248a40d89fbcdb257ff8f2a3387fdddf17f0f296"
+  },
+  "schema": 52,
+  "media3": "1.11.1",
+  "libmpv": "2026.10.4",
+  "defaults": {
+    "outputDelaysMs": 0,
+    "preferSdr": false,
+    "videoDegradationRecovery": false,
+    "volumePercent": 100
+  },
+  "physicalValidation": "pending; no adb devices",
+  "apkGenerated": false,
+  "televisionOrExternalCoreEdited": false
+}

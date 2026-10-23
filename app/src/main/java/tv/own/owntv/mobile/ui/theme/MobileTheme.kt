@@ -81,6 +81,7 @@ fun MobileTheme(
         LocalAnimations provides animations,
         LocalAccentOnVideo provides accentOnVideo(accent, customAccent),
         LocalSurfaceTones provides mobileSurfaceTones(isDark),
+        tv.own.owntv.mobile.ui.stage.LocalStagePalette provides if (isDark) tv.own.owntv.mobile.ui.stage.StagePalette.Dark else tv.own.owntv.mobile.ui.stage.StagePalette.Light,
         LocalMobileMotion provides remember(animations) { MobileMotion(animations) },
     ) {
         val colors = mobileColorScheme(isDark, accent, customAccent)

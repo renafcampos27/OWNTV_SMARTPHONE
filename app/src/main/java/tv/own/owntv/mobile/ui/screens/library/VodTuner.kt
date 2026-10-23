@@ -197,10 +197,7 @@ class VodTuner(
             }
         }
         scope.launch {
-            while (true) {
-                delay(PROGRESS_INTERVAL_MS)
-                saveProgress()
-            }
+            saveResumeWhileActive(_playing, wait = { delay(PROGRESS_INTERVAL_MS) }, save = ::saveProgress)
         }
     }
 
